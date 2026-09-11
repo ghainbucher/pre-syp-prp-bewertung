@@ -1,0 +1,671 @@
+/*
+ * PRE/SYP-PRP-Bewertung – Gestaltung
+ *
+ * Keine CSS-Bibliothek und keine externen Schriften: Die Anwendung muss auch
+ * ohne Internetverbindung vollständig funktionieren (NFA-04) und die Kontraste
+ * müssen in beiden Farbschemata kontrollierbar bleiben (NFA-08).
+ * Alle Farben sind als Custom Properties definiert und werden für das dunkle
+ * Schema neu belegt – nie direkt in einer Media Query gesetzt.
+ */
+
+:root {
+  --font-ui: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-body: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --font-mono: 'Cascadia Mono', Consolas, 'SF Mono', ui-monospace, monospace;
+
+  --grund: #f6f5f1;
+  --flaeche: #ffffff;
+  --flaeche-2: #efeee8;
+  --schrift: #1b1a17;
+  --schrift-2: #4a483f;
+  --gedaempft: #6f6c62;
+  --linie: #dddbd1;
+  --linie-stark: #bfbcaf;
+  --akzent: #9c3f27;
+  --akzent-tief: #85341f;
+  --auf-akzent: #ffffff;
+  --gut: #35684a;
+  --gut-flaeche: #e2ede5;
+  --achtung: #855a0c;
+  --achtung-flaeche: #f5ead5;
+  --schlecht: #932c22;
+  --schlecht-flaeche: #f6e0dc;
+  --radius: 6px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --grund: #141311;
+    --flaeche: #1d1c19;
+    --flaeche-2: #26241f;
+    --schrift: #edeae1;
+    --schrift-2: #c6c2b6;
+    --gedaempft: #9b9689;
+    --linie: #33302a;
+    --linie-stark: #4b473d;
+    --akzent: #e07a55;
+    --akzent-tief: #f0977a;
+    --auf-akzent: #20120c;
+    --gut: #85c297;
+    --gut-flaeche: #1e2a21;
+    --achtung: #dcb15c;
+    --achtung-flaeche: #2c2416;
+    --schlecht: #e88b7d;
+    --schlecht-flaeche: #33201c;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --grund: #141311;
+  --flaeche: #1d1c19;
+  --flaeche-2: #26241f;
+  --schrift: #edeae1;
+  --schrift-2: #c6c2b6;
+  --gedaempft: #9b9689;
+  --linie: #33302a;
+  --linie-stark: #4b473d;
+  --akzent: #e07a55;
+  --akzent-tief: #f0977a;
+  --auf-akzent: #20120c;
+  --gut: #85c297;
+  --gut-flaeche: #1e2a21;
+  --achtung: #dcb15c;
+  --achtung-flaeche: #2c2416;
+  --schlecht: #e88b7d;
+  --schlecht-flaeche: #33201c;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--grund);
+  color: var(--schrift);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-ui);
+  margin: 0;
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.rahmen {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ------------------------------------------------------------------ Kopf */
+
+.kopfleiste {
+  border-bottom: 1px solid var(--linie);
+  background: var(--flaeche);
+}
+
+.kopfleiste .rahmen {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 60px;
+  flex-wrap: wrap;
+}
+
+.marke {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.marke .zeichen {
+  width: 9px;
+  height: 9px;
+  background: var(--akzent);
+  transform: rotate(45deg);
+  border-radius: 1px;
+}
+
+.marke small {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--gedaempft);
+  letter-spacing: 0;
+}
+
+.dehnen {
+  flex: 1;
+}
+
+.zustand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gedaempft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.zustand .punkt {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gut);
+}
+
+.zustand.warnend .punkt {
+  background: var(--achtung);
+}
+
+/* ---------------------------------------------------------------- Reiter */
+
+.reiter {
+  border-bottom: 1px solid var(--linie);
+  background: var(--flaeche);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.reiter .rahmen {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.reiter button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 11px 14px;
+  cursor: pointer;
+  color: var(--gedaempft);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reiter button:hover {
+  color: var(--schrift);
+}
+
+.reiter button[aria-current='true'] {
+  color: var(--schrift);
+  border-bottom-color: var(--akzent);
+}
+
+.reiter .nr {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gedaempft);
+  margin-right: 6px;
+}
+
+main {
+  padding: 26px 0 70px;
+}
+
+.ansichtskopf {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.ansichtskopf h2 {
+  font-size: 22px;
+}
+
+.ansichtskopf p {
+  margin: 2px 0 0;
+  color: var(--gedaempft);
+  font-size: 14px;
+  max-width: 62ch;
+}
+
+.zweispaltig {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 22px;
+  align-items: start;
+}
+
+@media (max-width: 920px) {
+  .zweispaltig {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- Karten */
+
+.karte {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  margin-bottom: 18px;
+}
+
+.karte > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--linie);
+  flex-wrap: wrap;
+}
+
+.karte > header h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.karte > header .hinweis {
+  color: var(--gedaempft);
+  font-size: 13px;
+}
+
+.karte .inhalt {
+  padding: 14px 16px;
+}
+
+.karte .inhalt.bündig {
+  padding: 0;
+}
+
+.etikett {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+}
+
+/* -------------------------------------------------------------- Auswahl */
+
+.auswahlzeile {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.chip {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  padding: 5px 13px;
+  cursor: pointer;
+  color: var(--schrift-2);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.chip:hover {
+  border-color: var(--linie-stark);
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--schrift);
+  border-color: var(--schrift);
+  color: var(--grund);
+}
+
+.chip .index {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* -------------------------------------------------------------- Tabellen */
+
+.tabellenrahmen {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--linie);
+  vertical-align: middle;
+}
+
+thead th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--flaeche-2);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+td.zahl,
+th.zahl {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kriterium {
+  display: block;
+  font-weight: 600;
+}
+
+.kriterium + .erlaeuterung {
+  display: block;
+  color: var(--gedaempft);
+  font-size: 13px;
+  line-height: 1.35;
+  margin-top: 1px;
+  max-width: 56ch;
+}
+
+.maximum {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--gedaempft);
+}
+
+input[type='number'],
+input[type='text'],
+input[type='date'],
+select,
+textarea {
+  background: var(--flaeche);
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+
+input[type='number'] {
+  width: 74px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+input[type='number'].schmal {
+  width: 58px;
+}
+
+input[type='text'] {
+  min-width: 120px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 62px;
+  resize: vertical;
+}
+
+/* ----------------------------------------------------- Anzeigebausteine */
+
+.balken {
+  height: 5px;
+  background: var(--flaeche-2);
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 70px;
+}
+
+.balken i {
+  display: block;
+  height: 100%;
+  background: var(--akzent);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .balken i {
+    transition: width 0.25s ease;
+  }
+}
+
+.note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+/* Die Note steht als Ziffer in der Fläche – Farbe ist nur Verstärkung (NFA-08). */
+.note-1,
+.note-2 {
+  background: var(--gut-flaeche);
+  color: var(--gut);
+  border-color: var(--gut);
+}
+
+.note-3 {
+  background: var(--flaeche-2);
+  color: var(--schrift-2);
+  border-color: var(--linie-stark);
+}
+
+.note-4 {
+  background: var(--achtung-flaeche);
+  color: var(--achtung);
+  border-color: var(--achtung);
+}
+
+.note-5 {
+  background: var(--schlecht-flaeche);
+  color: var(--schlecht);
+  border-color: var(--schlecht);
+}
+
+.note-leer {
+  background: transparent;
+  color: var(--gedaempft);
+  border-color: var(--linie);
+}
+
+.prozent {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ Seitenteil */
+
+.seite {
+  position: sticky;
+  top: 60px;
+}
+
+.uebersicht {
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  background: var(--flaeche);
+  overflow: hidden;
+}
+
+.uebersicht h3 {
+  font-size: 14px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--linie);
+  font-weight: 600;
+}
+
+.uebersichtszeile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--linie);
+}
+
+.uebersichtszeile:last-child {
+  border-bottom: 0;
+}
+
+.uebersichtszeile .bezeichnung {
+  flex: 1;
+  min-width: 0;
+}
+
+.uebersichtszeile .bezeichnung b {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uebersichtszeile .bezeichnung span {
+  display: block;
+  color: var(--gedaempft);
+  font-size: 12px;
+}
+
+.uebersichtszeile.summe {
+  background: var(--flaeche-2);
+}
+
+/* -------------------------------------------------------------- Schalter */
+
+.schalter {
+  background: var(--flaeche);
+  border: 1px solid var(--linie-stark);
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.schalter:hover {
+  border-color: var(--schrift-2);
+}
+
+.schalter.haupt {
+  background: var(--akzent);
+  border-color: var(--akzent);
+  color: var(--auf-akzent);
+}
+
+.schalter.haupt:hover {
+  background: var(--akzent-tief);
+  border-color: var(--akzent-tief);
+}
+
+.schalter.klein {
+  padding: 3px 9px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.schalter.schlicht {
+  border: 0;
+  background: none;
+  color: var(--gedaempft);
+  padding: 3px 6px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.schalter.schlicht:hover {
+  color: var(--akzent);
+}
+
+.schalter.gefahr {
+  color: var(--schlecht);
+  border-color: var(--schlecht);
+  background: var(--schlecht-flaeche);
+}
+
+.zeile {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.leer {
+  padding: 26px 16px;
+  text-align: center;
+  color: var(--gedaempft);
+}
+
+.anmerkung {
+  color: var(--gedaempft);
+  font-size: 13px;
+}
+
+.meldung {
+  border: 1px solid var(--achtung);
+  background: var(--achtung-flaeche);
+  color: var(--achtung);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+.fusszeile {
+  border-top: 1px solid var(--linie);
+  padding: 18px 0;
+  color: var(--gedaempft);
+  font-size: 13px;
+}

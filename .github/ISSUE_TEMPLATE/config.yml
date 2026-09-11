@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Anforderung ändern
+    url: https://github.com/OWNER/pre-syp-prp-bewertung/blob/main/docs/anforderungs-und-loesungsmanagement.md
+    about: Eine Anforderung wird im Dokument geändert, nicht im Issue – siehe Kapitel 8.

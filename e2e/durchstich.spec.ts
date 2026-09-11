@@ -1,0 +1,136 @@
+import { expect, test, type Page } from '@playwright/test';
+
+/**
+ * Durchstiche durch die Anwendung (Teststrategie, Solution Design Kap. 8).
+ *
+ * Die Reiter werden immer über die Navigationsleiste angesprochen: Die
+ * Leeransicht enthält einen Schalter mit demselben Text, und Playwright
+ * verlangt eindeutige Treffer.
+ */
+
+function reiter(seite: Page, name: string) {
+  return seite.locator('nav.reiter').getByRole('button', { name });
+}
+
+async function grunddatenAnlegen(seite: Page) {
+  await reiter(seite, 'Klassen & Teams').click();
+
+  await seite.getByLabel('Neue Klasse').fill('4AHIF');
+  await seite.getByRole('button', { name: 'Klasse anlegen' }).click();
+
+  await seite.getByLabel('Neues Team').fill('Team Kepler');
+  await seite.getByRole('button', { name: 'Team hinzufügen' }).click();
+
+  await seite.getByLabel('Neue Schülerinnen und Schüler').fill('Berger Lena, Steiner Jonas');
+  await seite.getByLabel('Team für neue Einträge').selectOption({ label: 'Team Kepler' });
+  await seite.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
+
+  await seite.getByLabel('Neuer Sprint').fill('Sprint 1');
+  await seite.getByRole('button', { name: 'Sprint hinzufügen' }).click();
+}
+
+/** Team-Ergebnis vollständig mit der Höchstpunktezahl bewerten. */
+async function teamErgebnisVollBewerten(seite: Page) {
+  const punkte: Array<[string, string]> = [
+    ['Funktionalität', '10'],
+    ['Code-Qualität', '10'],
+    ['Tests', '8'],
+    ['Dokumentation', '6'],
+    ['Versionsverwaltung', '6'],
+    ['Sprint Review', '5'],
+  ];
+  for (const [kriterium, wert] of punkte) {
+    await seite.getByLabel(kriterium, { exact: true }).fill(wert);
+  }
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+});
+
+test('führt von der Klasse bis zur Note (FA-01 bis FA-04, FA-12, FA-18, FA-28)', async ({ page }) => {
+  await grunddatenAnlegen(page);
+
+  await reiter(page, 'Bewerten').click();
+  await expect(page.getByRole('heading', { level: 2, name: /Sprint 1/ })).toBeVisible();
+
+  await teamErgebnisVollBewerten(page);
+  await expect(page.getByText('100 %').first()).toBeVisible();
+
+  await reiter(page, 'Auswertung').click();
+  await expect(page.getByRole('cell', { name: 'Berger Lena' })).toBeVisible();
+  // Nur das Team-Ergebnis ist erfasst; es gilt für alle Mitglieder.
+  await expect(page.getByText('100,0 %').first()).toBeVisible();
+});
+
+test('zeigt Teamvergleich und Notenverteilung (FA-29, FA-30)', async ({ page }) => {
+  await grunddatenAnlegen(page);
+  await reiter(page, 'Bewerten').click();
+  await teamErgebnisVollBewerten(page);
+
+  await reiter(page, 'Auswertung').click();
+
+  const teamvergleich = page.getByRole('heading', { name: 'Teams im Vergleich' });
+  await expect(teamvergleich).toBeVisible();
+  const vergleichskarte = page
+    .locator('section.karte')
+    .filter({ has: page.getByRole('heading', { name: 'Teams im Vergleich' }) });
+  await expect(vergleichskarte.getByRole('cell', { name: 'Team Kepler' })).toBeVisible();
+
+  const verteilung = page.getByRole('heading', { name: 'Notenverteilung' });
+  await expect(verteilung).toBeVisible();
+  // Beide Personen haben 100 % und damit Note 1.
+  await expect(page.getByText('Sehr gut')).toBeVisible();
+});
+
+test('gliedert die Anwendung in vier deutschsprachige Bereiche (FA-34, FA-37)', async ({ page }) => {
+  for (const bereich of ['Bewerten', 'Auswertung', 'Klassen & Teams', 'Rubrik & Notenschlüssel']) {
+    await expect(reiter(page, bereich)).toBeVisible();
+  }
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+});
+
+test('verlangt für das Löschen eine zweite Bestätigung (FA-36)', async ({ page }) => {
+  await grunddatenAnlegen(page);
+
+  const loeschen = page.getByRole('button', { name: 'Team löschen' });
+  await loeschen.click();
+
+  // Erster Klick schärft nur – das Team ist noch da.
+  await expect(page.getByRole('button', { name: 'wirklich?' })).toBeVisible();
+  await expect(page.getByLabel('Teamname')).toHaveValue('Team Kepler');
+
+  // Zweiter Klick löscht.
+  await page.getByRole('button', { name: 'wirklich?' }).click();
+  await expect(page.getByLabel('Teamname')).toHaveCount(0);
+});
+
+test('behält die Daten nach dem Neuladen (FA-19, FA-35)', async ({ page }) => {
+  await grunddatenAnlegen(page);
+  // Bewusst ohne Wartezeit: Das Speichern ist um 400 ms entprellt, das Neuladen
+  // erfolgt früher. Der Test prüft damit zugleich, dass beim Verlassen der Seite
+  // sofort geschrieben wird – sonst wäre die letzte Eingabe verloren (R-01).
+  await page.reload();
+
+  await expect(page.getByLabel('Klasse', { exact: true })).toHaveValue(/.+/);
+  await reiter(page, 'Klassen & Teams').click();
+  await expect(page.getByLabel('Teamname')).toHaveValue('Team Kepler');
+});
+
+test('überträgt keine Daten an einen Server (NFA-03, DS-02)', async ({ page }) => {
+  const fremdeAufrufe: string[] = [];
+  page.on('request', (anfrage) => {
+    const url = new URL(anfrage.url());
+    if (url.hostname !== 'localhost' && url.protocol !== 'data:' && url.protocol !== 'blob:') {
+      fremdeAufrufe.push(anfrage.url());
+    }
+  });
+
+  await grunddatenAnlegen(page);
+  await reiter(page, 'Bewerten').click();
+  await page.getByLabel('Funktionalität', { exact: true }).fill('7');
+
+  expect(fremdeAufrufe).toEqual([]);
+});

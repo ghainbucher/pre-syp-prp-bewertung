@@ -1,0 +1,44 @@
+name: Anforderung umsetzen
+description: Arbeitspaket zu einer Anforderung aus docs/anforderungen.md
+title: "FA-  "
+labels: ["anforderung"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Der Story-Text steht im Anforderungsdokument, nicht hier.
+        Dieses Issue ist das **Arbeitspaket** dazu.
+  - type: input
+    id: anforderung
+    attributes:
+      label: Anforderungs-ID
+      description: Die ID aus docs/anforderungen.md, zum Beispiel FA-32.
+      placeholder: FA-32
+    validations:
+      required: true
+  - type: input
+    id: verweis
+    attributes:
+      label: Verweis
+      description: Link auf den Abschnitt im Anforderungsdokument.
+      placeholder: docs/anforderungen.md#fa-32-bewertungsbegründung-je-person
+    validations:
+      required: true
+  - type: textarea
+    id: aufgaben
+    attributes:
+      label: Aufgaben
+      description: Nur die Nummern der Akzeptanzkriterien – nicht ihren Text.
+      value: |
+        - [ ] AK-1
+        - [ ] AK-2
+        - [ ] Test mit Anforderungs-ID im Namen
+        - [ ] Changelog-Eintrag unter „Unveröffentlicht"
+        - [ ] Solution Design nachgezogen, falls die Umsetzung abweicht
+    validations:
+      required: true
+  - type: textarea
+    id: anmerkungen
+    attributes:
+      label: Anmerkungen
+      description: Offene Fragen, Abhängigkeiten, betroffene Module.
