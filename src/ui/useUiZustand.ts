@@ -1,5 +1,6 @@
 /**
- * Oberflächenzustand: gewählte Ansicht, Klasse, Sprint, Team, Bewertende Person.
+ * Oberflächenzustand: gewählte Ansicht, Klasse, Abschnitt, Team, bewertende
+ * Person und die zur Bearbeitung geöffnete Rubrik.
  *
  * Wird getrennt vom Datenbestand gehalten und im localStorage abgelegt, damit
  * die Anwendung dort weitermacht, wo zuletzt gearbeitet wurde (FA-35).
@@ -12,19 +13,26 @@ export type Ansicht = 'bewerten' | 'auswertung' | 'struktur' | 'rubrik';
 export interface UiZustand {
   ansicht: Ansicht;
   klasseId: string | null;
-  sprintId: string | null;
+  /** Gewählter Beurteilungsabschnitt – Sprint, Diplomarbeit oder Test. */
+  abschnittId: string | null;
   teamId: string | null;
   bewerterId: string | null;
+  /** In der Rubrikansicht geöffnete Rubrik (FA-55). */
+  rubrikId: string | null;
 }
 
-const SCHLUESSEL = 'pre-syp-prp.ui.v1';
+// Stand 2: Bis dahin hieß der gewählte Abschnitt „sprintId“. Ein neuer
+// Schlüssel ist einfacher als eine Migration eines Zustands, der sich in
+// Sekunden wiederherstellt.
+const SCHLUESSEL = 'pre-syp-prp.ui.v2';
 
 const START: UiZustand = {
   ansicht: 'bewerten',
   klasseId: null,
-  sprintId: null,
+  abschnittId: null,
   teamId: null,
   bewerterId: null,
+  rubrikId: null,
 };
 
 function gelesen(): UiZustand {

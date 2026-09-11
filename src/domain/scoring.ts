@@ -2,12 +2,18 @@
  * Berechnung von Prozentwerten und Noten.
  *
  * Reine Funktionen ohne Zustand und ohne Seiteneffekte – siehe
- * docs/solution-design.md, Abschnitt 6. Umsetzung von FA-21 bis FA-25.
+ * docs/solution-design.md, Abschnitt 6. Umsetzung von FA-21 bis FA-25 und
+ * FA-59 (zwei Stränge).
  */
 
 import type {
+  Abschnitt,
+  AbschnittMitErgebnis,
+  Abschnittsergebnis,
   Bewertung,
+  Datenbestand,
   Gesamtergebnis,
+  Id,
   Kategorieergebnis,
   Kriterium,
   Notenstufe,
@@ -15,9 +21,10 @@ import type {
   Person,
   Punkte,
   Rubrik,
-  Sprint,
-  Sprintergebnis,
+  Strang,
+  Strangergebnis,
 } from './types';
+import { abschnitteVon, mitgliederIn, rubrikVon, teamIn } from './zuordnung';
 
 export const PEER_MIN = 1;
 export const PEER_MAX = 5;
@@ -90,7 +97,7 @@ export function peerWertInProzent(wert: number): number {
  */
 export function peerErgebnis(
   bewertung: Bewertung | undefined,
-  personId: string,
+  personId: Id,
   teammitglieder: Person[],
   rubrik: Rubrik,
 ): Peerergebnis | null {
@@ -98,7 +105,7 @@ export function peerErgebnis(
 
   let summe = 0;
   let anzahlUrteile = 0;
-  const bewertende = new Set<string>();
+  const bewertende = new Set<Id>();
 
   for (const mitglied of teammitglieder) {
     if (!rubrik.selbstZaehlt && mitglied.id === personId) continue;
@@ -120,7 +127,7 @@ export function peerErgebnis(
 /** Selbsteinschätzung einer Person in Prozent, unabhängig von `selbstZaehlt`. */
 export function selbstEinschaetzung(
   bewertung: Bewertung | undefined,
-  personId: string,
+  personId: Id,
   rubrik: Rubrik,
 ): number | null {
   const urteil = bewertung?.peer?.[personId]?.[personId];
@@ -137,25 +144,26 @@ export function selbstEinschaetzung(
 }
 
 /**
- * Ergebnis einer Person in einem Sprint (FA-23).
+ * Ergebnis einer Person in einem Abschnitt aus schon aufgelösten Bausteinen.
  *
- * Gewichtetes Mittel der vorhandenen Kategorieergebnisse. Kategorien ohne Daten
- * und Kategorien mit Gewicht 0 werden aus der Gewichtung herausgerechnet – sie
- * gelten nicht als 0 Prozent.
+ * Gewichtetes Mittel der vorhandenen Kategorieergebnisse. Kategorien ohne
+ * Daten und Kategorien mit Gewicht 0 werden aus der Gewichtung
+ * herausgerechnet – sie gelten nicht als 0 Prozent (ADR-004).
  */
-export function sprintErgebnis(
+export function ergebnisAusRubrik(
   bewertung: Bewertung | undefined,
   person: Person,
   teammitglieder: Person[],
   rubrik: Rubrik,
-): Sprintergebnis {
+  peerAktiv: boolean,
+): Abschnittsergebnis {
   const team = kategorieErgebnis(bewertung?.team, rubrik.team);
   const prozess = kategorieErgebnis(bewertung?.prozess, rubrik.prozess);
   const individuell = kategorieErgebnis(
     bewertung?.individuell?.[person.id]?.punkte,
     rubrik.individuell,
   );
-  const peer = peerErgebnis(bewertung, person.id, teammitglieder, rubrik);
+  const peer = peerAktiv ? peerErgebnis(bewertung, person.id, teammitglieder, rubrik) : null;
 
   const anteile: Array<{ schluessel: keyof typeof KATEGORIE_BEZEICHNUNG; prozent: number | null }> = [
     { schluessel: 'team', prozent: team?.prozent ?? null },
@@ -185,43 +193,96 @@ export function sprintErgebnis(
     prozess,
     individuell,
     peer,
-    selbst: selbstEinschaetzung(bewertung, person.id, rubrik),
+    selbst: peerAktiv ? selbstEinschaetzung(bewertung, person.id, rubrik) : null,
     fehlend,
   };
 }
 
 /**
- * Gesamtergebnis einer Person über alle Sprints (FA-24).
+ * Ergebnis einer Person in einem Abschnitt (FA-23).
  *
- * Gewichtet mit dem Sprintfaktor. Sprints ohne Ergebnis und Sprints mit
- * Faktor 0 bleiben unberücksichtigt.
+ * Löst Rubrik, Team und Teammitglieder aus dem Bestand auf – für einen Test
+ * ohne Team greift dabei der Schlüssel mit `null`.
  */
-export function gesamtErgebnis(
+export function abschnittsErgebnis(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
   person: Person,
-  sprints: Sprint[],
-  teammitglieder: Person[],
   bewertungen: Map<string, Bewertung>,
-  rubrik: Rubrik,
-): Gesamtergebnis {
+): Abschnittsergebnis {
+  const rubrik = rubrikVon(daten, abschnitt);
+  const teamId = abschnitt.art === 'test' ? null : teamIn(daten, abschnitt.id, person.id);
+  const bewertung = bewertungen.get(bewertungsSchluessel(abschnitt.id, teamId));
+  const mitglieder = mitgliederIn(daten, abschnitt.id, teamId);
+  return ergebnisAusRubrik(bewertung, person, mitglieder, rubrik, abschnitt.peerAktiv);
+}
+
+/** Mittelt Abschnittsergebnisse mit dem Faktor des jeweiligen Abschnitts. */
+function gewichtetesMittel(eintraege: AbschnittMitErgebnis[]): number | null {
   let gewichtssumme = 0;
   let summe = 0;
-  const proSprint: Gesamtergebnis['proSprint'] = [];
-
-  for (const sprint of sprints) {
-    const bewertung = person.teamId
-      ? bewertungen.get(bewertungsSchluessel(sprint.id, person.teamId))
-      : undefined;
-    const ergebnis = sprintErgebnis(bewertung, person, teammitglieder, rubrik);
-    proSprint.push({ sprint, ergebnis });
-
-    if (ergebnis.prozent === null) continue;
-    const faktor = istZahl(sprint.faktor) ? Math.max(0, sprint.faktor) : 1;
+  for (const eintrag of eintraege) {
+    if (eintrag.ergebnis.prozent === null) continue;
+    const faktor = istZahl(eintrag.abschnitt.faktor) ? Math.max(0, eintrag.abschnitt.faktor) : 1;
     if (faktor === 0) continue;
     gewichtssumme += faktor;
-    summe += faktor * ergebnis.prozent;
+    summe += faktor * eintrag.ergebnis.prozent;
+  }
+  return gewichtssumme > 0 ? summe / gewichtssumme : null;
+}
+
+/** Stand einer Person in einem Strang (FA-59 AK-2). */
+export function strangErgebnis(
+  daten: Datenbestand,
+  person: Person,
+  strang: Strang,
+  bewertungen: Map<string, Bewertung>,
+): Strangergebnis {
+  const abschnitte = abschnitteVon(daten, person.klasseId)
+    .filter((a) => a.strang === strang)
+    .map((abschnitt) => ({
+      abschnitt,
+      ergebnis: abschnittsErgebnis(daten, abschnitt, person, bewertungen),
+    }));
+  return { strang, prozent: gewichtetesMittel(abschnitte), abschnitte };
+}
+
+/**
+ * Gesamtstand einer Person (FA-24, FA-59 AK-3).
+ *
+ * Gewichtetes Mittel der beiden Strangstände, Vorgabe 75 zu 25. Ein Strang
+ * ohne jedes Ergebnis fällt aus der Gewichtung, statt als 0 zu zählen
+ * (FA-59 AK-5) – sonst zeigte die Anwendung im Oktober, wenn noch kein Test
+ * geschrieben wurde, einen um ein Viertel gedrückten Wert.
+ */
+export function gesamtErgebnis(
+  daten: Datenbestand,
+  person: Person,
+  bewertungen: Map<string, Bewertung>,
+): Gesamtergebnis {
+  const praxis = strangErgebnis(daten, person, 'praxis', bewertungen);
+  const theorie = strangErgebnis(daten, person, 'theorie', bewertungen);
+
+  let gewichtssumme = 0;
+  let summe = 0;
+  for (const strang of [praxis, theorie]) {
+    if (strang.prozent === null) continue;
+    const gewicht = Math.max(0, daten.strangGewichte[strang.strang] ?? 0);
+    if (gewicht === 0) continue;
+    gewichtssumme += gewicht;
+    summe += gewicht * strang.prozent;
   }
 
-  return { prozent: gewichtssumme > 0 ? summe / gewichtssumme : null, proSprint };
+  const alle = [...praxis.abschnitte, ...theorie.abschnitte].sort(
+    (a, b) => a.abschnitt.nummer - b.abschnitt.nummer,
+  );
+
+  return {
+    prozent: gewichtssumme > 0 ? summe / gewichtssumme : null,
+    praxis,
+    theorie,
+    alle,
+  };
 }
 
 /**
@@ -230,23 +291,29 @@ export function gesamtErgebnis(
  * Gibt zurück, in welche Richtung – oder `null`, wenn einer der beiden Werte
  * fehlt oder die Abweichung unter der Schwelle liegt.
  */
-export function selbstbildAbweichung(ergebnis: Sprintergebnis): 'hoeher' | 'niedriger' | null {
+export function selbstbildAbweichung(ergebnis: Abschnittsergebnis): 'hoeher' | 'niedriger' | null {
   if (ergebnis.selbst === null || ergebnis.peer === null) return null;
   const abstand = ergebnis.selbst - ergebnis.peer.prozent;
   if (Math.abs(abstand) < ABWEICHUNG_SCHWELLE) return null;
   return abstand > 0 ? 'hoeher' : 'niedriger';
 }
 
-/** Schlüssel einer Bewertung im Datenbestand. */
-export function bewertungsSchluessel(sprintId: string, teamId: string): string {
-  return `${sprintId}__${teamId}`;
+/**
+ * Schlüssel einer Bewertung im Datenbestand.
+ *
+ * `null` als Team steht für einen Abschnitt ohne Team – bei einem Test gibt es
+ * genau eine Bewertung je Abschnitt, in der die Punkte je Person liegen.
+ */
+export function bewertungsSchluessel(abschnittId: Id, teamId: Id | null): string {
+  return `${abschnittId}__${teamId ?? '-'}`;
 }
 
 /**
  * Note zu einem Prozentwert (FA-25).
  *
  * Es gilt die beste Note, deren untere Grenze erreicht ist. Ohne Prozentwert
- * gibt es keine Note.
+ * gibt es keine Note. Der Wert ist ein **Vorschlag** und wird nie gespeichert
+ * (G8, FA-25 AK-3).
  */
 export function note(prozent: number | null, notenschluessel: Notenstufe[]): number | null {
   if (prozent === null || !istZahl(prozent) || notenschluessel.length === 0) return null;

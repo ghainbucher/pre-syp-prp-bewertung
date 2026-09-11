@@ -1,33 +1,52 @@
 /**
- * Erfassungsmaske je Sprint und Team (FA-12 bis FA-19, FA-26).
+ * Erfassungsmaske je Abschnitt (FA-12 bis FA-19, FA-26, FA-52, FA-60).
+ *
+ * Zwei Formen, gesteuert von der Abschnittsart:
+ * - Sprint und Diplomarbeitsvorbereitung: teamweise Maske mit Team-,
+ *   Prozess-, Einzel- und – sofern eingeschaltet – Peer-Bewertung.
+ * - Test: eine Tabelle Person × Frage über die ganze Klasse, ohne Team
+ *   (FA-60 AK-3).
  */
 
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 
-import { kategorieErgebnis, selbstbildAbweichung, sprintErgebnis } from '../domain/scoring';
-import type { Bewertung, Kriterium, Person, Punkte, Rubrik } from '../domain/types';
-import { bewertungsIndex, type PunkteKategorie } from '../store/storeReducer';
-import { personenVon, sprintsVon, teamsVon } from '../ui/auswahl';
 import {
-  Karte,
-  LeerHinweis,
-  Notenzeichen,
-  Prozent,
-  Punktefeld,
-  Textfeld,
-} from '../ui/bausteine';
+  bewertungsSchluessel,
+  ergebnisAusRubrik,
+  kategorieErgebnis,
+  selbstbildAbweichung,
+} from '../domain/scoring';
+import { mitgliederIn, rubrikVon, abschnitteVon } from '../domain/zuordnung';
+import type {
+  Abschnitt,
+  Bewertung,
+  Kriterium,
+  Notenstufe,
+  Person,
+  Punkte,
+  Rubrik,
+} from '../domain/types';
+import { bewertungsIndex, type PunkteKategorie } from '../store/storeReducer';
+import { personenVon, teamsVon } from '../ui/auswahl';
+import { Karte, LeerHinweis, Notenzeichen, Prozent, Punktefeld, Textfeld } from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
 
+/** Kurzzeichen für die Abschnittswahl. */
+function zeichen(abschnitt: Abschnitt): string {
+  if (abschnitt.art === 'test') return `T${abschnitt.nummer}`;
+  if (abschnitt.art === 'diplomarbeit') return `DA${abschnitt.nummer}`;
+  return `S${abschnitt.nummer}`;
+}
+
 export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
-  const sprints = sprintsVon(daten, ui.klasseId);
-  const teams = teamsVon(daten, ui.klasseId);
+  const abschnitte = abschnitteVon(daten, ui.klasseId);
   const index = useMemo(() => bewertungsIndex(daten), [daten]);
 
   if (!ui.klasseId) {
     return (
       <LeerHinweis
         titel="Noch keine Klasse angelegt"
-        text="Unter „Klassen & Teams“ eine Klasse mit Teams, Personen und Sprints anlegen."
+        text="Unter „Klassen & Teams“ eine Klasse mit Teams, Personen und Abschnitten anlegen."
         aktion={
           <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
             Zu Klassen &amp; Teams
@@ -37,11 +56,11 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
     );
   }
 
-  if (sprints.length === 0 || teams.length === 0) {
+  if (abschnitte.length === 0) {
     return (
       <LeerHinweis
-        titel="Sprint oder Team fehlt"
-        text="Zum Bewerten braucht es mindestens ein Team und einen Sprint."
+        titel="Noch kein Abschnitt angelegt"
+        text="Zum Bewerten braucht es mindestens einen Abschnitt – einen Sprint, die Diplomarbeitsvorbereitung oder einen Test."
         aktion={
           <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
             Zu Klassen &amp; Teams
@@ -51,20 +70,224 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
     );
   }
 
-  const sprint = sprints.find((s) => s.id === ui.sprintId) ?? sprints[sprints.length - 1];
-  const team = teams.find((t) => t.id === ui.teamId) ?? teams[0];
-  const mitglieder = personenVon(daten, ui.klasseId, team.id);
-  const bewertung = index.get(`${sprint.id}__${team.id}`);
-  const bewerter = mitglieder.find((p) => p.id === ui.bewerterId) ?? mitglieder[0] ?? null;
+  const abschnitt = abschnitte.find((a) => a.id === ui.abschnittId) ?? abschnitte[abschnitte.length - 1];
+  const rubrik = rubrikVon(daten, abschnitt);
 
-  const zeitraum = [sprint.von, sprint.bis].filter(Boolean).join(' – ');
+  const abschnittswahl = (
+    <div className="auswahlzeile">
+      <span className="etikett">Abschnitt</span>
+      {abschnitte.map((eintrag) => (
+        <button
+          key={eintrag.id}
+          type="button"
+          className="chip"
+          aria-pressed={eintrag.id === abschnitt.id}
+          onClick={() => setUi({ abschnittId: eintrag.id })}
+        >
+          <span className="index">{zeichen(eintrag)}</span>
+          {eintrag.name}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (abschnitt.art === 'test') {
+    return (
+      <TestMaske
+        abschnitt={abschnitt}
+        rubrik={rubrik}
+        personen={personenVon(daten, ui.klasseId)}
+        bewertung={index.get(bewertungsSchluessel(abschnitt.id, null))}
+        notenschluessel={daten.notenschluessel}
+        abschnittswahl={abschnittswahl}
+        onAendern={(personId, kriteriumId, wert) =>
+          dispatch({
+            art: 'bewertung/individuell',
+            abschnittId: abschnitt.id,
+            teamId: null,
+            personId,
+            kriteriumId,
+            wert,
+          })
+        }
+      />
+    );
+  }
+
+  return (
+    <TeamMaske
+      daten={daten}
+      dispatch={dispatch}
+      ui={ui}
+      setUi={setUi}
+      abschnitt={abschnitt}
+      rubrik={rubrik}
+      index={index}
+      abschnittswahl={abschnittswahl}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Test: Person × Frage über die ganze Klasse (FA-60)                          */
+/* -------------------------------------------------------------------------- */
+
+function TestMaske({
+  abschnitt,
+  rubrik,
+  personen,
+  bewertung,
+  notenschluessel,
+  abschnittswahl,
+  onAendern,
+}: {
+  abschnitt: Abschnitt;
+  rubrik: Rubrik;
+  personen: Person[];
+  bewertung: Bewertung | undefined;
+  notenschluessel: Notenstufe[];
+  abschnittswahl: ReactNode;
+  onAendern: (personId: string, kriteriumId: string, wert: number | null) => void;
+}) {
+  const fragen = rubrik.individuell;
+  const angaben = [
+    abschnitt.angekuendigtAm ? `angekündigt am ${abschnitt.angekuendigtAm}` : null,
+    abschnitt.arbeitszeitMinuten ? `${abschnitt.arbeitszeitMinuten} Minuten Arbeitszeit` : null,
+  ].filter(Boolean);
+
+  return (
+    <>
+      <div className="ansichtskopf">
+        <div>
+          <h2>{abschnitt.name}</h2>
+          <p>
+            {angaben.length > 0 ? `${angaben.join(' · ')} · ` : ''}
+            Ein Test wird ohne Team erfasst: eine Zeile je Person, eine Spalte je Frage. Ein leeres
+            Feld bedeutet „nicht bewertet“, nicht 0 Punkte.
+          </p>
+        </div>
+      </div>
+
+      {abschnittswahl}
+
+      <Karte
+        titel="Punkte je Frage"
+        hinweis={`${fragen.length} Fragen · ${fragen.reduce((s, f) => s + f.max, 0)} Punkte`}
+        buendig
+      >
+        {personen.length === 0 ? (
+          <div className="leer">In dieser Klasse ist noch niemand eingetragen.</div>
+        ) : (
+          <div className="tabellenrahmen">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  {fragen.map((frage) => (
+                    <th key={frage.id} className="zahl" title={frage.beschreibung}>
+                      {frage.name}
+                      <br />
+                      <span className="maximum">/ {frage.max}</span>
+                    </th>
+                  ))}
+                  <th className="zahl">Ergebnis</th>
+                  <th className="zahl">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {personen.map((person) => {
+                  const punkte = bewertung?.individuell?.[person.id]?.punkte;
+                  const ergebnis = kategorieErgebnis(punkte, fragen);
+                  return (
+                    <tr key={person.id}>
+                      <td>
+                        <b>{person.name}</b>
+                      </td>
+                      {fragen.map((frage) => (
+                        <td key={frage.id} className="zahl">
+                          <Punktefeld
+                            schmal
+                            wert={punkte?.[frage.id]}
+                            max={frage.max}
+                            beschriftung={`${person.name} – ${frage.name}`}
+                            onAendern={(wert) => onAendern(person.id, frage.id, wert)}
+                          />
+                        </td>
+                      ))}
+                      <td className="zahl">
+                        <Prozent wert={ergebnis?.prozent ?? null} />
+                      </td>
+                      <td className="zahl">
+                        <Notenzeichen
+                          prozent={ergebnis?.prozent ?? null}
+                          notenschluessel={notenschluessel}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Karte>
+
+      <p className="anmerkung">
+        Die offene Frage wird nach dem in der Rubrik hinterlegten Schema bewertet. Ein
+        KI-Vorschlag darf nur mit pseudonymisierten Arbeiten eingeholt werden; die Entscheidung
+        trifft die Lehrkraft (§ 11 Abs. 2 LBVO).
+      </p>
+    </>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sprint und Diplomarbeitsvorbereitung: teamweise Maske                       */
+/* -------------------------------------------------------------------------- */
+
+function TeamMaske({
+  daten,
+  dispatch,
+  ui,
+  setUi,
+  abschnitt,
+  rubrik,
+  index,
+  abschnittswahl,
+}: AnsichtProps & {
+  abschnitt: Abschnitt;
+  rubrik: Rubrik;
+  index: Map<string, Bewertung>;
+  abschnittswahl: ReactNode;
+}) {
+  const teams = teamsVon(daten, ui.klasseId);
+
+  if (teams.length === 0) {
+    return (
+      <LeerHinweis
+        titel="Noch kein Team angelegt"
+        text="Sprints und die Diplomarbeitsvorbereitung werden teamweise bewertet."
+        aktion={
+          <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
+            Zu Klassen &amp; Teams
+          </button>
+        }
+      />
+    );
+  }
+
+  const team = teams.find((t) => t.id === ui.teamId) ?? teams[0];
+  const mitglieder = mitgliederIn(daten, abschnitt.id, team.id);
+  const bewertung = index.get(bewertungsSchluessel(abschnitt.id, team.id));
+  const bewerter = mitglieder.find((p) => p.id === ui.bewerterId) ?? mitglieder[0] ?? null;
+  const zeitraum = [abschnitt.von, abschnitt.bis].filter(Boolean).join(' – ');
 
   return (
     <>
       <div className="ansichtskopf">
         <div>
           <h2>
-            {sprint.name} · {team.name}
+            {abschnitt.name} · {team.name}
           </h2>
           <p>
             {zeitraum ? `${zeitraum} · ` : ''}
@@ -74,21 +297,7 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
         </div>
       </div>
 
-      <div className="auswahlzeile">
-        <span className="etikett">Sprint</span>
-        {sprints.map((eintrag) => (
-          <button
-            key={eintrag.id}
-            type="button"
-            className="chip"
-            aria-pressed={eintrag.id === sprint.id}
-            onClick={() => setUi({ sprintId: eintrag.id })}
-          >
-            <span className="index">S{eintrag.nummer}</span>
-            {eintrag.name}
-          </button>
-        ))}
-      </div>
+      {abschnittswahl}
 
       <div className="auswahlzeile">
         <span className="etikett">Team</span>
@@ -110,13 +319,13 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
           <KriterienKarte
             titel="Team-Ergebnis"
             hinweis={`gilt für alle Mitglieder von ${team.name}`}
-            kriterien={daten.rubrik.team}
+            kriterien={rubrik.team}
             punkte={bewertung?.team}
-            notenschluessel={daten.rubrik.notenschluessel}
+            notenschluessel={daten.notenschluessel}
             onAendern={(kriteriumId, wert) =>
               dispatch({
                 art: 'bewertung/punkte',
-                sprintId: sprint.id,
+                abschnittId: abschnitt.id,
                 teamId: team.id,
                 kategorie: 'team' as PunkteKategorie,
                 kriteriumId,
@@ -127,14 +336,14 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
 
           <KriterienKarte
             titel="Scrum-Prozess"
-            hinweis="Arbeitsweise des Teams im Sprint"
-            kriterien={daten.rubrik.prozess}
+            hinweis="Arbeitsweise des Teams im Abschnitt"
+            kriterien={rubrik.prozess}
             punkte={bewertung?.prozess}
-            notenschluessel={daten.rubrik.notenschluessel}
+            notenschluessel={daten.notenschluessel}
             onAendern={(kriteriumId, wert) =>
               dispatch({
                 art: 'bewertung/punkte',
-                sprintId: sprint.id,
+                abschnittId: abschnitt.id,
                 teamId: team.id,
                 kategorie: 'prozess' as PunkteKategorie,
                 kriteriumId,
@@ -145,14 +354,14 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
 
           <Karte titel="Individueller Beitrag" hinweis="je Schülerin und Schüler" buendig>
             {mitglieder.length === 0 ? (
-              <div className="leer">Diesem Team ist noch niemand zugeordnet.</div>
+              <div className="leer">Diesem Team ist in diesem Abschnitt noch niemand zugeordnet.</div>
             ) : (
               <div className="tabellenrahmen">
                 <table>
                   <thead>
                     <tr>
                       <th>Name</th>
-                      {daten.rubrik.individuell.map((kriterium) => (
+                      {rubrik.individuell.map((kriterium) => (
                         <th key={kriterium.id} className="zahl" title={kriterium.beschreibung}>
                           {kriterium.name}
                           <br />
@@ -165,13 +374,13 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                   <tbody>
                     {mitglieder.map((person) => {
                       const punkte = bewertung?.individuell?.[person.id]?.punkte;
-                      const ergebnis = kategorieErgebnis(punkte, daten.rubrik.individuell);
+                      const ergebnis = kategorieErgebnis(punkte, rubrik.individuell);
                       return (
                         <tr key={person.id}>
                           <td>
                             <b>{person.name}</b>
                           </td>
-                          {daten.rubrik.individuell.map((kriterium) => (
+                          {rubrik.individuell.map((kriterium) => (
                             <td key={kriterium.id} className="zahl">
                               <Punktefeld
                                 schmal
@@ -181,7 +390,7 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                                 onAendern={(wert) =>
                                   dispatch({
                                     art: 'bewertung/individuell',
-                                    sprintId: sprint.id,
+                                    abschnittId: abschnitt.id,
                                     teamId: team.id,
                                     personId: person.id,
                                     kriteriumId: kriterium.id,
@@ -203,33 +412,41 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
             )}
           </Karte>
 
-          <PeerKarte
-            rubrik={daten.rubrik}
-            mitglieder={mitglieder}
-            bewertung={bewertung}
-            bewerter={bewerter}
-            onBewerterWechseln={(id) => setUi({ bewerterId: id })}
-            onAendern={(bewerterId, bewerteterId, kriteriumId, wert) =>
-              dispatch({
-                art: 'bewertung/peer',
-                sprintId: sprint.id,
-                teamId: team.id,
-                bewerterId,
-                bewerteterId,
-                kriteriumId,
-                wert,
-              })
-            }
-          />
+          {abschnitt.peerAktiv ? (
+            <PeerKarte
+              rubrik={rubrik}
+              mitglieder={mitglieder}
+              bewertung={bewertung}
+              bewerter={bewerter}
+              onBewerterWechseln={(id) => setUi({ bewerterId: id })}
+              onAendern={(bewerterId, bewerteterId, kriteriumId, wert) =>
+                dispatch({
+                  art: 'bewertung/peer',
+                  abschnittId: abschnitt.id,
+                  teamId: team.id,
+                  bewerterId,
+                  bewerteterId,
+                  kriteriumId,
+                  wert,
+                })
+              }
+            />
+          ) : (
+            <p className="anmerkung">
+              Für diesen Abschnitt ist die Peer-Bewertung ausgeschaltet. Sie lässt sich unter
+              „Klassen &amp; Teams“ je Abschnitt einschalten, sobald das Team das Vorgehen
+              tatsächlich einhält (FA-52).
+            </p>
+          )}
 
-          <Karte titel="Notiz zum Sprint" hinweis="Rückmeldung an das Team">
+          <Karte titel="Notiz zum Abschnitt" hinweis="Rückmeldung an das Team">
             <Textfeld
               mehrzeilig
               wert={bewertung?.notiz ?? ''}
-              beschriftung="Notiz zum Sprint"
-              platzhalter="Was ist gelungen, woran arbeitet das Team im nächsten Sprint?"
+              beschriftung="Notiz zum Abschnitt"
+              platzhalter="Was ist gelungen, woran arbeitet das Team im nächsten Abschnitt?"
               onAendern={(notiz) =>
-                dispatch({ art: 'bewertung/notiz', sprintId: sprint.id, teamId: team.id, notiz })
+                dispatch({ art: 'bewertung/notiz', abschnittId: abschnitt.id, teamId: team.id, notiz })
               }
             />
           </Karte>
@@ -237,18 +454,18 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
 
         <div className="seite">
           <div className="uebersicht">
-            <h3>Ergebnis {sprint.name}</h3>
+            <h3>Ergebnis {abschnitt.name}</h3>
             <UebersichtsZeile
               titel="Team-Ergebnis"
-              unterzeile={`Gewicht ${daten.rubrik.gewichte.team} %`}
-              ergebnis={kategorieErgebnis(bewertung?.team, daten.rubrik.team)}
-              rubrik={daten.rubrik}
+              unterzeile={`Gewicht ${rubrik.gewichte.team} %`}
+              ergebnis={kategorieErgebnis(bewertung?.team, rubrik.team)}
+              notenschluessel={daten.notenschluessel}
             />
             <UebersichtsZeile
               titel="Scrum-Prozess"
-              unterzeile={`Gewicht ${daten.rubrik.gewichte.prozess} %`}
-              ergebnis={kategorieErgebnis(bewertung?.prozess, daten.rubrik.prozess)}
-              rubrik={daten.rubrik}
+              unterzeile={`Gewicht ${rubrik.gewichte.prozess} %`}
+              ergebnis={kategorieErgebnis(bewertung?.prozess, rubrik.prozess)}
+              notenschluessel={daten.notenschluessel}
             />
             <div className="uebersichtszeile">
               <div className="bezeichnung">
@@ -263,7 +480,13 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
               </div>
             ) : (
               mitglieder.map((person) => {
-                const ergebnis = sprintErgebnis(bewertung, person, mitglieder, daten.rubrik);
+                const ergebnis = ergebnisAusRubrik(
+                  bewertung,
+                  person,
+                  mitglieder,
+                  rubrik,
+                  abschnitt.peerAktiv,
+                );
                 const teile: string[] = [];
                 if (ergebnis.individuell) {
                   teile.push(`ind. ${Math.round(ergebnis.individuell.prozent)} %`);
@@ -282,7 +505,7 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                       <span>{teile.join(' · ') || 'noch nichts erfasst'}</span>
                     </div>
                     <Prozent wert={ergebnis.prozent} />
-                    <Notenzeichen prozent={ergebnis.prozent} notenschluessel={daten.rubrik.notenschluessel} />
+                    <Notenzeichen prozent={ergebnis.prozent} notenschluessel={daten.notenschluessel} />
                   </div>
                 );
               })
@@ -292,6 +515,13 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
             Nicht bewertete Kategorien werden nicht als 0 gewertet, sondern aus der Gewichtung
             herausgerechnet.
           </p>
+          {abschnitt.rubrikKopie ? (
+            <p className="anmerkung">
+              Dieser Abschnitt rechnet mit der beim ersten Eintrag eingefrorenen Rubrik
+              „{abschnitt.rubrikKopie.name}“. Spätere Änderungen an der Rubrik wirken hier nicht
+              mehr (FA-65).
+            </p>
+          ) : null}
         </div>
       </div>
     </>
@@ -302,12 +532,12 @@ function UebersichtsZeile({
   titel,
   unterzeile,
   ergebnis,
-  rubrik,
+  notenschluessel,
 }: {
   titel: string;
   unterzeile: string;
   ergebnis: ReturnType<typeof kategorieErgebnis>;
-  rubrik: Rubrik;
+  notenschluessel: Notenstufe[];
 }) {
   return (
     <div className="uebersichtszeile">
@@ -319,7 +549,7 @@ function UebersichtsZeile({
         </span>
       </div>
       <Prozent wert={ergebnis?.prozent ?? null} />
-      <Notenzeichen prozent={ergebnis?.prozent ?? null} notenschluessel={rubrik.notenschluessel} />
+      <Notenzeichen prozent={ergebnis?.prozent ?? null} notenschluessel={notenschluessel} />
     </div>
   );
 }
@@ -336,9 +566,10 @@ function KriterienKarte({
   hinweis: string;
   kriterien: Kriterium[];
   punkte: Punkte | undefined;
-  notenschluessel: Rubrik['notenschluessel'];
+  notenschluessel: Notenstufe[];
   onAendern: (kriteriumId: string, wert: number | null) => void;
 }) {
+  if (kriterien.length === 0) return null;
   const ergebnis = kategorieErgebnis(punkte, kriterien);
   return (
     <Karte

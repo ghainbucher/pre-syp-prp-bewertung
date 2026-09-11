@@ -8,7 +8,8 @@
  */
 
 import { formatProzent, gesamtErgebnis, note } from '../domain/scoring';
-import type { Bewertung, Datenbestand, Person, Sprint, Team } from '../domain/types';
+import { teamIn } from '../domain/zuordnung';
+import type { Abschnitt, Bewertung, Datenbestand, Person, Team } from '../domain/types';
 
 export const BOM = '﻿';
 
@@ -26,36 +27,48 @@ export interface UebersichtEingabe {
   klasseId: string;
   personen: Person[];
   teams: Team[];
-  sprints: Sprint[];
+  abschnitte: Abschnitt[];
   bewertungen: Map<string, Bewertung>;
 }
 
-/** Erzeugt die Zeilen der Klassenübersicht. */
+/**
+ * Erzeugt die Zeilen der Klassenübersicht (FA-31).
+ *
+ * Die Spalte „Team“ nennt die Zuordnung im **letzten** Abschnitt, weil Teams
+ * wechseln dürfen (FA-58); die Abschnittsspalten stehen für sich.
+ */
 export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string | number | null>> {
-  const { daten, personen, teams, sprints, bewertungen } = eingabe;
+  const { daten, personen, teams, abschnitte, bewertungen } = eingabe;
   const kopf: Array<string> = [
     'Name',
     'Team',
-    ...sprints.map((sprint) => `${sprint.name} (%)`),
+    ...abschnitte.map((abschnitt) => `${abschnitt.name} (%)`),
+    'Praxis (%)',
+    'Theorie (%)',
     'Gesamt (%)',
-    'Note',
+    'Notenvorschlag',
   ];
 
   const zeilen: Array<Array<string | number | null>> = [kopf];
+  const letzter = abschnitte[abschnitte.length - 1];
 
   for (const person of personen) {
-    const teammitglieder = personen.filter((p) => p.teamId === person.teamId && person.teamId !== null);
-    const ergebnis = gesamtErgebnis(person, sprints, teammitglieder, bewertungen, daten.rubrik);
-    const team = teams.find((t) => t.id === person.teamId);
+    const ergebnis = gesamtErgebnis(daten, person, bewertungen);
+    const teamId = letzter ? teamIn(daten, letzter.id, person.id) : person.teamId;
+    const team = teams.find((t) => t.id === teamId);
+    const nachId = new Map(ergebnis.alle.map((e) => [e.abschnitt.id, e.ergebnis]));
 
     zeilen.push([
       person.name,
       team?.name ?? '',
-      ...ergebnis.proSprint.map((eintrag) =>
-        eintrag.ergebnis.prozent === null ? '' : formatProzent(eintrag.ergebnis.prozent, 1),
-      ),
+      ...abschnitte.map((abschnitt) => {
+        const wert = nachId.get(abschnitt.id)?.prozent ?? null;
+        return wert === null ? '' : formatProzent(wert, 1);
+      }),
+      ergebnis.praxis.prozent === null ? '' : formatProzent(ergebnis.praxis.prozent, 1),
+      ergebnis.theorie.prozent === null ? '' : formatProzent(ergebnis.theorie.prozent, 1),
       ergebnis.prozent === null ? '' : formatProzent(ergebnis.prozent, 1),
-      note(ergebnis.prozent, daten.rubrik.notenschluessel) ?? '',
+      note(ergebnis.prozent, daten.notenschluessel) ?? '',
     ]);
   }
 

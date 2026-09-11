@@ -82,7 +82,7 @@ export function App() {
     };
   }, []);
 
-  // Auswahl gültig halten, wenn Klassen, Teams oder Sprints wegfallen.
+  // Auswahl gültig halten, wenn Klassen, Teams oder Abschnitte wegfallen.
   useEffect(() => {
     const korrektur = auswahlKorrigieren(daten, ui);
     if (korrektur) setUi(korrektur);
@@ -129,7 +129,7 @@ export function App() {
               <select
                 id="klassenwahl"
                 value={ui.klasseId ?? ''}
-                onChange={(e) => setUi({ klasseId: e.target.value, sprintId: null, teamId: null })}
+                onChange={(e) => setUi({ klasseId: e.target.value, abschnittId: null, teamId: null })}
               >
                 {klassen.map((klasse) => (
                   <option key={klasse.id} value={klasse.id}>

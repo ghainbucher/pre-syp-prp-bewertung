@@ -3,20 +3,31 @@
  *
  * Bewusste Entscheidung: Jede Aktion arbeitet auf einer tiefen Kopie des
  * gesamten Bestands. Bei den in A-1 festgelegten Größen (höchstens 40 Personen
- * und 12 Sprints) liegt der Bestand deutlich unter 1 MB; die Kopie kostet
+ * und 12 Abschnitte) liegt der Bestand deutlich unter 1 MB; die Kopie kostet
  * Bruchteile einer Millisekunde und erspart fehleranfällige verschachtelte
  * Aktualisierungen. Für React entsteht dadurch zugleich eine neue Identität.
  */
 
-import { VORLAGE_RUBRIK, leererDatenbestand, strukturKopie } from '../domain/defaults';
+import {
+  RUBRIK_DIPLOMARBEIT,
+  RUBRIK_SPRINT,
+  STANDARD_NOTENSCHLUESSEL,
+  VORLAGE_RUBRIK_DIPLOMARBEIT,
+  VORLAGE_RUBRIK_SPRINT,
+  leererDatenbestand,
+  strukturKopie,
+} from '../domain/defaults';
 import { bewertungsSchluessel } from '../domain/scoring';
+import { rubrikVon, teamIn } from '../domain/zuordnung';
 import type {
+  Abschnitt,
   Bewertung,
   Datenbestand,
   Id,
   KategorieSchluessel,
   Kriterium,
-  Sprint,
+  Rubrik,
+  Strang,
 } from '../domain/types';
 
 export type PunkteKategorie = Extract<KategorieSchluessel, 'team' | 'prozess'>;
@@ -32,52 +43,59 @@ export type Aktion =
   | { art: 'person/umbenennen'; id: Id; name: string }
   | { art: 'person/teamSetzen'; id: Id; teamId: Id | null }
   | { art: 'person/loeschen'; id: Id }
-  | { art: 'sprint/anlegen'; sprint: Sprint }
-  | { art: 'sprint/aendern'; id: Id; aenderung: Partial<Omit<Sprint, 'id' | 'klasseId'>> }
-  | { art: 'sprint/loeschen'; id: Id }
+  | { art: 'zugehoerigkeit/setzen'; abschnittId: Id; personId: Id; teamId: Id | null }
+  | { art: 'abschnitt/anlegen'; abschnitt: Abschnitt; rubrik?: Rubrik }
+  | { art: 'abschnitt/aendern'; id: Id; aenderung: Partial<Omit<Abschnitt, 'id' | 'klasseId'>> }
+  | { art: 'abschnitt/loeschen'; id: Id }
   | {
       art: 'bewertung/punkte';
-      sprintId: Id;
-      teamId: Id;
+      abschnittId: Id;
+      teamId: Id | null;
       kategorie: PunkteKategorie;
       kriteriumId: Id;
       wert: number | null;
     }
   | {
       art: 'bewertung/individuell';
-      sprintId: Id;
-      teamId: Id;
+      abschnittId: Id;
+      teamId: Id | null;
       personId: Id;
       kriteriumId: Id;
       wert: number | null;
     }
-  | { art: 'bewertung/individuellNotiz'; sprintId: Id; teamId: Id; personId: Id; notiz: string }
+  | { art: 'bewertung/individuellNotiz'; abschnittId: Id; teamId: Id | null; personId: Id; notiz: string }
   | {
       art: 'bewertung/peer';
-      sprintId: Id;
-      teamId: Id;
+      abschnittId: Id;
+      teamId: Id | null;
       bewerterId: Id;
       bewerteterId: Id;
       kriteriumId: Id;
       wert: number | null;
     }
-  | { art: 'bewertung/notiz'; sprintId: Id; teamId: Id; notiz: string }
-  | { art: 'rubrik/kriteriumAendern'; kategorie: KategorieSchluessel; index: number; aenderung: Partial<Kriterium> }
-  | { art: 'rubrik/kriteriumHinzufuegen'; kategorie: KategorieSchluessel; kriterium: Kriterium }
-  | { art: 'rubrik/kriteriumLoeschen'; kategorie: KategorieSchluessel; index: number }
-  | { art: 'rubrik/gewicht'; kategorie: KategorieSchluessel; wert: number }
-  | { art: 'rubrik/notengrenze'; note: number; ab: number }
-  | { art: 'rubrik/selbstZaehlt'; wert: boolean }
-  | { art: 'rubrik/zuruecksetzen' }
+  | { art: 'bewertung/notiz'; abschnittId: Id; teamId: Id | null; notiz: string }
+  | { art: 'rubrik/anlegen'; rubrik: Rubrik }
+  | { art: 'rubrik/umbenennen'; rubrikId: Id; name: string }
+  | { art: 'rubrik/loeschen'; rubrikId: Id }
+  | { art: 'rubrik/kriteriumAendern'; rubrikId: Id; kategorie: KategorieSchluessel; index: number; aenderung: Partial<Kriterium> }
+  | { art: 'rubrik/kriteriumHinzufuegen'; rubrikId: Id; kategorie: KategorieSchluessel; kriterium: Kriterium }
+  | { art: 'rubrik/kriteriumLoeschen'; rubrikId: Id; kategorie: KategorieSchluessel; index: number }
+  | { art: 'rubrik/gewicht'; rubrikId: Id; kategorie: KategorieSchluessel; wert: number }
+  | { art: 'rubrik/selbstZaehlt'; rubrikId: Id; wert: boolean }
+  | { art: 'rubrik/zuruecksetzen'; rubrikId: Id }
+  | { art: 'notengrenze'; note: number; ab: number }
+  | { art: 'strang/gewicht'; strang: Strang; wert: number }
   | { art: 'daten/ersetzen'; daten: Datenbestand }
   | { art: 'daten/loeschen' };
 
-/** Holt die Bewertung eines Teams in einem Sprint oder legt sie an. */
-function bewertungHolen(daten: Datenbestand, sprintId: Id, teamId: Id): Bewertung {
-  const vorhanden = daten.bewertungen.find((b) => b.sprintId === sprintId && b.teamId === teamId);
+/** Holt die Bewertung eines Teams in einem Abschnitt oder legt sie an. */
+function bewertungHolen(daten: Datenbestand, abschnittId: Id, teamId: Id | null): Bewertung {
+  const vorhanden = daten.bewertungen.find(
+    (b) => b.abschnittId === abschnittId && b.teamId === teamId,
+  );
   if (vorhanden) return vorhanden;
   const neu: Bewertung = {
-    sprintId,
+    abschnittId,
     teamId,
     team: {},
     prozess: {},
@@ -87,6 +105,20 @@ function bewertungHolen(daten: Datenbestand, sprintId: Id, teamId: Id): Bewertun
   };
   daten.bewertungen.push(neu);
   return neu;
+}
+
+/**
+ * Friert die Rubrik eines Abschnitts ein (FA-65).
+ *
+ * Aufgerufen beim ersten gesetzten Punktewert. Ab diesem Moment gilt für
+ * diesen Abschnitt die Kopie – spätere Änderungen an der Rubrik wirken nur
+ * noch auf Abschnitte, die noch keine Kopie tragen.
+ */
+function einfrierenFallsNoetig(daten: Datenbestand, abschnittId: Id): void {
+  const abschnitt = daten.abschnitte.find((a) => a.id === abschnittId);
+  if (!abschnitt || abschnitt.rubrikKopie) return;
+  abschnitt.rubrikKopie = strukturKopie(rubrikVon(daten, abschnitt));
+  abschnitt.eingefrorenAm = new Date().toISOString();
 }
 
 /** Setzt oder entfernt einen Punktewert. `null` bedeutet „nicht bewertet“. */
@@ -110,6 +142,32 @@ function leereBewertungenEntfernen(daten: Datenbestand): void {
   });
 }
 
+/** Die Rubrik mit dieser Kennung im (bereits kopierten) Bestand. */
+function rubrikSuchen(daten: Datenbestand, rubrikId: Id): Rubrik | undefined {
+  return daten.rubriken.find((r) => r.id === rubrikId);
+}
+
+/**
+ * Überträgt die Teamzuordnung auf einen neu angelegten Abschnitt (FA-58 AK-2).
+ *
+ * Grundlage ist der zuletzt angelegte Abschnitt derselben Klasse; gibt es
+ * keinen, die Vorbelegung an der Person. Für Tests entfällt das – dort gibt es
+ * kein Team.
+ */
+function zugehoerigkeitenUebernehmen(daten: Datenbestand, neu: Abschnitt): void {
+  if (neu.art === 'test') return;
+  const vorherige = daten.abschnitte
+    .filter((a) => a.klasseId === neu.klasseId && a.id !== neu.id && a.art !== 'test')
+    .sort((a, b) => a.nummer - b.nummer)
+    .pop();
+
+  for (const person of daten.personen) {
+    if (person.klasseId !== neu.klasseId) continue;
+    const teamId = vorherige ? teamIn(daten, vorherige.id, person.id) : person.teamId;
+    daten.zugehoerigkeiten.push({ abschnittId: neu.id, personId: person.id, teamId });
+  }
+}
+
 export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand {
   if (aktion.art === 'daten/ersetzen') return strukturKopie(aktion.daten);
   if (aktion.art === 'daten/loeschen') return leererDatenbestand();
@@ -131,15 +189,17 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'klasse/loeschen': {
-      const teamIds = daten.teams.filter((t) => t.klasseId === aktion.id).map((t) => t.id);
-      const sprintIds = daten.sprints.filter((s) => s.klasseId === aktion.id).map((s) => s.id);
+      const abschnittIds = daten.abschnitte
+        .filter((a) => a.klasseId === aktion.id)
+        .map((a) => a.id);
       daten.klassen = daten.klassen.filter((k) => k.id !== aktion.id);
       daten.teams = daten.teams.filter((t) => t.klasseId !== aktion.id);
       daten.personen = daten.personen.filter((p) => p.klasseId !== aktion.id);
-      daten.sprints = daten.sprints.filter((s) => s.klasseId !== aktion.id);
-      daten.bewertungen = daten.bewertungen.filter(
-        (b) => !teamIds.includes(b.teamId) && !sprintIds.includes(b.sprintId),
+      daten.abschnitte = daten.abschnitte.filter((a) => a.klasseId !== aktion.id);
+      daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter(
+        (z) => !abschnittIds.includes(z.abschnittId),
       );
+      daten.bewertungen = daten.bewertungen.filter((b) => !abschnittIds.includes(b.abschnittId));
       break;
     }
 
@@ -156,7 +216,12 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     case 'team/loeschen':
       // Personen bleiben erhalten und sind danach „ohne Team“ (FA-03).
       daten.teams = daten.teams.filter((t) => t.id !== aktion.id);
-      daten.personen = daten.personen.map((p) => (p.teamId === aktion.id ? { ...p, teamId: null } : p));
+      daten.personen = daten.personen.map((p) =>
+        p.teamId === aktion.id ? { ...p, teamId: null } : p,
+      );
+      daten.zugehoerigkeiten = daten.zugehoerigkeiten.map((z) =>
+        z.teamId === aktion.id ? { ...z, teamId: null } : z,
+      );
       daten.bewertungen = daten.bewertungen.filter((b) => b.teamId !== aktion.id);
       break;
 
@@ -185,6 +250,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
 
     case 'person/loeschen':
       daten.personen = daten.personen.filter((p) => p.id !== aktion.id);
+      daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter((z) => z.personId !== aktion.id);
       for (const bewertung of daten.bewertungen) {
         delete bewertung.individuell[aktion.id];
         delete bewertung.peer[aktion.id];
@@ -193,33 +259,68 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       leereBewertungenEntfernen(daten);
       break;
 
-    case 'sprint/anlegen':
-      daten.sprints.push(strukturKopie(aktion.sprint));
-      break;
-
-    case 'sprint/aendern': {
-      const sprint = daten.sprints.find((s) => s.id === aktion.id);
-      if (sprint) Object.assign(sprint, aktion.aenderung);
+    case 'zugehoerigkeit/setzen': {
+      const vorhanden = daten.zugehoerigkeiten.find(
+        (z) => z.abschnittId === aktion.abschnittId && z.personId === aktion.personId,
+      );
+      if (vorhanden) vorhanden.teamId = aktion.teamId;
+      else
+        daten.zugehoerigkeiten.push({
+          abschnittId: aktion.abschnittId,
+          personId: aktion.personId,
+          teamId: aktion.teamId,
+        });
       break;
     }
 
-    case 'sprint/loeschen':
-      daten.sprints = daten.sprints.filter((s) => s.id !== aktion.id);
-      daten.bewertungen = daten.bewertungen.filter((b) => b.sprintId !== aktion.id);
+    /* ------------------------------------------------------------------ */
+    /* Abschnitte (FA-04, FA-56, FA-58, FA-60)                             */
+    /* ------------------------------------------------------------------ */
+    case 'abschnitt/anlegen': {
+      if (aktion.rubrik && !rubrikSuchen(daten, aktion.rubrik.id)) {
+        daten.rubriken.push(strukturKopie(aktion.rubrik));
+      }
+      const neu = strukturKopie(aktion.abschnitt);
+      daten.abschnitte.push(neu);
+      zugehoerigkeitenUebernehmen(daten, neu);
       break;
+    }
+
+    case 'abschnitt/aendern': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.id);
+      if (abschnitt) Object.assign(abschnitt, aktion.aenderung);
+      break;
+    }
+
+    case 'abschnitt/loeschen': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.id);
+      daten.abschnitte = daten.abschnitte.filter((a) => a.id !== aktion.id);
+      daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter((z) => z.abschnittId !== aktion.id);
+      daten.bewertungen = daten.bewertungen.filter((b) => b.abschnittId !== aktion.id);
+      // Die Rubrik eines Tests gehört nur diesem Test und geht mit ihm.
+      if (abschnitt?.art === 'test') {
+        const nochVerwendet = daten.abschnitte.some((a) => a.rubrikId === abschnitt.rubrikId);
+        if (!nochVerwendet && abschnitt.rubrikId !== daten.vorgabeRubrikId) {
+          daten.rubriken = daten.rubriken.filter((r) => r.id !== abschnitt.rubrikId);
+        }
+      }
+      break;
+    }
 
     /* ------------------------------------------------------------------ */
-    /* Bewertung (FA-12 bis FA-16)                                         */
+    /* Bewertung (FA-12 bis FA-16, FA-65)                                  */
     /* ------------------------------------------------------------------ */
     case 'bewertung/punkte': {
-      const bewertung = bewertungHolen(daten, aktion.sprintId, aktion.teamId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       punktSetzen(bewertung[aktion.kategorie], aktion.kriteriumId, aktion.wert);
       leereBewertungenEntfernen(daten);
       break;
     }
 
     case 'bewertung/individuell': {
-      const bewertung = bewertungHolen(daten, aktion.sprintId, aktion.teamId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
       punktSetzen(eintrag.punkte, aktion.kriteriumId, aktion.wert);
       leereBewertungenEntfernen(daten);
@@ -227,7 +328,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'bewertung/individuellNotiz': {
-      const bewertung = bewertungHolen(daten, aktion.sprintId, aktion.teamId);
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
       eintrag.notiz = aktion.notiz;
       leereBewertungenEntfernen(daten);
@@ -235,7 +336,8 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'bewertung/peer': {
-      const bewertung = bewertungHolen(daten, aktion.sprintId, aktion.teamId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const zeile = (bewertung.peer[aktion.bewerterId] ??= {});
       const urteil = (zeile[aktion.bewerteterId] ??= {});
       if (aktion.wert === null) {
@@ -250,46 +352,97 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'bewertung/notiz': {
-      const bewertung = bewertungHolen(daten, aktion.sprintId, aktion.teamId);
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       bewertung.notiz = aktion.notiz;
       leereBewertungenEntfernen(daten);
       break;
     }
 
     /* ------------------------------------------------------------------ */
-    /* Rubrik (FA-06 bis FA-09, FA-15)                                     */
+    /* Rubriken (FA-06 bis FA-09, FA-15, FA-55)                            */
     /* ------------------------------------------------------------------ */
+    case 'rubrik/anlegen':
+      if (!rubrikSuchen(daten, aktion.rubrik.id)) daten.rubriken.push(strukturKopie(aktion.rubrik));
+      break;
+
+    case 'rubrik/umbenennen': {
+      const rubrik = rubrikSuchen(daten, aktion.rubrikId);
+      if (rubrik) rubrik.name = aktion.name;
+      break;
+    }
+
+    case 'rubrik/loeschen': {
+      // FA-55 AK-3: Eine Rubrik, nach der bereits bewertet wurde, bleibt.
+      const inVerwendung = daten.abschnitte.some(
+        (a) => a.rubrikId === aktion.rubrikId && a.rubrikKopie,
+      );
+      if (!inVerwendung && aktion.rubrikId !== daten.vorgabeRubrikId) {
+        daten.rubriken = daten.rubriken.filter((r) => r.id !== aktion.rubrikId);
+        for (const abschnitt of daten.abschnitte) {
+          if (abschnitt.rubrikId === aktion.rubrikId) abschnitt.rubrikId = daten.vorgabeRubrikId;
+        }
+      }
+      break;
+    }
+
     case 'rubrik/kriteriumAendern': {
-      const kriterium = daten.rubrik[aktion.kategorie][aktion.index];
+      const rubrik = rubrikSuchen(daten, aktion.rubrikId);
+      const kriterium = rubrik?.[aktion.kategorie][aktion.index];
       if (kriterium) Object.assign(kriterium, aktion.aenderung);
       break;
     }
 
-    case 'rubrik/kriteriumHinzufuegen':
-      daten.rubrik[aktion.kategorie].push(strukturKopie(aktion.kriterium));
+    case 'rubrik/kriteriumHinzufuegen': {
+      const rubrik = rubrikSuchen(daten, aktion.rubrikId);
+      rubrik?.[aktion.kategorie].push(strukturKopie(aktion.kriterium));
       break;
+    }
 
-    case 'rubrik/kriteriumLoeschen':
-      daten.rubrik[aktion.kategorie].splice(aktion.index, 1);
+    case 'rubrik/kriteriumLoeschen': {
+      const rubrik = rubrikSuchen(daten, aktion.rubrikId);
+      rubrik?.[aktion.kategorie].splice(aktion.index, 1);
       break;
+    }
 
-    case 'rubrik/gewicht':
-      daten.rubrik.gewichte[aktion.kategorie] = Math.max(0, Math.min(100, aktion.wert));
+    case 'rubrik/gewicht': {
+      const rubrik = rubrikSuchen(daten, aktion.rubrikId);
+      if (rubrik) rubrik.gewichte[aktion.kategorie] = Math.max(0, Math.min(100, aktion.wert));
       break;
+    }
 
-    case 'rubrik/notengrenze': {
-      const stufe = daten.rubrik.notenschluessel.find((n) => n.note === aktion.note);
+    case 'rubrik/selbstZaehlt': {
+      const rubrik = rubrikSuchen(daten, aktion.rubrikId);
+      if (rubrik) rubrik.selbstZaehlt = aktion.wert;
+      break;
+    }
+
+    case 'rubrik/zuruecksetzen': {
+      const index = daten.rubriken.findIndex((r) => r.id === aktion.rubrikId);
+      if (index >= 0) {
+        if (aktion.rubrikId === RUBRIK_SPRINT) {
+          daten.rubriken[index] = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+        } else if (aktion.rubrikId === RUBRIK_DIPLOMARBEIT) {
+          daten.rubriken[index] = strukturKopie(VORLAGE_RUBRIK_DIPLOMARBEIT);
+        }
+      }
+      break;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Notenschlüssel und Stränge (FA-08, FA-59)                           */
+    /* ------------------------------------------------------------------ */
+    case 'notengrenze': {
+      if (!daten.notenschluessel.length) {
+        daten.notenschluessel = strukturKopie(STANDARD_NOTENSCHLUESSEL);
+      }
+      const stufe = daten.notenschluessel.find((n) => n.note === aktion.note);
       // Die Grenze für Note 5 bleibt fix bei 0 (FA-08).
       if (stufe && stufe.note !== 5) stufe.ab = Math.max(0, Math.min(100, aktion.ab));
       break;
     }
 
-    case 'rubrik/selbstZaehlt':
-      daten.rubrik.selbstZaehlt = aktion.wert;
-      break;
-
-    case 'rubrik/zuruecksetzen':
-      daten.rubrik = strukturKopie(VORLAGE_RUBRIK);
+    case 'strang/gewicht':
+      daten.strangGewichte[aktion.strang] = Math.max(0, Math.min(100, aktion.wert));
       break;
   }
 
@@ -300,7 +453,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
 export function bewertungsIndex(daten: Datenbestand): Map<string, Bewertung> {
   const index = new Map<string, Bewertung>();
   for (const bewertung of daten.bewertungen) {
-    index.set(bewertungsSchluessel(bewertung.sprintId, bewertung.teamId), bewertung);
+    index.set(bewertungsSchluessel(bewertung.abschnittId, bewertung.teamId), bewertung);
   }
   return index;
 }

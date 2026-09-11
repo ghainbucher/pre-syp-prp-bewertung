@@ -25,8 +25,8 @@ async function grunddatenAnlegen(seite: Page) {
   await seite.getByLabel('Team für neue Einträge').selectOption({ label: 'Team Kepler' });
   await seite.getByRole('button', { name: 'Hinzufügen', exact: true }).click();
 
-  await seite.getByLabel('Neuer Sprint').fill('Sprint 1');
-  await seite.getByRole('button', { name: 'Sprint hinzufügen' }).click();
+  await seite.getByLabel('Neuer Abschnitt').fill('Sprint 1');
+  await seite.getByRole('button', { name: 'Abschnitt hinzufügen' }).click();
 }
 
 /** Team-Ergebnis vollständig mit der Höchstpunktezahl bewerten. */
@@ -117,6 +117,25 @@ test('behält die Daten nach dem Neuladen (FA-19, FA-35)', async ({ page }) => {
   await expect(page.getByLabel('Klasse', { exact: true })).toHaveValue(/.+/);
   await reiter(page, 'Klassen & Teams').click();
   await expect(page.getByLabel('Teamname')).toHaveValue('Team Kepler');
+});
+
+test('erfasst einen Test ohne Team über die ganze Klasse (FA-56, FA-60)', async ({ page }) => {
+  await grunddatenAnlegen(page);
+
+  await page.getByLabel('Neuer Abschnitt').fill('Test 1');
+  await page.getByLabel('Art des neuen Abschnitts').selectOption({ label: 'Test' });
+  await page.getByRole('button', { name: 'Abschnitt hinzufügen' }).click();
+
+  await reiter(page, 'Bewerten').click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Test 1' })).toBeVisible();
+  // Ein Test kennt kein Team: Es gibt keine Teamauswahl, dafür jede Person.
+  await expect(page.getByRole('cell', { name: 'Steiner Jonas' })).toBeVisible();
+
+  for (const frage of ['Frage 1', 'Frage 2', 'Frage 3']) {
+    await page.getByLabel(`Berger Lena – ${frage}`).fill('2');
+  }
+  await page.getByLabel('Berger Lena – Offene Frage').fill('4');
+  await expect(page.getByText('100 %').first()).toBeVisible();
 });
 
 test('überträgt keine Daten an einen Server (NFA-03, DS-02)', async ({ page }) => {

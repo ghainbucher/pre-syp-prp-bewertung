@@ -1,8 +1,20 @@
 /**
- * Rubrik, Gewichtung und Notenschlüssel (FA-05 bis FA-09, FA-15).
+ * Rubriken, Gewichtung, Notenschlüssel und Stranggewichte
+ * (FA-05 bis FA-09, FA-15, FA-55, FA-59).
+ *
+ * Mehrere Rubriken sind möglich; eine davon ist die Vorgabe für neue
+ * Abschnitte. Der Notenschlüssel gehört nicht zur Rubrik, sondern gilt für den
+ * ganzen Gegenstand.
  */
 
-import type { KategorieSchluessel } from '../domain/types';
+import {
+  RUBRIK_DIPLOMARBEIT,
+  RUBRIK_SPRINT,
+  VORLAGE_RUBRIK_SPRINT,
+  strukturKopie,
+} from '../domain/defaults';
+import { rubrikMitId } from '../domain/zuordnung';
+import type { KategorieSchluessel, Rubrik } from '../domain/types';
 import { neueId } from '../ui/auswahl';
 import { BestaetigenSchalter, Karte, Textfeld } from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
@@ -17,7 +29,7 @@ const KATEGORIEN: Array<{
   {
     schluessel: 'team',
     titel: 'Team-Ergebnis',
-    hinweis: 'Produkt am Sprint-Ende',
+    hinweis: 'gemeinsames Ergebnis am Ende des Abschnitts',
     erklaerung: 'gilt für alle im Team',
     mitPunkten: true,
   },
@@ -31,7 +43,7 @@ const KATEGORIEN: Array<{
   {
     schluessel: 'individuell',
     titel: 'Individueller Beitrag',
-    hinweis: 'je Person, im Sprint bewertet',
+    hinweis: 'je Person – bei einem Test die Fragen',
     erklaerung: 'persönlicher Beitrag',
     mitPunkten: true,
   },
@@ -44,12 +56,34 @@ const KATEGORIEN: Array<{
   },
 ];
 
-export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
-  const { rubrik } = daten;
+/** Nur die ausgelieferten Rubriken haben eine Vorlage zum Zurücksetzen. */
+function hatVorlage(rubrik: Rubrik): boolean {
+  return rubrik.id === RUBRIK_SPRINT || rubrik.id === RUBRIK_DIPLOMARBEIT;
+}
+
+export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
+  const rubrik =
+    (ui.rubrikId ? rubrikMitId(daten, ui.rubrikId) : undefined) ??
+    rubrikMitId(daten, daten.vorgabeRubrikId) ??
+    daten.rubriken[0];
+
+  if (!rubrik) return <div className="leer">Keine Rubrik vorhanden.</div>;
+
   const gewichtssumme = KATEGORIEN.reduce(
     (summe, kategorie) => summe + (rubrik.gewichte[kategorie.schluessel] ?? 0),
     0,
   );
+  // Eine Rubrik, nach der schon bewertet wurde, bleibt erhalten (FA-55 AK-3).
+  const inVerwendung = daten.abschnitte.some((a) => a.rubrikId === rubrik.id && a.rubrikKopie);
+
+  function rubrikAnlegen() {
+    const id = neueId('r');
+    dispatch({
+      art: 'rubrik/anlegen',
+      rubrik: { ...strukturKopie(VORLAGE_RUBRIK_SPRINT), id, name: 'Neue Rubrik' },
+    });
+    setUi({ rubrikId: id });
+  }
 
   return (
     <>
@@ -57,20 +91,69 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
         <div>
           <h2>Rubrik &amp; Notenschlüssel</h2>
           <p>
-            Kriterien, Punkte und Gewichtung gelten für alle Klassen und Sprints. Änderungen wirken
-            sofort auf bereits erfasste Bewertungen.
+            Kriterien, Punkte und Gewichtung gehören zur Rubrik; jedem Abschnitt ist eine zugeordnet
+            (FA-55). Sobald in einem Abschnitt der erste Punkt erfasst ist, rechnet er mit einer
+            eingefrorenen Kopie – Änderungen hier wirken dann nur noch auf neue Abschnitte (FA-65).
           </p>
         </div>
         <span className="dehnen" />
-        <BestaetigenSchalter
-          beschriftung="Auf Vorlage zurücksetzen"
-          klasse="schalter klein"
-          onBestaetigt={() => dispatch({ art: 'rubrik/zuruecksetzen' })}
-        />
+        {hatVorlage(rubrik) ? (
+          <BestaetigenSchalter
+            beschriftung="Auf Vorlage zurücksetzen"
+            klasse="schalter klein"
+            onBestaetigt={() => dispatch({ art: 'rubrik/zuruecksetzen', rubrikId: rubrik.id })}
+          />
+        ) : null}
+      </div>
+
+      <div className="auswahlzeile">
+        <span className="etikett">Rubrik</span>
+        {daten.rubriken.map((eintrag) => (
+          <button
+            key={eintrag.id}
+            type="button"
+            className="chip"
+            aria-pressed={eintrag.id === rubrik.id}
+            onClick={() => setUi({ rubrikId: eintrag.id })}
+          >
+            {eintrag.name}
+            {eintrag.id === daten.vorgabeRubrikId ? <span className="index">Vorgabe</span> : null}
+          </button>
+        ))}
+        <button type="button" className="schalter klein" onClick={rubrikAnlegen}>
+          + Rubrik
+        </button>
       </div>
 
       <div className="zweispaltig">
         <div>
+          <Karte titel="Bezeichnung" buendig>
+            <div className="inhalt">
+              <div className="zeile">
+                <Textfeld
+                  breit
+                  wert={rubrik.name}
+                  beschriftung="Name der Rubrik"
+                  onAendern={(name) =>
+                    dispatch({ art: 'rubrik/umbenennen', rubrikId: rubrik.id, name })
+                  }
+                />
+                {daten.rubriken.length > 1 && !inVerwendung ? (
+                  <BestaetigenSchalter
+                    beschriftung="Rubrik löschen"
+                    onBestaetigt={() => dispatch({ art: 'rubrik/loeschen', rubrikId: rubrik.id })}
+                  />
+                ) : null}
+              </div>
+              {inVerwendung ? (
+                <p className="anmerkung" style={{ margin: '10px 0 0' }}>
+                  Nach dieser Rubrik wurde bereits bewertet – sie lässt sich nicht mehr löschen
+                  (FA-55 AK-3).
+                </p>
+              ) : null}
+            </div>
+          </Karte>
+
           {KATEGORIEN.map((kategorie) => {
             const kriterien = rubrik[kategorie.schluessel];
             const punktesumme = kriterien.reduce((summe, kriterium) => summe + kriterium.max, 0);
@@ -113,6 +196,7 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                                 onAendern={(name) =>
                                   dispatch({
                                     art: 'rubrik/kriteriumAendern',
+                                    rubrikId: rubrik.id,
                                     kategorie: kategorie.schluessel,
                                     index,
                                     aenderung: { name },
@@ -128,6 +212,7 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                                 onAendern={(beschreibung) =>
                                   dispatch({
                                     art: 'rubrik/kriteriumAendern',
+                                    rubrikId: rubrik.id,
                                     kategorie: kategorie.schluessel,
                                     index,
                                     aenderung: { beschreibung },
@@ -147,6 +232,7 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                                   onChange={(e) =>
                                     dispatch({
                                       art: 'rubrik/kriteriumAendern',
+                                      rubrikId: rubrik.id,
                                       kategorie: kategorie.schluessel,
                                       index,
                                       aenderung: { max: Math.max(1, Number(e.target.value) || 1) },
@@ -161,6 +247,7 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                                 onBestaetigt={() =>
                                   dispatch({
                                     art: 'rubrik/kriteriumLoeschen',
+                                    rubrikId: rubrik.id,
                                     kategorie: kategorie.schluessel,
                                     index,
                                   })
@@ -180,6 +267,7 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                     onClick={() =>
                       dispatch({
                         art: 'rubrik/kriteriumHinzufuegen',
+                        rubrikId: rubrik.id,
                         kategorie: kategorie.schluessel,
                         kriterium: {
                           id: neueId(kategorie.schluessel.charAt(0)),
@@ -218,6 +306,7 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                   onChange={(e) =>
                     dispatch({
                       art: 'rubrik/gewicht',
+                      rubrikId: rubrik.id,
                       kategorie: kategorie.schluessel,
                       wert: Number(e.target.value) || 0,
                     })
@@ -229,19 +318,71 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
             <div className="uebersichtszeile summe">
               <div className="bezeichnung">
                 <b>Summe</b>
-                <span>
-                  {gewichtssumme === 100 ? 'passt' : 'wird intern auf 100 % umgerechnet'}
-                </span>
+                <span>{gewichtssumme === 100 ? 'passt' : 'wird intern auf 100 % umgerechnet'}</span>
               </div>
               <span className="prozent">{gewichtssumme} %</span>
             </div>
           </div>
 
-          <Karte titel="Notenschlüssel" buendig>
+          <div className="uebersicht" style={{ marginTop: 12 }}>
+            <h3>Stränge</h3>
+            <div className="uebersichtszeile">
+              <div className="bezeichnung">
+                <b>Praxis</b>
+                <span>Sprints und Diplomarbeitsvorbereitung</span>
+              </div>
+              <input
+                type="number"
+                className="schmal"
+                min={0}
+                max={100}
+                step={5}
+                value={daten.strangGewichte.praxis}
+                aria-label="Gewicht Praxis"
+                onChange={(e) =>
+                  dispatch({
+                    art: 'strang/gewicht',
+                    strang: 'praxis',
+                    wert: Number(e.target.value) || 0,
+                  })
+                }
+              />
+              <span className="maximum">%</span>
+            </div>
+            <div className="uebersichtszeile">
+              <div className="bezeichnung">
+                <b>Theorie</b>
+                <span>eine Wochenstunde, Tests</span>
+              </div>
+              <input
+                type="number"
+                className="schmal"
+                min={0}
+                max={100}
+                step={5}
+                value={daten.strangGewichte.theorie}
+                aria-label="Gewicht Theorie"
+                onChange={(e) =>
+                  dispatch({
+                    art: 'strang/gewicht',
+                    strang: 'theorie',
+                    wert: Number(e.target.value) || 0,
+                  })
+                }
+              />
+              <span className="maximum">%</span>
+            </div>
+            <p className="anmerkung" style={{ margin: '10px 12px 0' }}>
+              Vorgabe 75 zu 25 – drei von vier Wochenstunden Praxis. Ein Strang ohne Ergebnis fällt
+              aus der Gewichtung, statt als 0 zu zählen.
+            </p>
+          </div>
+
+          <Karte titel="Notenschlüssel" hinweis="gilt für den ganzen Gegenstand" buendig>
             <div className="tabellenrahmen">
               <table>
                 <tbody>
-                  {rubrik.notenschluessel
+                  {daten.notenschluessel
                     .slice()
                     .sort((a, b) => a.note - b.note)
                     .map((stufe) => (
@@ -262,7 +403,7 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                             aria-label={`Untergrenze für Note ${stufe.note}`}
                             onChange={(e) =>
                               dispatch({
-                                art: 'rubrik/notengrenze',
+                                art: 'notengrenze',
                                 note: stufe.note,
                                 ab: Number(e.target.value) || 0,
                               })
@@ -280,9 +421,11 @@ export function RubrikAnsicht({ daten, dispatch }: AnsichtProps) {
                 <input
                   type="checkbox"
                   checked={rubrik.selbstZaehlt}
-                  onChange={(e) => dispatch({ art: 'rubrik/selbstZaehlt', wert: e.target.checked })}
+                  onChange={(e) =>
+                    dispatch({ art: 'rubrik/selbstZaehlt', rubrikId: rubrik.id, wert: e.target.checked })
+                  }
                 />
-                <span>Selbsteinschätzung zählt in die Peer-Note</span>
+                <span>Selbsteinschätzung zählt in die Peer-Note ({rubrik.name})</span>
               </label>
             </div>
           </Karte>

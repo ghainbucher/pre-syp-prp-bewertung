@@ -113,6 +113,28 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ### Geändert
 
+- **Schemastand 2 umgesetzt (Block A).** Das Datenmodell trägt jetzt den **Abschnitt** statt
+  des Sprints: Ein Sprint, die Diplomarbeitsvorbereitung und ein Test sind drei Arten
+  desselben Bausteins (FA-56). Dazu die beiden Stränge Praxis und Theorie mit Vorgabe 75 zu 25
+  (FA-59), eine Rubrik je Abschnitt aus mehreren wählbar (FA-55), die Teamzugehörigkeit je
+  Abschnitt statt an der Person (FA-58), das Einfrieren der Rubrik beim ersten Punkteintrag
+  (FA-65) und Tests als eigene Abschnittsart mit eigener Rubrik (FA-60)
+- Die Migration hebt einen Bestand von Stand 1 auf Stand 2 und legt vorher eine unveränderte
+  Sicherung an (FA-57). Punkte, Notizen und Peer-Urteile bleiben unangetastet; aus der einen
+  Rubrik wird die Rubrikliste, aus `sprints` werden Abschnitte im Praxisstrang, und die
+  Teamzuordnung der Personen wird je Abschnitt festgeschrieben
+- Der Notenschlüssel gehört nicht mehr zur Rubrik, sondern zum Gegenstand: Er stand vorher in
+  jeder Rubrik und hätte sich mit mehreren Rubriken widersprechen können
+- Die Erfassungsmaske hat zwei Formen (FA-60 AK-3): Sprint und Diplomarbeitsvorbereitung
+  teamweise wie bisher, ein Test als Tabelle Person × Frage über die ganze Klasse, ohne Team
+- Die Peer-Bewertung erscheint nur noch in Abschnitten, in denen sie eingeschaltet ist
+  (FA-52); Vorgabe ist aus
+- Die Auswertung weist Praxis und Theorie getrennt aus und führt sie erst danach zusammen;
+  ein Strang ohne jedes Ergebnis fällt aus der Gewichtung, statt als 0 zu zählen (FA-59 AK-5).
+  Der CSV-Export trägt dieselben Spalten
+- Die Spalte „Team“ in Auswertung und Export nennt die Zuordnung im letzten Abschnitt mit
+  Team – Teams dürfen wechseln
+
 - Anforderungsdokument auf 0.2: alle funktionalen Anforderungen in Satzschablonenform, je
   Anforderung Stakeholder, Zweck und Status
 - Fachkonzept auf 0.2: Der Product Owner ist oft nicht die Lehrkraft. Der Auftraggeber nimmt

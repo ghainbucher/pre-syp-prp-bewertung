@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { VORLAGE_RUBRIK, strukturKopie } from './defaults';
+import {
+  RUBRIK_SPRINT,
+  STANDARD_NOTENSCHLUESSEL,
+  VORLAGE_RUBRIK_SPRINT,
+  leererDatenbestand,
+  strukturKopie,
+  testRubrik,
+} from './defaults';
 import {
   ABWEICHUNG_SCHWELLE,
+  abschnittsErgebnis,
   bewertungsSchluessel,
+  ergebnisAusRubrik,
   gesamtErgebnis,
   kategorieErgebnis,
   note,
@@ -11,9 +20,16 @@ import {
   peerWertInProzent,
   selbstEinschaetzung,
   selbstbildAbweichung,
-  sprintErgebnis,
+  strangErgebnis,
 } from './scoring';
-import type { Bewertung, Kriterium, Person, Rubrik, Sprint } from './types';
+import type {
+  Abschnitt,
+  Bewertung,
+  Datenbestand,
+  Kriterium,
+  Person,
+  Rubrik,
+} from './types';
 
 /* -------------------------------------------------------------------------- */
 /* Testdaten                                                                  */
@@ -25,20 +41,36 @@ const KRITERIEN: Kriterium[] = [
   { id: 'c', name: 'C', beschreibung: '', max: 5 },
 ];
 
+/** Alle vier Kategorien gewichtet – sonst fällt „fehlend“ anders aus. */
+const ALLE_GEWICHTE = { team: 40, prozess: 15, individuell: 35, peer: 10 };
+
 function person(id: string, teamId: string | null = 'team1'): Person {
   return { id, klasseId: 'k1', teamId, name: id };
 }
 
-function leereBewertung(sprintId = 's1', teamId = 'team1'): Bewertung {
-  return { sprintId, teamId, team: {}, prozess: {}, individuell: {}, peer: {}, notiz: '' };
-}
-
-function sprint(id: string, nummer: number, faktor = 1): Sprint {
-  return { id, klasseId: 'k1', nummer, name: `Sprint ${nummer}`, von: '', bis: '', faktor };
+function leereBewertung(abschnittId = 's1', teamId: string | null = 'team1'): Bewertung {
+  return { abschnittId, teamId, team: {}, prozess: {}, individuell: {}, peer: {}, notiz: '' };
 }
 
 function rubrik(aenderung: Partial<Rubrik> = {}): Rubrik {
-  return { ...strukturKopie(VORLAGE_RUBRIK), ...aenderung };
+  return { ...strukturKopie(VORLAGE_RUBRIK_SPRINT), ...aenderung };
+}
+
+function abschnitt(teil: Partial<Abschnitt> = {}): Abschnitt {
+  return {
+    id: 's1',
+    klasseId: 'k1',
+    nummer: 1,
+    name: 'Sprint 1',
+    art: 'sprint',
+    strang: 'praxis',
+    rubrikId: RUBRIK_SPRINT,
+    von: '',
+    bis: '',
+    faktor: 1,
+    peerAktiv: false,
+    ...teil,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -153,40 +185,43 @@ describe('peerErgebnis (FA-22, FA-15)', () => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* FA-23 Sprintergebnis                                                       */
+/* FA-23 Abschnittsergebnis                                                   */
 /* -------------------------------------------------------------------------- */
 
-describe('sprintErgebnis (FA-23, FA-26)', () => {
+describe('ergebnisAusRubrik (FA-23, FA-26)', () => {
   const team = [person('p1'), person('p2')];
 
   it('rechnet das dokumentierte Beispiel aus dem Solution-Design nach (NFA-02)', () => {
-    // Team 33,5/45 = 74,44 %, Prozess 20/25 = 80 %, Individuell 21/30 = 70 %,
-    // Peer Mittelwert 4,25 → 81,25 %. Gewichte 40/15/35/10 → 74,4 %.
+    // Team 33,5/45 = 74,44 %, Prozess 20/25 = 80 %, Individuell 21/30 = 70 %.
+    // Gewichte 45/20/35 → 74,0 %. Der Peer-Anteil trägt kein Kategoriegewicht
+    // mehr (ADR-007); als Korrekturfaktor kommt er erst mit FA-45.
     const b = leereBewertung();
     b.team = { t1: 8, t2: 7.5, t3: 5, t4: 4, t5: 5, t6: 4 };
     b.prozess = { p1: 4, p2: 3, p3: 4, p4: 5, p5: 4 };
     b.individuell = { p1: { punkte: { i1: 6, i2: 6, i3: 5, i4: 4 }, notiz: '' } };
     b.peer = { p2: { p1: { q1: 5, q2: 4, q3: 4, q4: 4 } } };
 
-    const ergebnis = sprintErgebnis(b, person('p1'), team, rubrik());
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), true);
     expect(ergebnis.team!.prozent).toBeCloseTo(74.444, 2);
     expect(ergebnis.prozess!.prozent).toBeCloseTo(80, 10);
     expect(ergebnis.individuell!.prozent).toBeCloseTo(70, 10);
     expect(ergebnis.peer!.prozent).toBeCloseTo(81.25, 10);
-    expect(ergebnis.prozent).toBeCloseTo(74.4, 1);
-    expect(note(ergebnis.prozent, VORLAGE_RUBRIK.notenschluessel)).toBe(3);
+    expect(ergebnis.prozent).toBeCloseTo(74.0, 1);
+    expect(note(ergebnis.prozent, STANDARD_NOTENSCHLUESSEL)).toBe(3);
   });
 
   it('rechnet fehlende Kategorien aus der Gewichtung heraus statt sie als 0 zu werten', () => {
     const b = leereBewertung();
     b.team = { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 }; // 100 %
-    const ergebnis = sprintErgebnis(b, person('p1'), team, rubrik());
+    const ergebnis = ergebnisAusRubrik(
+      b,
+      person('p1'),
+      team,
+      rubrik({ gewichte: ALLE_GEWICHTE }),
+      true,
+    );
     expect(ergebnis.prozent).toBe(100);
-    expect(ergebnis.fehlend).toEqual([
-      'Scrum-Prozess',
-      'Individueller Beitrag',
-      'Peer-Bewertung',
-    ]);
+    expect(ergebnis.fehlend).toEqual(['Scrum-Prozess', 'Individueller Beitrag', 'Peer-Bewertung']);
   });
 
   it('nimmt Kategorien mit Gewicht 0 aus der Berechnung, ohne sie als fehlend zu melden (FA-07)', () => {
@@ -194,13 +229,19 @@ describe('sprintErgebnis (FA-23, FA-26)', () => {
     b.team = { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 };
     b.prozess = { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0 };
     const r = rubrik({ gewichte: { team: 100, prozess: 0, individuell: 0, peer: 0 } });
-    const ergebnis = sprintErgebnis(b, person('p1'), team, r);
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, r, true);
     expect(ergebnis.prozent).toBe(100);
     expect(ergebnis.fehlend).toEqual([]);
   });
 
   it('liefert kein Ergebnis, solange nichts erfasst ist', () => {
-    const ergebnis = sprintErgebnis(undefined, person('p1'), team, rubrik());
+    const ergebnis = ergebnisAusRubrik(
+      undefined,
+      person('p1'),
+      team,
+      rubrik({ gewichte: ALLE_GEWICHTE }),
+      true,
+    );
     expect(ergebnis.prozent).toBeNull();
     expect(ergebnis.fehlend).toHaveLength(4);
   });
@@ -212,69 +253,129 @@ describe('sprintErgebnis (FA-23, FA-26)', () => {
       p1: { punkte: { i1: 10 }, notiz: '' },
       p2: { punkte: { i1: 0 }, notiz: '' },
     };
-    const eins = sprintErgebnis(b, person('p1'), team, rubrik());
-    const zwei = sprintErgebnis(b, person('p2'), team, rubrik());
+    const eins = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    const zwei = ergebnisAusRubrik(b, person('p2'), team, rubrik(), false);
     expect(eins.prozent).toBeGreaterThan(zwei.prozent!);
+  });
+
+  it('lässt den Peer-Anteil aus, solange er für den Abschnitt nicht eingeschaltet ist (FA-52)', () => {
+    const b = leereBewertung();
+    b.peer = { p2: { p1: { q1: 5, q2: 5, q3: 5, q4: 5 } } };
+    expect(ergebnisAusRubrik(b, person('p1'), team, rubrik(), false).peer).toBeNull();
+    expect(ergebnisAusRubrik(b, person('p1'), team, rubrik(), true).peer).not.toBeNull();
   });
 });
 
 /* -------------------------------------------------------------------------- */
-/* FA-24 Gesamtergebnis                                                       */
+/* FA-59 Stränge und Gesamtstand                                              */
 /* -------------------------------------------------------------------------- */
 
-describe('gesamtErgebnis (FA-24)', () => {
-  const team = [person('p1')];
-  const r = rubrik({ gewichte: { team: 100, prozess: 0, individuell: 0, peer: 0 } });
+describe('strangErgebnis und gesamtErgebnis (FA-24, FA-59)', () => {
+  /** Bestand mit einem Praxis- und einem Theorieabschnitt. */
+  function bestand(): Datenbestand {
+    const daten = leererDatenbestand();
+    daten.klassen = [{ id: 'k1', name: '4AHIF' }];
+    daten.teams = [{ id: 'team1', klasseId: 'k1', name: 'Team Kepler' }];
+    daten.personen = [person('p1')];
+    daten.rubriken = [
+      rubrik({ gewichte: { team: 100, prozess: 0, individuell: 0, peer: 0 } }),
+      testRubrik('rubrik-test', 'Test 1'),
+    ];
+    daten.abschnitte = [
+      abschnitt({ id: 's1', nummer: 1 }),
+      abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }),
+      abschnitt({
+        id: 'x1',
+        nummer: 3,
+        name: 'Test 1',
+        art: 'test',
+        strang: 'theorie',
+        rubrikId: 'rubrik-test',
+      }),
+    ];
+    return daten;
+  }
 
-  function bestandMit(werte: Array<{ sprintId: string; punkte: number }>): Map<string, Bewertung> {
+  function mitPunkten(
+    daten: Datenbestand,
+    eintraege: Array<{ abschnittId: string; teamPunkte?: number; testPunkte?: number }>,
+  ): Map<string, Bewertung> {
     const map = new Map<string, Bewertung>();
-    for (const eintrag of werte) {
-      const b = leereBewertung(eintrag.sprintId);
-      b.team = { t1: eintrag.punkte }; // max 10
-      map.set(bewertungsSchluessel(eintrag.sprintId, 'team1'), b);
+    for (const eintrag of eintraege) {
+      if (eintrag.teamPunkte !== undefined) {
+        const b = leereBewertung(eintrag.abschnittId, 'team1');
+        b.team = { t1: eintrag.teamPunkte }; // max 10
+        map.set(bewertungsSchluessel(eintrag.abschnittId, 'team1'), b);
+      }
+      if (eintrag.testPunkte !== undefined) {
+        const b = leereBewertung(eintrag.abschnittId, null);
+        b.individuell = { p1: { punkte: { f1: eintrag.testPunkte }, notiz: '' } }; // max 2
+        map.set(bewertungsSchluessel(eintrag.abschnittId, null), b);
+      }
+      void daten;
     }
     return map;
   }
 
-  it('gewichtet Sprints mit ihrem Faktor', () => {
-    const sprints = [sprint('s1', 1, 0.5), sprint('s2', 2, 1)];
-    const bewertungen = bestandMit([
-      { sprintId: 's1', punkte: 4 }, // 40 %
-      { sprintId: 's2', punkte: 10 }, // 100 %
+  it('gewichtet Abschnitte mit ihrem Faktor', () => {
+    const daten = bestand();
+    daten.abschnitte[0].faktor = 0.5;
+    const bewertungen = mitPunkten(daten, [
+      { abschnittId: 's1', teamPunkte: 4 }, // 40 %
+      { abschnittId: 's2', teamPunkte: 10 }, // 100 %
     ]);
     // (0,5·40 + 1·100) / 1,5 = 80
-    expect(gesamtErgebnis(person('p1'), sprints, team, bewertungen, r).prozent).toBeCloseTo(80, 10);
+    expect(strangErgebnis(daten, person('p1'), 'praxis', bewertungen).prozent).toBeCloseTo(80, 10);
   });
 
-  it('lässt Sprints ohne Daten unberücksichtigt', () => {
-    const sprints = [sprint('s1', 1), sprint('s2', 2)];
-    const bewertungen = bestandMit([{ sprintId: 's1', punkte: 9 }]);
-    expect(gesamtErgebnis(person('p1'), sprints, team, bewertungen, r).prozent).toBeCloseTo(90, 10);
-  });
-
-  it('lässt Sprints mit Faktor 0 unberücksichtigt', () => {
-    const sprints = [sprint('s1', 1, 0), sprint('s2', 2, 1)];
-    const bewertungen = bestandMit([
-      { sprintId: 's1', punkte: 0 },
-      { sprintId: 's2', punkte: 8 },
+  it('lässt Abschnitte ohne Daten und mit Faktor 0 unberücksichtigt', () => {
+    const daten = bestand();
+    daten.abschnitte[0].faktor = 0;
+    const bewertungen = mitPunkten(daten, [
+      { abschnittId: 's1', teamPunkte: 0 },
+      { abschnittId: 's2', teamPunkte: 8 },
     ]);
-    expect(gesamtErgebnis(person('p1'), sprints, team, bewertungen, r).prozent).toBeCloseTo(80, 10);
+    expect(strangErgebnis(daten, person('p1'), 'praxis', bewertungen).prozent).toBeCloseTo(80, 10);
   });
 
-  it('liefert null für Personen ohne Team', () => {
-    const sprints = [sprint('s1', 1)];
-    const bewertungen = bestandMit([{ sprintId: 's1', punkte: 10 }]);
-    const ohneTeam = person('p9', null);
-    expect(gesamtErgebnis(ohneTeam, sprints, team, bewertungen, r).prozent).toBeNull();
+  it('mittelt die Strangstände mit 75 zu 25 (FA-59 AK-3)', () => {
+    const daten = bestand();
+    const bewertungen = mitPunkten(daten, [
+      { abschnittId: 's1', teamPunkte: 10 }, // Praxis 100 %
+      { abschnittId: 's2', teamPunkte: 10 },
+      { abschnittId: 'x1', testPunkte: 1 }, // Theorie 1 von 2 = 50 %
+    ]);
+    const ergebnis = gesamtErgebnis(daten, person('p1'), bewertungen);
+    expect(ergebnis.praxis.prozent).toBeCloseTo(100, 10);
+    expect(ergebnis.theorie.prozent).toBeCloseTo(50, 10);
+    // 0,75·100 + 0,25·50 = 87,5
+    expect(ergebnis.prozent).toBeCloseTo(87.5, 10);
   });
 
-  it('führt jedes Sprintergebnis einzeln mit', () => {
-    const sprints = [sprint('s1', 1), sprint('s2', 2)];
-    const bewertungen = bestandMit([{ sprintId: 's1', punkte: 5 }]);
-    const ergebnis = gesamtErgebnis(person('p1'), sprints, team, bewertungen, r);
-    expect(ergebnis.proSprint).toHaveLength(2);
-    expect(ergebnis.proSprint[0].ergebnis.prozent).toBeCloseTo(50, 10);
-    expect(ergebnis.proSprint[1].ergebnis.prozent).toBeNull();
+  it('nimmt einen Strang ohne jedes Ergebnis aus der Gewichtung (FA-59 AK-5)', () => {
+    const daten = bestand();
+    const bewertungen = mitPunkten(daten, [{ abschnittId: 's1', teamPunkte: 8 }]);
+    const ergebnis = gesamtErgebnis(daten, person('p1'), bewertungen);
+    expect(ergebnis.theorie.prozent).toBeNull();
+    // Ohne diese Regel stünde hier 60 statt 80 – im Oktober, wenn noch kein
+    // Test geschrieben wurde, wäre jeder Stand um ein Viertel gedrückt.
+    expect(ergebnis.prozent).toBeCloseTo(80, 10);
+  });
+
+  it('führt jedes Abschnittsergebnis einzeln mit', () => {
+    const daten = bestand();
+    const bewertungen = mitPunkten(daten, [{ abschnittId: 's1', teamPunkte: 5 }]);
+    const ergebnis = gesamtErgebnis(daten, person('p1'), bewertungen);
+    expect(ergebnis.alle).toHaveLength(3);
+    expect(ergebnis.alle[0].ergebnis.prozent).toBeCloseTo(50, 10);
+    expect(ergebnis.alle[1].ergebnis.prozent).toBeNull();
+  });
+
+  it('rechnet einen Test über die Person, nicht über ein Team (FA-60)', () => {
+    const daten = bestand();
+    const bewertungen = mitPunkten(daten, [{ abschnittId: 'x1', testPunkte: 2 }]);
+    const test = daten.abschnitte[2];
+    expect(abschnittsErgebnis(daten, test, person('p1'), bewertungen).prozent).toBeCloseTo(100, 10);
   });
 });
 
@@ -300,14 +401,21 @@ describe('Aufbau der Rubrik (FA-05, FA-10)', () => {
     }
   });
 
+  it('baut die Testrubrik nach dem Schema 20/20/20/40 (Fachkonzept 3.6)', () => {
+    const r = testRubrik('t', 'Test');
+    expect(r.individuell.map((k) => k.max)).toEqual([2, 2, 2, 4]);
+    expect(r.gewichte).toEqual({ team: 0, prozess: 0, individuell: 100, peer: 0 });
+    expect(r.team).toHaveLength(0);
+  });
+
   it('wendet dieselbe Rubrik unabhängig von Klasse und Team an (FA-10)', () => {
     const b = leereBewertung();
     b.team = { t1: 5 };
     const r = rubrik();
     const ausKlasseA = { ...person('p1'), klasseId: 'k1', teamId: 'team1' };
     const ausKlasseB = { ...person('p2'), klasseId: 'k2', teamId: 'team2' };
-    expect(sprintErgebnis(b, ausKlasseA, [ausKlasseA], r).team!.prozent).toBe(
-      sprintErgebnis(b, ausKlasseB, [ausKlasseB], r).team!.prozent,
+    expect(ergebnisAusRubrik(b, ausKlasseA, [ausKlasseA], r, false).team!.prozent).toBe(
+      ergebnisAusRubrik(b, ausKlasseB, [ausKlasseB], r, false).team!.prozent,
     );
   });
 });
@@ -325,7 +433,7 @@ describe('selbstbildAbweichung (FA-27)', () => {
       p1: { p1: { q1: selbstWert, q2: selbstWert, q3: selbstWert, q4: selbstWert } },
       p2: { p1: { q1: fremdWert, q2: fremdWert, q3: fremdWert, q4: fremdWert } },
     };
-    return sprintErgebnis(b, person('p1'), team, rubrik());
+    return ergebnisAusRubrik(b, person('p1'), team, rubrik(), true);
   }
 
   it('meldet ein deutlich zu hohes Selbstbild', () => {
@@ -344,17 +452,25 @@ describe('selbstbildAbweichung (FA-27)', () => {
   });
 
   it('meldet nichts, solange Selbst- oder Fremdbild fehlt', () => {
-    const ohnePeer = sprintErgebnis(leereBewertung(), person('p1'), team, rubrik());
+    const ohnePeer = ergebnisAusRubrik(leereBewertung(), person('p1'), team, rubrik(), true);
     expect(selbstbildAbweichung(ohnePeer)).toBeNull();
   });
 });
 
 /* -------------------------------------------------------------------------- */
-/* FA-25 Note                                                                 */
+/* Schlüssel und Note                                                         */
 /* -------------------------------------------------------------------------- */
 
+describe('bewertungsSchluessel', () => {
+  it('unterscheidet Abschnitte mit und ohne Team (FA-60)', () => {
+    expect(bewertungsSchluessel('a1', 'tm1')).toBe('a1__tm1');
+    expect(bewertungsSchluessel('a1', null)).toBe('a1__-');
+    expect(bewertungsSchluessel('a1', null)).not.toBe(bewertungsSchluessel('a1', 'tm1'));
+  });
+});
+
 describe('note (FA-25)', () => {
-  const schluessel = VORLAGE_RUBRIK.notenschluessel;
+  const schluessel = STANDARD_NOTENSCHLUESSEL;
 
   it('ordnet die Grenzwerte der besseren Note zu', () => {
     expect(note(100, schluessel)).toBe(1);
