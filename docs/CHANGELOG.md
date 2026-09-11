@@ -6,6 +6,14 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ## [Unveröffentlicht]
 
+Noch nichts.
+
+## [0.2.0] – 2026-09-11 · „Erfassen“
+
+Der Beurteilungsabschnitt trägt das Modell, die beiden Stränge sind getrennt, Tests sind
+erfassbar, und die Sicherung hängt nicht mehr an einer Gewohnheit. Umgesetzt: FA-17, FA-39,
+FA-46, FA-52, FA-53, FA-55 bis FA-60, FA-64, FA-65 und DS-06.
+
 ### Hinzugefügt
 
 - Fachliches Konzept des Unterrichts mit Kompetenzmodell, Sprintdidaktik und
@@ -113,6 +121,45 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ### Geändert
 
+- **FA-53 Nachfrage am Ende der Sprintbewertung.** Sobald jedes Mitglied jedes Teams eines
+  Abschnitts ein Ergebnis hat, erscheint in der Bewerten-Ansicht die Frage, ob die
+  Peer-Bewertung ab dem nächsten Abschnitt laufen soll. Sie blockiert nichts und kennt drei
+  Antworten – „ja“, „nein“ und „später“; auch das „später“ wird festgehalten, sonst stünde die
+  Frage nach jedem Neuladen wieder da. Jede Antwort wird mit Abschnitt und Datum vermerkt
+  (`peerEntscheidungen`), damit nachvollziehbar bleibt, ab wann Peer-Werte einfließen. Ein „ja“
+  schaltet den nächsten **bereits angelegten** Abschnitt ein; für später angelegte bleibt die
+  Vorgabe „aus“, weil FA-52 AK-1 das so festlegt. Diese Spannung ist als OP-F16 offen notiert
+- **FA-64 Automatische Sicherung in einen gewählten Ordner** (ADR-011). Der Ordner wird einmal
+  gewählt und bleibt als Handle in IndexedDB; danach schreibt die Anwendung die Tagesdatei
+  `pre-syp-prp-JJJJ-MM-TT.json` ohne Dialog dorthin – drei Sekunden nach der letzten Änderung,
+  nicht bei jedem Tastendruck. Es entsteht kein Netzwerkaufruf (NFA-03); geschrieben wird eine
+  lokale Datei. Nach einem Neuladen ist die Schreibberechtigung einmal je Sitzung zu
+  bestätigen – die Anwendung fragt das **nicht** von sich aus, weil der Browser eine Nachfrage
+  ohne Klick ablehnt, sondern bietet einen Schalter an. Fehlschläge landen sichtbar in Fußzeile
+  und Hinweisband; still scheitern darf die Automatik nicht. In Browsern ohne die File System
+  Access API wird die Funktion gar nicht erst angeboten, und die Anwendung sagt das (AK-7)
+- **DS-06 Ablageort der Sicherung**: Der Hinweis auf den schulischen Speicher steht jetzt beim
+  Export, beim Einrichten des Ordners und dauerhaft in der Fußzeile
+- **FA-46 Erinnerung an die Sicherung.** Wurde am laufenden Tag gearbeitet und noch nicht
+  gesichert, erscheint ein abweisbarer Hinweis mit Zeitpunkt und Umfang der letzten Sicherung;
+  liegt sie mehr als drei Tage zurück, wird er deutlich. In der Fußzeile steht der Stand
+  dauerhaft, nicht nur als wegklickbare Meldung. Die Regel liegt als reine Funktion in
+  `store/sicherung.ts` und ist ohne Oberfläche prüfbar (NFA-06); der Stand hat einen eigenen
+  Speicherschlüssel, damit eine eingelesene Sicherungsdatei nicht behauptet, sie sei bereits
+  gesichert worden. Die beiden Fälle der automatischen Sicherung (FA-46 AK-6) sind im Modell
+  bereits vorgesehen und greifen, sobald FA-64 steht
+- **FA-39 Rubrik zur Ausgabe an die Klasse.** Ein Schalter „Kriterien ausgeben“ in der
+  Bewerten-Ansicht erzeugt ein in sich geschlossenes HTML-Blatt zum Ausdrucken oder
+  Weitergeben: alle Kriterien mit Beschreibung und Punktemaxima, die Kategoriegewichte und der
+  Notenschlüssel. Kein Skript, kein Verweis nach außen (NFA-03). Das Blatt kennt nur Rubrik und
+  Notenschlüssel – Namen und Punkte werden gar nicht erst übergeben. Es zeigt die für den
+  Abschnitt tatsächlich geltende Rubrik, nach dem Einfrieren also die Kopie (FA-65). Für einen
+  Test wird es **nicht** angeboten: dort sind die Kriterien die Fragen (neue AK-4 bis AK-7)
+- **FA-17 Notiz je Person** ist in der Oberfläche angekommen: eine eigene Karte „Notizen je
+  Person“ in beiden Erfassungsmasken, neben der Notiz an das Team (FA-16). Sie ist eine
+  Aufzeichnung der Lehrkraft (§ 18 Abs. 1 SchUG) und erscheint in keiner Ausgabe an die
+  Klasse. Eine geleerte Notiz wird nicht abgelegt; eine Notiz ohne Punkte bleibt erhalten.
+  Die Akzeptanzkriterien AK-1 bis AK-5 waren im Anforderungsdokument nachzutragen
 - **Schemastand 2 umgesetzt (Block A).** Das Datenmodell trägt jetzt den **Abschnitt** statt
   des Sprints: Ein Sprint, die Diplomarbeitsvorbereitung und ein Test sind drei Arten
   desselben Bausteins (FA-56). Dazu die beiden Stränge Praxis und Theorie mit Vorgabe 75 zu 25

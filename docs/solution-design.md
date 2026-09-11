@@ -4,14 +4,14 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung – Bewertung von Schüler-Softwareprojekten in Sprints |
 | **Dokument** | Solution-Design / Technisches Konzept |
-| **Version** | 0.12 |
-| **Datum** | 2026-09-10 |
+| **Version** | 0.13 |
+| **Datum** | 2026-09-11 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.1.0 |
-| **Zuletzt geprüft** | 2026-09-10 |
+| **Gültig für Softwarestand** | 0.2.0 |
+| **Zuletzt geprüft** | 2026-09-11 |
 | **Nächste Prüfung** | Ende Sprint 1 |
-| **Bezug** | [Anforderungen](anforderungen.md) v0.18 · [Fachkonzept](fachkonzept-unterricht.md) v0.19 · [Risiken](risiken.md) |
+| **Bezug** | [Anforderungen](anforderungen.md) v0.20 · [Fachkonzept](fachkonzept-unterricht.md) v0.19 · [Risiken](risiken.md) |
 | **Rahmenbedingung** | RB-02 |
 
 ---
@@ -20,6 +20,7 @@
 
 | Version | Datum | Autor | Änderung | Status |
 |---|---|---|---|---|
+| 0.13 | 2026-09-11 | G. Hainbucher | Umsetzung nachgezogen: Modulliste um `domain/zuordnung.ts`, `store/sicherung.ts`, `store/ordner.ts` und `export/rubrikblatt.ts` ergänzt; Kap. 5.0 berichtigt (Notenschlüssel im Bestand, `Person.teamId` bleibt als Vorbelegung, `sperreAktiv` erst mit FA-61, `peerEntscheidungen` additiv); Kap. 7.2 zur Berechtigung und zum Schreibtakt berichtigt | Entwurf |
 | 0.1 | 2026-09-09 | G. Hainbucher | Ersterstellung: Architektur, Datenmodell, Berechnungslogik, Teststrategie, CI/CD | Entwurf |
 | 0.2 | 2026-09-09 | G. Hainbucher | Aktualitätskopf ergänzt; Datenmodell um Auftraggeber, Verstehensnachweis, Reflexion und Auftraggeber-Rückmeldung erweitert (FA-40 bis FA-44); offene Punkte an Risikoanalyse angeschlossen | Entwurf |
 | 0.5 | 2026-09-10 | G. Hainbucher | Zeitfaktor nach § 20 Abs. 1 LBVO in Kap. 6.5; Beurteilungszeitraum als eigene Struktur | Entwurf |
@@ -123,11 +124,15 @@ ist die Berechnungslogik ohne Oberfläche testbar (NFA-06).
 | Modul | Verantwortung | Darf nicht |
 |---|---|---|
 | `domain/types.ts` | Datenstrukturen | – |
-| `domain/scoring.ts` | Reine Funktionen für Prozente, Gewichtung, Note | Zustand halten, Seiteneffekte |
-| `domain/defaults.ts` | Auslieferungsrubrik und Standard-Notenschlüssel | – |
+| `domain/scoring.ts` | Reine Funktionen für Prozente, Gewichtung, Note, Abschluss eines Abschnitts | Zustand halten, Seiteneffekte |
+| `domain/zuordnung.ts` | Welche Rubrik gilt für einen Abschnitt (FA-65), wer war wann in welchem Team (FA-58) | Rechnen, Zustand halten |
+| `domain/defaults.ts` | Ausgelieferte Rubriken und Standard-Notenschlüssel | – |
 | `store/persistence.ts` | Serialisieren, Laden, Schemamigration, Export/Import | Rechnen |
 | `store/storeReducer.ts` | Alle Änderungen am Datenbestand | Rechnen, Darstellung |
+| `store/sicherung.ts` | Stand der Sicherung und die Regel, wann erinnert wird (FA-46) | Schreiben, Darstellung |
+| `store/ordner.ts` | Zielordner der automatischen Sicherung, File System Access API (FA-64) | Entscheiden, wann gesichert wird |
 | `export/csv.ts` | Aufbereitung der Klassenübersicht als CSV | Rechnen (ruft `domain` auf) |
+| `export/rubrikblatt.ts` | Kriterienblatt für die Klasse als HTML (FA-39) | Namen oder Punkte kennen |
 | `ui/*` | Wiederverwendete Bausteine, Auswahl-Hilfen, Oberflächenzustand | Rechnen |
 | `ansichten/*` | Die vier Bereiche: Darstellung und Eingabe | Rechnen |
 
@@ -259,19 +264,42 @@ type Datenbestand = {
   schemaVersion: 2;
   rubriken: Rubrik[];             // FA-55 – statt einer einzigen
   vorgabeRubrikId: Id;            // FA-55 AK-2
+  notenschluessel: Notenstufe[];  // gehört zum Gegenstand, nicht zur Rubrik
   abschnitte: Abschnitt[];        // FA-56 – statt sprints
-  zugehoerigkeiten: Zugehoerigkeit[];   // FA-58 – statt Person.teamId
+  zugehoerigkeiten: Zugehoerigkeit[];   // FA-58
   strangGewichte: { praxis: number; theorie: number };   // FA-59 AK-3, Vorgabe 75 / 25
-  sperreAktiv: boolean;                 // FA-61 AK-6, Vorgabe true
-  // klassen, teams, personen, bewertungen, stichtage unverändert
+  peerEntscheidungen: PeerEntscheidung[];  // FA-53 AK-4
+  // klassen, teams, personen, bewertungen unverändert
 };
 
 type Zugehoerigkeit = {           // FA-58 – wer war in welchem Abschnitt in welchem Team
   abschnittId: Id;
   personId: Id;
-  teamId: Id;
+  teamId: Id | null;              // null = in diesem Abschnitt keinem Team zugeordnet (AK-3)
+};
+
+type PeerEntscheidung = {         // FA-53 – ab wann fließen Peer-Werte ein
+  abschnittId: Id;
+  am: string;                     // ISO
+  antwort: 'ja' | 'nein' | 'spaeter';
 };
 ```
+
+Drei Festlegungen, die von einer früheren Fassung dieses Kapitels abweichen:
+
+- **Der Notenschlüssel wandert von der Rubrik in den Bestand.** Mit mehreren Rubriken könnten
+  sich sonst zwei Schlüssel widersprechen; er gilt aber für den ganzen Gegenstand.
+- **`Person.teamId` entfällt nicht**, sondern bleibt als *Vorbelegung* für neu angelegte
+  Abschnitte stehen. Maßgeblich ist immer die `Zugehoerigkeit`; fehlt sie für einen Abschnitt,
+  gilt die Vorbelegung. Das erspart beim Anlegen eines Sprints die Zuordnung der ganzen Klasse
+  von Hand.
+- **`sperreAktiv` ist noch nicht im Bestand.** Die Sperre bei negativem Strang (FA-61) steht
+  in Release 0.3.0; das Feld kommt mit ihr und wird wie `peerEntscheidungen` additiv ergänzt.
+
+`peerEntscheidungen` ist innerhalb von Schemastand 2 **additiv** hinzugekommen: Ein Bestand
+ohne das Feld wird beim Laden um eine leere Liste ergänzt. Ein eigener Schemastand für eine
+Liste ohne Bezug zu bestehenden Feldern wäre unverhältnismäßig – er verlangte eine Migration,
+die nichts zu migrieren hat.
 
 `Bewertung` behält ihren Schlüssel, nur der Name der Bezugsgröße ändert sich:
 `abschnittId + teamId` statt `sprintId + teamId`.
@@ -543,8 +571,8 @@ System Access API** kommt am nächsten heran:
 |---|---|
 | Ordner wählen | `showDirectoryPicker()`, einmalig durch die Lehrkraft |
 | Handle behalten | Der `FileSystemDirectoryHandle` wird in **IndexedDB** abgelegt – nicht in `localStorage`, der nur Zeichenketten kennt |
-| Berechtigung | Nach jedem Neuladen ist `requestPermission({ mode: 'readwrite' })` nötig; das geschieht **einmal je Sitzung** bei der ersten Sicherung, nicht bei jeder Änderung |
-| Schreiben | Nach einer Änderung, entprellt; Ziel ist `pre-syp-prp-JJJJ-MM-TT.json` im gewählten Ordner |
+| Berechtigung | Nach jedem Neuladen ist `requestPermission({ mode: 'readwrite' })` nötig. Die Anwendung fragt beim Start nur `queryPermission` ab und **bittet nie von sich aus**: Der Browser lehnt eine Nachfrage ohne Nutzerhandlung ab. Fehlt die Berechtigung, erscheint der Schalter „Ordner freigeben“ – einmal je Sitzung, nicht bei jeder Änderung |
+| Schreiben | Drei Sekunden nach der letzten Änderung – deutlich träger als die 400 ms des Browserspeichers, weil eine Datei je Tastendruck nichts bringt und einen Sync-Ordner belastet. Ziel ist `pre-syp-prp-JJJJ-MM-TT.json` im gewählten Ordner |
 | Fehlschlag | Ordner entfernt, Berechtigung entzogen, Schreibfehler: sichtbare Meldung, Rückfall auf FA-46 – **nie stillschweigend** |
 | Ohne API | Firefox und Safari kennen sie nicht. Dort wird die Funktion gar nicht angeboten, und die Anwendung sagt warum (NFA-05, ADR-011) |
 

@@ -21,6 +21,7 @@ import type {
   Bewertung,
   Datenbestand,
   Notenstufe,
+  PeerEntscheidung,
   Rubrik,
   Zugehoerigkeit,
 } from '../domain/types';
@@ -146,6 +147,7 @@ function vonStand1(roh: RoherBestand): Datenbestand {
     abschnitte,
     zugehoerigkeiten,
     bewertungen,
+    peerEntscheidungen: [],
   };
 }
 
@@ -191,6 +193,7 @@ function vervollstaendigen(roh: RoherBestand): Datenbestand {
     abschnitte,
     zugehoerigkeiten: (roh.zugehoerigkeiten ?? []) as Zugehoerigkeit[],
     bewertungen,
+    peerEntscheidungen: (roh.peerEntscheidungen ?? []) as PeerEntscheidung[],
   };
 }
 

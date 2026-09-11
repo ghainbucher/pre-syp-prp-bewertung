@@ -283,7 +283,7 @@ describe('Bewertung erfassen (FA-12 bis FA-16, FA-19)', () => {
     expect(daten.bewertungen).toHaveLength(1);
   });
 
-  it('behält eine Bewertung, solange eine persönliche Notiz vorhanden ist (FA-17)', () => {
+  it('behält eine Bewertung, solange eine persönliche Notiz vorhanden ist (FA-17 AK-1)', () => {
     const daten = anwenden(grundbestand(), {
       art: 'bewertung/individuellNotiz',
       abschnittId: 's1',
@@ -292,6 +292,54 @@ describe('Bewertung erfassen (FA-12 bis FA-16, FA-19)', () => {
       notiz: 'Hat die Schnittstelle allein gebaut.',
     });
     expect(daten.bewertungen[0].individuell.p1.notiz).toContain('Schnittstelle');
+  });
+
+  it('hält Teamnotiz und persönliche Notiz getrennt (FA-16, FA-17 AK-2)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/notiz', abschnittId: 's1', teamId: 'team1', notiz: 'Demo lief stabil.' },
+      {
+        art: 'bewertung/individuellNotiz',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        notiz: 'Hat die Schnittstelle allein gebaut.',
+      },
+    );
+    expect(daten.bewertungen[0].notiz).toBe('Demo lief stabil.');
+    expect(daten.bewertungen[0].individuell.p1.notiz).toContain('Schnittstelle');
+    expect(daten.bewertungen[0].individuell.p2).toBeUndefined();
+  });
+
+  it('speichert eine geleerte persönliche Notiz nicht (FA-17 AK-3)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 5 },
+      { art: 'bewertung/individuellNotiz', abschnittId: 's1', teamId: 'team1', personId: 'p1', notiz: 'Merkzettel' },
+      { art: 'bewertung/individuellNotiz', abschnittId: 's1', teamId: 'team1', personId: 'p1', notiz: '  ' },
+    );
+    expect(daten.bewertungen[0].individuell).toEqual({});
+  });
+
+  it('behält die Notiz, wenn alle Punkte der Person geleert werden (FA-17 AK-5)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/individuell', abschnittId: 's1', teamId: 'team1', personId: 'p1', kriteriumId: 'i1', wert: 8 },
+      { art: 'bewertung/individuellNotiz', abschnittId: 's1', teamId: 'team1', personId: 'p1', notiz: 'Krank gewesen.' },
+      { art: 'bewertung/individuell', abschnittId: 's1', teamId: 'team1', personId: 'p1', kriteriumId: 'i1', wert: null },
+    );
+    expect(daten.bewertungen).toHaveLength(1);
+    expect(daten.bewertungen[0].individuell.p1.punkte).toEqual({});
+    expect(daten.bewertungen[0].individuell.p1.notiz).toBe('Krank gewesen.');
+  });
+
+  it('lässt eine Bewertung fallen, die nur noch eine leere Notiz trug (FA-17 AK-3)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/individuellNotiz', abschnittId: 's1', teamId: 'team1', personId: 'p1', notiz: 'Merkzettel' },
+      { art: 'bewertung/individuellNotiz', abschnittId: 's1', teamId: 'team1', personId: 'p1', notiz: '' },
+    );
+    expect(daten.bewertungen).toHaveLength(0);
   });
 
   it('verändert den vorherigen Zustand nicht', () => {
@@ -390,5 +438,73 @@ describe('bewertungsIndex', () => {
       wert: 3,
     });
     expect(bewertungsIndex(daten).get('s1__team1')?.team.t1).toBe(3);
+  });
+});
+
+describe('Nachfrage zur Peer-Bewertung (FA-53)', () => {
+  /** Grundbestand mit zwei Sprints und vollständig bewertetem Sprint 1. */
+  function zweiSprints(): Datenbestand {
+    return anwenden(
+      grundbestand(),
+      { art: 'abschnitt/anlegen', abschnitt: abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }) },
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 8 },
+    );
+  }
+
+  it('hält Antwort, Abschnitt und Datum fest (AK-4)', () => {
+    const daten = anwenden(zweiSprints(), {
+      art: 'peer/entscheidung',
+      abschnittId: 's1',
+      antwort: 'ja',
+      am: '2026-10-24T12:00:00.000Z',
+    });
+    expect(daten.peerEntscheidungen).toEqual([
+      { abschnittId: 's1', am: '2026-10-24T12:00:00.000Z', antwort: 'ja' },
+    ]);
+  });
+
+  it('schaltet bei „ja“ den nächsten vorhandenen Abschnitt ein', () => {
+    const daten = anwenden(zweiSprints(), {
+      art: 'peer/entscheidung',
+      abschnittId: 's1',
+      antwort: 'ja',
+    });
+    expect(daten.abschnitte.find((a) => a.id === 's1')!.peerAktiv).toBe(false);
+    expect(daten.abschnitte.find((a) => a.id === 's2')!.peerAktiv).toBe(true);
+  });
+
+  it('schaltet bei „nein“ und „später“ nichts ein (AK-5)', () => {
+    for (const antwort of ['nein', 'spaeter'] as const) {
+      const daten = anwenden(zweiSprints(), { art: 'peer/entscheidung', abschnittId: 's1', antwort });
+      expect(daten.abschnitte.find((a) => a.id === 's2')!.peerAktiv).toBe(false);
+    }
+  });
+
+  it('lässt die Vorgabe für neu angelegte Abschnitte bei „aus“ (FA-52 AK-1)', () => {
+    const daten = anwenden(
+      zweiSprints(),
+      { art: 'peer/entscheidung', abschnittId: 's1', antwort: 'ja' },
+      { art: 'abschnitt/anlegen', abschnitt: abschnitt({ id: 's3', nummer: 3, name: 'Sprint 3' }) },
+    );
+    expect(daten.abschnitte.find((a) => a.id === 's3')!.peerAktiv).toBe(false);
+  });
+
+  it('ersetzt eine frühere Antwort zum selben Abschnitt', () => {
+    const daten = anwenden(
+      zweiSprints(),
+      { art: 'peer/entscheidung', abschnittId: 's1', antwort: 'spaeter' },
+      { art: 'peer/entscheidung', abschnittId: 's1', antwort: 'nein' },
+    );
+    expect(daten.peerEntscheidungen).toHaveLength(1);
+    expect(daten.peerEntscheidungen[0].antwort).toBe('nein');
+  });
+
+  it('entfernt die Entscheidung mit dem Abschnitt', () => {
+    const daten = anwenden(
+      zweiSprints(),
+      { art: 'peer/entscheidung', abschnittId: 's1', antwort: 'nein' },
+      { art: 'abschnitt/loeschen', id: 's1' },
+    );
+    expect(daten.peerEntscheidungen).toEqual([]);
   });
 });

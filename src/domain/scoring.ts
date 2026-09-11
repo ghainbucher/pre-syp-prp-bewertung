@@ -24,7 +24,7 @@ import type {
   Strang,
   Strangergebnis,
 } from './types';
-import { abschnitteVon, mitgliederIn, rubrikVon, teamIn } from './zuordnung';
+import { abschnitteVon, mitgliederIn, rubrikVon, teamIn, teamsIn } from './zuordnung';
 
 export const PEER_MIN = 1;
 export const PEER_MAX = 5;
@@ -217,6 +217,50 @@ export function abschnittsErgebnis(
   return ergebnisAusRubrik(bewertung, person, mitglieder, rubrik, abschnitt.peerAktiv);
 }
 
+/**
+ * Ist die Bewertung dieses Abschnitts abgeschlossen (FA-53 AK-1)?
+ *
+ * Gemessen an dem, was erfasst ist – nicht an einem Schalter „fertig“: Der
+ * Abschnitt gilt als abgeschlossen, wenn es mindestens ein Team gibt und jedes
+ * Mitglied jedes Teams ein Ergebnis hat. Ein Team ohne Mitglieder zählt nicht
+ * als erledigt, sondern als unvollständig.
+ */
+export function abschnittAbgeschlossen(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  bewertungen: Map<string, Bewertung>,
+): boolean {
+  const teams = teamsIn(daten, abschnitt.id);
+  if (teams.length === 0) return false;
+
+  return teams.every((team) => {
+    const mitglieder = mitgliederIn(daten, abschnitt.id, team.id);
+    if (mitglieder.length === 0) return false;
+    return mitglieder.every(
+      (person) => abschnittsErgebnis(daten, abschnitt, person, bewertungen).prozent !== null,
+    );
+  });
+}
+
+/**
+ * Steht die Nachfrage zur Peer-Bewertung an (FA-53)?
+ *
+ * Sie steht an, wenn die Bewertung abgeschlossen ist (AK-1), die
+ * Peer-Bewertung noch nicht läuft (AK-2) und für diesen Abschnitt noch keine
+ * Antwort vorliegt – auch ein „später“ zählt als Antwort und lässt die Frage
+ * bis zum nächsten Abschnitt ruhen (AK-3). Für einen Test entfällt sie: dort
+ * gibt es kein Team, das sich gegenseitig einschätzen könnte.
+ */
+export function peerFrageFaellig(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  bewertungen: Map<string, Bewertung>,
+): boolean {
+  if (abschnitt.art === 'test' || abschnitt.peerAktiv) return false;
+  if (daten.peerEntscheidungen.some((e) => e.abschnittId === abschnitt.id)) return false;
+  return abschnittAbgeschlossen(daten, abschnitt, bewertungen);
+}
+
 /** Mittelt Abschnittsergebnisse mit dem Faktor des jeweiligen Abschnitts. */
 function gewichtetesMittel(eintraege: AbschnittMitErgebnis[]): number | null {
   let gewichtssumme = 0;
@@ -322,6 +366,18 @@ export function note(prozent: number | null, notenschluessel: Notenstufe[]): num
     if (prozent >= stufe.ab) return stufe.note;
   }
   return absteigend[absteigend.length - 1].note;
+}
+
+/**
+ * Ein ISO-Datum (JJJJ-MM-TT) in deutscher Schreibweise.
+ *
+ * Die Datumsfelder der Oberfläche liefern ISO; angezeigt und ausgegeben wird,
+ * was hierzulande lesbar ist. Ein leerer oder unerwarteter Wert kommt
+ * unverändert zurück – hier wird nichts geraten.
+ */
+export function datumDeutsch(iso: string): string {
+  const treffer = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  return treffer ? `${treffer[3]}.${treffer[2]}.${treffer[1]}` : iso;
 }
 
 /** Formatiert einen Prozentwert für die Anzeige (deutsche Schreibweise). */

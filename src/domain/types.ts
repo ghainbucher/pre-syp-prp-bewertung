@@ -156,6 +156,20 @@ export interface Bewertung {
   notiz: string;
 }
 
+/**
+ * Antwort auf die Nachfrage am Ende einer Abschnittsbewertung (FA-53 AK-4).
+ *
+ * Festgehalten wird auch ein „später“ – sonst stünde die Frage nach jedem
+ * Neuladen wieder da, obwohl sie schon übergangen wurde.
+ */
+export interface PeerEntscheidung {
+  /** Abschnitt, an dessen Ende gefragt wurde. */
+  abschnittId: Id;
+  /** Zeitpunkt der Antwort, ISO. */
+  am: string;
+  antwort: 'ja' | 'nein' | 'spaeter';
+}
+
 export interface Datenbestand {
   schemaVersion: number;
   /** Mehrere Rubriken, eine je Abschnitt zuordenbar (FA-55). */
@@ -172,6 +186,14 @@ export interface Datenbestand {
   abschnitte: Abschnitt[];
   zugehoerigkeiten: Zugehoerigkeit[];
   bewertungen: Bewertung[];
+  /**
+   * Nachvollziehbar, ab wann Peer-Werte einfließen (FA-53 AK-4).
+   *
+   * Additives Feld innerhalb von Schemastand 2: Ein älterer Bestand hat es
+   * nicht, die Migration ergänzt es leer – ein eigener Schemastand wäre für
+   * eine Liste ohne Bezug zu bestehenden Feldern unverhältnismäßig.
+   */
+  peerEntscheidungen: PeerEntscheidung[];
 }
 
 /* -------------------------------------------------------------------------- */

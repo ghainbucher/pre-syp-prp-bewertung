@@ -119,6 +119,20 @@ describe('uebersichtZeilen (FA-31)', () => {
     expect(datenzeile[6]).toBe('80,0');
   });
 
+  it('gibt persönliche Notizen nicht aus (FA-17 AK-4)', () => {
+    const notiz: Aktion[] = [
+      {
+        art: 'bewertung/individuellNotiz',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        notiz: 'Interne Beobachtung',
+      },
+    ];
+    const daten = notiz.reduce(storeReducer, bestand());
+    expect(alsCsv(zeilen(daten))).not.toContain('Interne Beobachtung');
+  });
+
   it('nennt in der Spalte „Team“ die Zuordnung im letzten Abschnitt (FA-58)', () => {
     const wechsel: Aktion[] = [
       { art: 'team/anlegen', id: 'team2', klasseId: 'k1', name: 'Team Galilei' },

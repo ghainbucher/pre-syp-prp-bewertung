@@ -663,6 +663,15 @@ textarea {
   font-size: 14px;
 }
 
+/* Deutlichere Stufe der Erinnerung an die Sicherung (FA-46 AK-5). */
+.meldung.dringend {
+  border-color: var(--schlecht);
+  background: var(--schlecht-flaeche);
+  color: var(--schlecht);
+  border-left-width: 4px;
+  font-weight: 600;
+}
+
 .fusszeile {
   border-top: 1px solid var(--linie);
   padding: 18px 0;

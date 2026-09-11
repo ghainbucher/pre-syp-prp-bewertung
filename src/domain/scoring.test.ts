@@ -11,12 +11,15 @@ import {
 import {
   ABWEICHUNG_SCHWELLE,
   abschnittsErgebnis,
+  abschnittAbgeschlossen,
   bewertungsSchluessel,
+  datumDeutsch,
   ergebnisAusRubrik,
   gesamtErgebnis,
   kategorieErgebnis,
   note,
   peerErgebnis,
+  peerFrageFaellig,
   peerWertInProzent,
   selbstEinschaetzung,
   selbstbildAbweichung,
@@ -497,5 +500,106 @@ describe('note (FA-25)', () => {
     ];
     expect(note(90, streng)).toBe(2);
     expect(note(70, streng)).toBe(4);
+  });
+});
+
+describe('datumDeutsch', () => {
+  it('schreibt ein ISO-Datum deutsch', () => {
+    expect(datumDeutsch('2026-10-06')).toBe('06.10.2026');
+  });
+
+  it('lässt einen leeren oder unerwarteten Wert unverändert', () => {
+    expect(datumDeutsch('')).toBe('');
+    expect(datumDeutsch('demnächst')).toBe('demnächst');
+  });
+});
+
+describe('Abschluss und Nachfrage (FA-53)', () => {
+  const RUBRIK = testRubrik('r-nur-team', 'Nur Team');
+
+  /**
+   * Eine Klasse mit einem Team aus zwei Personen und einem Sprint. Die Rubrik
+   * bewertet nur den individuellen Teil, damit jede Person einzeln zählt.
+   */
+  function lage(punkte: Record<string, Record<string, number>>): {
+    daten: Datenbestand;
+    abschnitt: Abschnitt;
+    bewertungen: Map<string, Bewertung>;
+  } {
+    const daten = leererDatenbestand();
+    daten.rubriken.push(RUBRIK);
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Team Kepler' });
+    daten.personen.push(
+      { id: 'p1', klasseId: 'k1', teamId: 'team1', name: 'Berger Lena' },
+      { id: 'p2', klasseId: 'k1', teamId: 'team1', name: 'Steiner Jonas' },
+    );
+    const abschnitt: Abschnitt = {
+      id: 's1',
+      klasseId: 'k1',
+      nummer: 1,
+      name: 'Sprint 1',
+      art: 'sprint',
+      strang: 'praxis',
+      rubrikId: RUBRIK.id,
+      von: '',
+      bis: '',
+      faktor: 1,
+      peerAktiv: false,
+    };
+    daten.abschnitte.push(abschnitt);
+
+    const bewertung: Bewertung = {
+      abschnittId: 's1',
+      teamId: 'team1',
+      team: {},
+      prozess: {},
+      individuell: Object.fromEntries(
+        Object.entries(punkte).map(([personId, werte]) => [personId, { punkte: werte, notiz: '' }]),
+      ),
+      peer: {},
+      notiz: '',
+    };
+    daten.bewertungen.push(bewertung);
+    return { daten, abschnitt, bewertungen: new Map([['s1__team1', bewertung]]) };
+  }
+
+  it('gilt erst als abgeschlossen, wenn jedes Mitglied ein Ergebnis hat (AK-1)', () => {
+    const halb = lage({ p1: { f1: 2 } });
+    expect(abschnittAbgeschlossen(halb.daten, halb.abschnitt, halb.bewertungen)).toBe(false);
+
+    const ganz = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
+    expect(abschnittAbgeschlossen(ganz.daten, ganz.abschnitt, ganz.bewertungen)).toBe(true);
+  });
+
+  it('gilt ohne Team nicht als abgeschlossen', () => {
+    const { daten, abschnitt, bewertungen } = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
+    daten.personen = daten.personen.map((p) => ({ ...p, teamId: null }));
+    expect(abschnittAbgeschlossen(daten, abschnitt, bewertungen)).toBe(false);
+  });
+
+  it('stellt die Frage, sobald der Abschnitt fertig ist (AK-1)', () => {
+    const { daten, abschnitt, bewertungen } = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
+    expect(peerFrageFaellig(daten, abschnitt, bewertungen)).toBe(true);
+  });
+
+  it('stellt sie nicht, solange die Peer-Bewertung schon läuft (AK-2)', () => {
+    const { daten, abschnitt, bewertungen } = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
+    abschnitt.peerAktiv = true;
+    expect(peerFrageFaellig(daten, abschnitt, bewertungen)).toBe(false);
+  });
+
+  it('stellt sie nach jeder Antwort nicht erneut – auch nach „später“ (AK-3)', () => {
+    for (const antwort of ['ja', 'nein', 'spaeter'] as const) {
+      const { daten, abschnitt, bewertungen } = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
+      daten.peerEntscheidungen.push({ abschnittId: 's1', am: '2026-10-24T12:00:00.000Z', antwort });
+      expect(peerFrageFaellig(daten, abschnitt, bewertungen)).toBe(false);
+    }
+  });
+
+  it('stellt sie bei einem Test gar nicht', () => {
+    const { daten, abschnitt, bewertungen } = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
+    abschnitt.art = 'test';
+    expect(peerFrageFaellig(daten, abschnitt, bewertungen)).toBe(false);
   });
 });

@@ -12,8 +12,10 @@ import { useMemo, type ReactNode } from 'react';
 
 import {
   bewertungsSchluessel,
+  datumDeutsch,
   ergebnisAusRubrik,
   kategorieErgebnis,
+  peerFrageFaellig,
   selbstbildAbweichung,
 } from '../domain/scoring';
 import { mitgliederIn, rubrikVon, abschnitteVon } from '../domain/zuordnung';
@@ -26,6 +28,8 @@ import type {
   Punkte,
   Rubrik,
 } from '../domain/types';
+import { dateiAnbieten } from '../export/csv';
+import { rubrikblattDateiname, rubrikblattHtml } from '../export/rubrikblatt';
 import { bewertungsIndex, type PunkteKategorie } from '../store/storeReducer';
 import { personenVon, teamsVon } from '../ui/auswahl';
 import { Karte, LeerHinweis, Notenzeichen, Prozent, Punktefeld, Textfeld } from '../ui/bausteine';
@@ -110,6 +114,15 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
             wert,
           })
         }
+        onNotiz={(personId, notiz) =>
+          dispatch({
+            art: 'bewertung/individuellNotiz',
+            abschnittId: abschnitt.id,
+            teamId: null,
+            personId,
+            notiz,
+          })
+        }
       />
     );
   }
@@ -140,6 +153,7 @@ function TestMaske({
   notenschluessel,
   abschnittswahl,
   onAendern,
+  onNotiz,
 }: {
   abschnitt: Abschnitt;
   rubrik: Rubrik;
@@ -148,10 +162,11 @@ function TestMaske({
   notenschluessel: Notenstufe[];
   abschnittswahl: ReactNode;
   onAendern: (personId: string, kriteriumId: string, wert: number | null) => void;
+  onNotiz: (personId: string, notiz: string) => void;
 }) {
   const fragen = rubrik.individuell;
   const angaben = [
-    abschnitt.angekuendigtAm ? `angekündigt am ${abschnitt.angekuendigtAm}` : null,
+    abschnitt.angekuendigtAm ? `angekündigt am ${datumDeutsch(abschnitt.angekuendigtAm)}` : null,
     abschnitt.arbeitszeitMinuten ? `${abschnitt.arbeitszeitMinuten} Minuten Arbeitszeit` : null,
   ].filter(Boolean);
 
@@ -232,6 +247,8 @@ function TestMaske({
         )}
       </Karte>
 
+      <NotizenKarte personen={personen} bewertung={bewertung} onAendern={onNotiz} />
+
       <p className="anmerkung">
         Die offene Frage wird nach dem in der Rubrik hinterlegten Schema bewertet. Ein
         KI-Vorschlag darf nur mit pseudonymisierten Arbeiten eingeholt werden; die Entscheidung
@@ -280,7 +297,22 @@ function TeamMaske({
   const mitglieder = mitgliederIn(daten, abschnitt.id, team.id);
   const bewertung = index.get(bewertungsSchluessel(abschnitt.id, team.id));
   const bewerter = mitglieder.find((p) => p.id === ui.bewerterId) ?? mitglieder[0] ?? null;
-  const zeitraum = [abschnitt.von, abschnitt.bis].filter(Boolean).join(' – ');
+  const zeitraum = [abschnitt.von, abschnitt.bis].filter(Boolean).map(datumDeutsch).join(' – ');
+
+  /** Kriterienblatt für die Klasse (FA-39) – ohne Namen und ohne Punkte. */
+  function kriterienAusgeben() {
+    dateiAnbieten(
+      rubrikblattDateiname(abschnitt.name),
+      rubrikblattHtml({
+        titel: abschnitt.name,
+        rubrik,
+        notenschluessel: daten.notenschluessel,
+        peerAktiv: abschnitt.peerAktiv,
+        zeitraum: zeitraum || undefined,
+      }),
+      'text/html;charset=utf-8',
+    );
+  }
 
   return (
     <>
@@ -295,7 +327,40 @@ function TeamMaske({
             bedeutet „nicht bewertet“, nicht 0 Punkte.
           </p>
         </div>
+        <span className="dehnen" />
+        <button type="button" className="schalter" onClick={kriterienAusgeben}>
+          Kriterien ausgeben
+        </button>
       </div>
+
+      {peerFrageFaellig(daten, abschnitt, index) ? (
+        <div className="meldung" role="status">
+          <b>{abschnitt.name} ist fertig bewertet.</b> Soll die Peer-Bewertung ab dem nächsten
+          Abschnitt laufen? Die Entscheidung liegt bei dir – die Anwendung schlägt keinen
+          Zeitpunkt vor.{' '}
+          <button
+            type="button"
+            className="schalter schlicht"
+            onClick={() => dispatch({ art: 'peer/entscheidung', abschnittId: abschnitt.id, antwort: 'ja' })}
+          >
+            ja, ab dem nächsten
+          </button>{' '}
+          <button
+            type="button"
+            className="schalter schlicht"
+            onClick={() => dispatch({ art: 'peer/entscheidung', abschnittId: abschnitt.id, antwort: 'nein' })}
+          >
+            nein, noch nicht
+          </button>{' '}
+          <button
+            type="button"
+            className="schalter schlicht"
+            onClick={() => dispatch({ art: 'peer/entscheidung', abschnittId: abschnitt.id, antwort: 'spaeter' })}
+          >
+            später entscheiden
+          </button>
+        </div>
+      ) : null}
 
       {abschnittswahl}
 
@@ -439,6 +504,20 @@ function TeamMaske({
             </p>
           )}
 
+          <NotizenKarte
+            personen={mitglieder}
+            bewertung={bewertung}
+            onAendern={(personId, notiz) =>
+              dispatch({
+                art: 'bewertung/individuellNotiz',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+                personId,
+                notiz,
+              })
+            }
+          />
+
           <Karte titel="Notiz zum Abschnitt" hinweis="Rückmeldung an das Team">
             <Textfeld
               mehrzeilig
@@ -525,6 +604,57 @@ function TeamMaske({
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Freitext je Person (FA-17).
+ *
+ * Steht bewusst neben der Notiz an das Team (FA-16): Die eine geht an die
+ * Gruppe, die andere ist eine Aufzeichnung der Lehrkraft für Gespräch und
+ * Begründung (§ 18 Abs. 1 SchUG). Sie erscheint in keiner Ausgabe an die
+ * Klasse.
+ */
+function NotizenKarte({
+  personen,
+  bewertung,
+  onAendern,
+}: {
+  personen: Person[];
+  bewertung: Bewertung | undefined;
+  onAendern: (personId: string, notiz: string) => void;
+}) {
+  if (personen.length === 0) return null;
+
+  return (
+    <Karte
+      titel="Notizen je Person"
+      hinweis="nur für dich – erscheint in keiner Ausgabe an die Klasse"
+      buendig
+    >
+      <div className="tabellenrahmen">
+        <table>
+          <tbody>
+            {personen.map((person) => (
+              <tr key={person.id}>
+                <td style={{ width: '30%', verticalAlign: 'top' }}>
+                  <b>{person.name}</b>
+                </td>
+                <td>
+                  <Textfeld
+                    mehrzeilig
+                    wert={bewertung?.individuell?.[person.id]?.notiz ?? ''}
+                    beschriftung={`Notiz zu ${person.name}`}
+                    platzhalter="Beobachtung, Beleg, Vereinbarung"
+                    onAendern={(notiz) => onAendern(person.id, notiz)}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Karte>
   );
 }
 

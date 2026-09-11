@@ -128,14 +128,41 @@ test('erfasst einen Test ohne Team über die ganze Klasse (FA-56, FA-60)', async
 
   await reiter(page, 'Bewerten').click();
   await expect(page.getByRole('heading', { level: 2, name: 'Test 1' })).toBeVisible();
-  // Ein Test kennt kein Team: Es gibt keine Teamauswahl, dafür jede Person.
-  await expect(page.getByRole('cell', { name: 'Steiner Jonas' })).toBeVisible();
+
+  // Ein Test kennt kein Team (FA-60 AK-3): keine Teamauswahl, dafür jede Person
+  // der Klasse. Die Zelle wird in der Punktekarte gesucht – die Notizkarte
+  // (FA-17) führt dieselben Namen noch einmal.
+  await expect(page.locator('.auswahlzeile').getByText('Team', { exact: true })).toHaveCount(0);
+  const punktekarte = page
+    .locator('section.karte')
+    .filter({ has: page.getByRole('heading', { name: 'Punkte je Frage' }) });
+  await expect(punktekarte.getByRole('cell', { name: 'Steiner Jonas' })).toBeVisible();
 
   for (const frage of ['Frage 1', 'Frage 2', 'Frage 3']) {
     await page.getByLabel(`Berger Lena – ${frage}`).fill('2');
   }
   await page.getByLabel('Berger Lena – Offene Frage').fill('4');
   await expect(page.getByText('100 %').first()).toBeVisible();
+});
+
+test('bietet die automatische Sicherung nur an, wo der Browser sie kann (FA-64 AK-7, NFA-05)', async ({
+  page,
+}) => {
+  const kannOrdner = await page.evaluate(() => 'showDirectoryPicker' in window);
+  const waehlen = page.getByRole('button', { name: 'Ordner für die Sicherung wählen' });
+
+  if (kannOrdner) {
+    await expect(waehlen).toBeVisible();
+  } else {
+    // Der Durchlauf ohne die Schnittstelle, den NFA-05 verlangt: Die Anwendung
+    // bleibt vollständig bedienbar und sagt, was hier nicht geht.
+    await expect(waehlen).toHaveCount(0);
+    await expect(page.getByText(/nicht selbst in einen Ordner schreiben/)).toBeVisible();
+  }
+
+  // In beiden Fällen bleibt der Weg von Hand offen (FA-33).
+  await expect(page.getByRole('button', { name: 'Sicherung speichern' })).toBeVisible();
+  await expect(page.getByText(/noch keine Sicherung erstellt/)).toBeVisible();
 });
 
 test('überträgt keine Daten an einen Server (NFA-03, DS-02)', async ({ page }) => {

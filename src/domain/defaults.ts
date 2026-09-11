@@ -139,6 +139,7 @@ export function leererDatenbestand(): Datenbestand {
     abschnitte: [],
     zugehoerigkeiten: [],
     bewertungen: [],
+    peerEntscheidungen: [],
   };
 }
 

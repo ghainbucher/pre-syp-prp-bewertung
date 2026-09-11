@@ -8,8 +8,8 @@
 | **Datum** | 2026-09-10 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.1.0 |
-| **Zuletzt geprüft** | 2026-09-10 |
+| **Gültig für Softwarestand** | 0.2.0 |
+| **Zuletzt geprüft** | 2026-09-11 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Bezug** | [Fachkonzept](fachkonzept-unterricht.md) Kap. 10 · FA-24, FA-25, FA-50, FA-54, FA-59, FA-61 |
 | **Rahmenbedingung** | RB-01 |

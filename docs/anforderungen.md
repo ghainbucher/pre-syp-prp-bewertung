@@ -4,12 +4,12 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung |
 | **Dokument** | Anforderungsdokument |
-| **Version** | 0.18 |
-| **Datum** | 2026-09-10 |
+| **Version** | 0.20 |
+| **Datum** | 2026-09-11 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.1.0 |
-| **Zuletzt geprüft** | 2026-09-10 |
+| **Gültig für Softwarestand** | 0.2.0 |
+| **Zuletzt geprüft** | 2026-09-11 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Rahmenbedingung** | RB-01 |
 
@@ -23,6 +23,8 @@
 | 0.2 | 2026-09-09 | G. Hainbucher | Umstellung auf Satzschablone; Stakeholderanalyse und Product Goal ausgelagert; neun neue Anforderungen FA-39 bis FA-47 aus Fachkonzept und Risikoanalyse; Rahmenbedingungen RB-07 bis RB-10 ergänzt | Entwurf |
 | 0.3 | 2026-09-10 | G. Hainbucher | Zeitraum berichtigt (1. Oktober bis 30. April statt Semester), Annahmen an das tatsächliche Zeitbudget angepasst, FA-48 für die Auswertung zu einem Stichtag ergänzt | Entwurf |
 | 0.4 | 2026-09-10 | G. Hainbucher | OP-F2 entschieden: Peer-Werte wirken als gedeckelter Korrekturfaktor. FA-45 von „Kann/offen“ auf „Soll/geplant“, FA-22 entsprechend angepasst | Entwurf |
+| 0.20 | 2026-09-11 | G. Hainbucher | Release 0.2.0 umgesetzt: FA-17 (AK-1 bis AK-5 nachgetragen), FA-39 (AK-4 bis AK-7 nachgetragen), FA-46, FA-64, DS-06, FA-53 (AK-6, AK-7 nachgetragen). OP-F16 aufgenommen | Entwurf |
+| 0.19 | 2026-09-11 | G. Hainbucher | Schemastand 2 umgesetzt: FA-52, FA-55 bis FA-60 und FA-65 von „geplant“ auf „umgesetzt“, jeweils durch Tests belegt | Entwurf |
 | 0.18 | 2026-09-10 | G. Hainbucher | OP-R1 entschieden: Die Rubrik wird beim ersten Eintrag je Abschnitt eingefroren (FA-65); FA-47 auf das Angleichen umgestellt | Entwurf |
 | 0.17 | 2026-09-10 | G. Hainbucher | Releaseplan: Schnitt in 0.2.0 Erfassen, 0.3.0 Beurteilen, 0.4.0 Ergänzen (neues Kap. 3.1). 21 Anforderungen neu zugeordnet. OP-M3 geschlossen | Entwurf |
 | 0.16 | 2026-09-10 | G. Hainbucher | FA-64: automatische Sicherung in einen gewählten Ordner; NFA-05 um die Browserabhängigkeit ergänzt | Entwurf |
@@ -244,7 +246,7 @@ damit ich ein erprobtes Bewertungsmodell übernehmen kann, statt es nachzubauen.
 
 ### FA-65 Rubrik beim ersten Eintrag einfrieren
 
-`Muss` · 0.2.0 · SH-4, SH-1 · geplant
+`Muss` · 0.2.0 · SH-4, SH-1 · umgesetzt
 
 Als Lehrkraft
 möchte ich, dass ein bewerteter Abschnitt die Rubrik behält, nach der ich ihn bewertet habe,
@@ -283,7 +285,7 @@ ist die Änderung selbst folgenlos für Vergangenes.*
 
 ### FA-59 Zwei Stränge mit eigenem Stand
 
-`Muss` · 0.2.0 · SH-1, SH-4 · geplant
+`Muss` · 0.2.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich Praxis und Theorie als getrennte Stränge führen, die je einen eigenen Prozentstand haben,
@@ -301,7 +303,7 @@ Wochenstunden gegen eine.*
 
 ### FA-60 Tests als Abschnitte des Theoriestrangs
 
-`Muss` · 0.2.0 · SH-1 · geplant
+`Muss` · 0.2.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
 möchte ich einen Test mit erreichten und möglichen Punkten je Person erfassen,
@@ -380,7 +382,7 @@ Bereichen. Behandelt Risiko R-11.*
 
 ### FA-58 Teamzugehörigkeit je Abschnitt
 
-`Muss` · 0.2.0 · SH-1, SH-4 · geplant
+`Muss` · 0.2.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich festhalten, in welchem Team eine Person in einem bestimmten Abschnitt gearbeitet hat,
@@ -399,7 +401,7 @@ Fachkonzept 6.1 und 3.4 – zur zweiten Phase bilden sich die Gruppen nach Thema
 
 ### FA-55 Mehrere Rubriken führen
 
-`Muss` · 0.2.0 · SH-1, SH-6 · geplant
+`Muss` · 0.2.0 · SH-1, SH-6 · umgesetzt
 
 Als Lehrkraft
 möchte ich mehr als eine Rubrik führen und jedem Beurteilungsabschnitt eine davon zuordnen,
@@ -416,7 +418,7 @@ damit ich eine Phase mit anderen Kriterien beurteilen kann, ohne die Rubrik der 
 
 ### FA-56 Die Diplomarbeitsvorbereitung als Abschnitt
 
-`Muss` · 0.2.0 · SH-1, SH-4 · geplant
+`Muss` · 0.2.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich die Diplomarbeitsvorbereitung im Mai als eigenen Beurteilungsabschnitt erfassen,
@@ -432,7 +434,7 @@ damit die Jahresnote in einem Stück belegbar bleibt und nicht zu einem Drittel 
 
 ### FA-57 Bestand auf Schemastand 2 heben
 
-`Muss` · 0.3.0 · SH-1 · geplant
+`Muss` · 0.3.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
 möchte ich, dass mein bestehender Datenbestand beim ersten Start der neuen Fassung ohne Zutun weiterläuft,
@@ -500,11 +502,22 @@ damit ich Beobachtungen festhalten kann, die keine Punktezahl abbildet.
 
 ### FA-17 Notiz je Person
 
-`Soll` · 0.2.0 · SH-1 · geplant
+`Soll` · 0.2.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
-möchte ich zu jeder Person und jedem Sprint eine Freitextnotiz erfassen,
+möchte ich zu jeder Person und jedem Abschnitt eine Freitextnotiz erfassen,
 damit ich für das Gespräch und die spätere Begründung konkrete Belege zur Hand habe.
+
+- **AK-1** Zu jeder Person, die in einem Abschnitt bewertet wird, lässt sich ein Freitext erfassen; er wird ohne ausdrückliches Speichern übernommen (FA-19).
+- **AK-2** Die Notiz gehört zu Person und Abschnitt und ist unabhängig von der Notiz an das Team (FA-16). Beide stehen nebeneinander.
+- **AK-3** Eine geleerte Notiz wird nicht gespeichert; sie ist nicht dasselbe wie eine leere Zeichenkette im Bestand.
+- **AK-4** Die Notiz ist eine Aufzeichnung der Lehrkraft: Sie erscheint weder in der Ausgabe an die Klasse (FA-39) noch im CSV-Export (FA-31).
+- **AK-5** Die Notiz bleibt erhalten, solange Person und Abschnitt bestehen – auch wenn alle Punkte dieser Person wieder geleert werden.
+
+*Grundlage: § 18 Abs. 1 SchUG – die Beurteilung stützt sich auf Aufzeichnungen der Lehrkraft.
+Wechselt eine Person **innerhalb** eines Abschnitts das Team, bleiben Notiz und Einzelpunkte
+bei der früheren Teambewertung; Teamwechsel sind zwischen Abschnitten vorgesehen, nicht
+innerhalb (FA-58).*
 
 ### FA-18 Ergebnis läuft mit
 
@@ -688,7 +701,7 @@ Einrechnung über das Kategoriegewicht ab (FA-07).*
 
 ### FA-52 Peer-Bewertung je Sprint zuschalten
 
-`Muss` · 0.2.0 · SH-1, SH-2 · geplant
+`Muss` · 0.2.0 · SH-1, SH-2 · umgesetzt
 
 Als Lehrkraft
 möchte ich je Sprint entscheiden, ob eine Peer-Bewertung stattfindet,
@@ -702,7 +715,7 @@ damit ich sie erst einsetze, wenn das Team nach Sprintlogik arbeitet und die Ein
 
 ### FA-53 Nachfrage am Ende der Sprintbewertung
 
-`Soll` · 0.3.0 · SH-1 · geplant
+`Soll` · 0.3.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
 möchte ich am Ende jeder Sprintbewertung gefragt werden, ob die Peer-Bewertung ab dem nächsten Sprint laufen soll,
@@ -713,6 +726,8 @@ damit ich die Entscheidung bewusst treffe, statt sie zu vergessen.
 - **AK-3** Die Frage blockiert nichts; sie lässt sich übergehen und erscheint dann beim nächsten Sprint erneut.
 - **AK-4** Die Antwort wird mit Sprint und Datum festgehalten, damit nachvollziehbar bleibt, ab wann Peer-Werte einfließen.
 - **AK-5** Die Entscheidung trifft ausschließlich die Lehrkraft; die Anwendung schlägt weder einen Zeitpunkt vor noch schaltet sie selbst um.
+- **AK-6** Ein „ja“ schaltet den **nächsten bereits angelegten** Abschnitt desselben Strangs ein. Für erst später angelegte Abschnitte bleibt die Vorgabe „aus“ (FA-52 AK-1) – der Schalter ist dort von Hand zu setzen.
+- **AK-7** Ein übergangenes „später“ wird wie eine Antwort festgehalten, damit die Frage nach einem Neuladen nicht erneut zu diesem Abschnitt erscheint.
 
 *Entschieden am 10.09.2026: Der Zeitpunkt hängt an der Einschätzung der Lehrkraft, nicht an
 einem berechneten Kriterium. Die Anwendung erinnert, sie entscheidet nicht.*
@@ -796,7 +811,7 @@ damit ich das Gerät wechseln kann und nicht von einem Browserprofil abhängig b
 
 ### FA-39 Rubrik zur Ausgabe an die Klasse
 
-`Soll` · 0.2.0 · SH-2 · geplant
+`Soll` · 0.2.0 · SH-2 · umgesetzt
 
 Als Schülerin oder Schüler
 möchte ich die Bewertungskriterien vor dem Sprint schriftlich erhalten,
@@ -805,6 +820,10 @@ damit ich meine Arbeit danach ausrichten kann und die Note nachher keine Überra
 - **AK-1** Die Ausgabe enthält alle Kriterien mit Beschreibung, Punktemaxima, Kategoriegewichten und Notenschlüssel.
 - **AK-2** Sie enthält keine Namen und keine erfassten Bewertungen.
 - **AK-3** Sie ist druck- oder weitergabefähig.
+- **AK-4** Sie gilt für einen Abschnitt und zeigt die dort tatsächlich geltende Rubrik – nach dem Einfrieren die Kopie (FA-65), vorher die zugeordnete Rubrik.
+- **AK-5** Sie nennt, ob in diesem Abschnitt peer-bewertet wird (FA-52), damit die Ausgabe nicht mehr verspricht als gilt.
+- **AK-6** Für einen Test (FA-60) wird sie nicht angeboten: Dort **sind** die Kriterien die Fragen, eine Ausgabe vorab hebt den Test auf. Das Bewertungsschema der offenen Frage wird nach der Rückgabe besprochen.
+- **AK-7** Kategorien ohne Kriterien erscheinen nicht; eine Kategorie ohne Gewicht wird als nicht zählend ausgewiesen, statt sie stillschweigend wegzulassen.
 
 *Grundlage: Fachkonzept G1. Behandelt Risiko R-02.*
 
@@ -885,7 +904,7 @@ damit mich die Zahlenmenge beim Bewerten nicht von der Einschätzung ablenkt.
 
 ### FA-64 Automatische Sicherung in einen gewählten Ordner
 
-`Soll` · 0.2.0 · SH-1, SH-7 · geplant
+`Soll` · 0.2.0 · SH-1, SH-7 · umgesetzt
 
 Als Lehrkraft
 möchte ich einen Ordner einmal auswählen und die Sicherung danach ohne mein Zutun geschrieben bekommen,
@@ -906,7 +925,7 @@ Liegt der gewählte Ordner im schulischen Sync-Ordner, erfüllt sich DS-06 von s
 
 ### FA-46 Erinnerung an die Sicherung
 
-`Soll` · 0.2.0 · SH-1 · geplant
+`Soll` · 0.2.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
 möchte ich erinnert werden, wenn ich längere Zeit keine Sicherung erstellt habe,
@@ -1089,7 +1108,7 @@ Beim Erzeugen einer Sicherung wird darauf hingewiesen, dass die Datei Klartext e
 
 ### DS-06 Ablageort der Sicherung
 
-`Muss` · 0.2.0 · SH-7 · geplant
+`Muss` · 0.2.0 · SH-7 · umgesetzt
 
 Die Sicherungsdatei wird ausschließlich im schulischen Speicher abgelegt, für den der Schulerhalter verantwortlich ist – nicht in einem privat genutzten Cloud-Dienst. Sie ist wie eine geführte Notenliste zu behandeln: Zugriff nur durch die Lehrkraft.
 **Prüfung:** Sichtprüfung des Ablageorts bei der Aktualitätsprüfung der Dokumente; Hinweistext beim Export (DS-05).
@@ -1143,4 +1162,5 @@ Leser den Aufwand nicht für unbegründet hält und abbaut.
 | OP-3 | Weitere Rahmenbedingungen | Auftraggeber | laufend |
 | OP-4 | Mitarbeitsnote außerhalb der Sprints berücksichtigen? | Auftraggeber | **entschieden 2026-09-10: nein – kein Beurteilungsanteil ohne Abschnitt und ohne Kriterien (Fachkonzept 3.5)** |
 | OP-5 | Export in ein von der Schule genutztes Format? | Auftraggeber | offen |
+| OP-F16 | Soll ein „ja“ auf die Nachfrage (FA-53) auch für **später angelegte** Abschnitte gelten, also die Vorgabe aus FA-52 AK-1 für diese Klasse umdrehen? Derzeit nein: Ein „ja“ wirkt nur auf bereits angelegte Abschnitte, sonst ist von Hand zu schalten | Auftraggeber | offen |
 | OP-M3 | Aufwandsschätzung je Anforderung führen? Priorität ohne Aufwand ist die halbe Entscheidungsgrundlage. | Auftraggeber | **entschieden 2026-09-10: nein, nicht erforderlich. Die Reihenfolge ergibt sich aus dem Bedarfszeitpunkt (Kap. 3.1), nicht aus dem Aufwand** |

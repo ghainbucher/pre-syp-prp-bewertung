@@ -26,6 +26,7 @@ import type {
   Id,
   KategorieSchluessel,
   Kriterium,
+  PeerEntscheidung,
   Rubrik,
   Strang,
 } from '../domain/types';
@@ -83,6 +84,7 @@ export type Aktion =
   | { art: 'rubrik/gewicht'; rubrikId: Id; kategorie: KategorieSchluessel; wert: number }
   | { art: 'rubrik/selbstZaehlt'; rubrikId: Id; wert: boolean }
   | { art: 'rubrik/zuruecksetzen'; rubrikId: Id }
+  | { art: 'peer/entscheidung'; abschnittId: Id; antwort: 'ja' | 'nein' | 'spaeter'; am?: string }
   | { art: 'notengrenze'; note: number; ab: number }
   | { art: 'strang/gewicht'; strang: Strang; wert: number }
   | { art: 'daten/ersetzen'; daten: Datenbestand }
@@ -130,13 +132,25 @@ function punktSetzen(ziel: Record<Id, number>, kriteriumId: Id, wert: number | n
   }
 }
 
-/** Entfernt Bewertungen, die keine Daten mehr enthalten. */
+/**
+ * Entfernt Bewertungen und Teilstrukturen, die keine Daten mehr enthalten.
+ *
+ * Ein leeres Feld ist „nicht bewertet“ und wird gar nicht erst abgelegt – das
+ * gilt auch für eine geleerte persönliche Notiz (FA-17 AK-3). Eine Person mit
+ * Notiz, aber ohne Punkte bleibt dagegen stehen (FA-17 AK-5).
+ */
 function leereBewertungenEntfernen(daten: Datenbestand): void {
+  for (const bewertung of daten.bewertungen) {
+    for (const [personId, eintrag] of Object.entries(bewertung.individuell)) {
+      if (Object.keys(eintrag.punkte).length === 0 && eintrag.notiz.trim() === '') {
+        delete bewertung.individuell[personId];
+      }
+    }
+  }
+
   daten.bewertungen = daten.bewertungen.filter((b) => {
     const hatPunkte = Object.keys(b.team).length > 0 || Object.keys(b.prozess).length > 0;
-    const hatIndividuell = Object.values(b.individuell).some(
-      (e) => Object.keys(e.punkte).length > 0 || e.notiz.trim() !== '',
-    );
+    const hatIndividuell = Object.keys(b.individuell).length > 0;
     const hatPeer = Object.values(b.peer).some((zeile) => Object.keys(zeile).length > 0);
     return hatPunkte || hatIndividuell || hatPeer || b.notiz.trim() !== '';
   });
@@ -200,6 +214,9 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         (z) => !abschnittIds.includes(z.abschnittId),
       );
       daten.bewertungen = daten.bewertungen.filter((b) => !abschnittIds.includes(b.abschnittId));
+      daten.peerEntscheidungen = daten.peerEntscheidungen.filter(
+        (e) => !abschnittIds.includes(e.abschnittId),
+      );
       break;
     }
 
@@ -297,6 +314,9 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       daten.abschnitte = daten.abschnitte.filter((a) => a.id !== aktion.id);
       daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter((z) => z.abschnittId !== aktion.id);
       daten.bewertungen = daten.bewertungen.filter((b) => b.abschnittId !== aktion.id);
+      daten.peerEntscheidungen = daten.peerEntscheidungen.filter(
+        (e) => e.abschnittId !== aktion.id,
+      );
       // Die Rubrik eines Tests gehört nur diesem Test und geht mit ihm.
       if (abschnitt?.art === 'test') {
         const nochVerwendet = daten.abschnitte.some((a) => a.rubrikId === abschnitt.rubrikId);
@@ -423,6 +443,43 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
           daten.rubriken[index] = strukturKopie(VORLAGE_RUBRIK_SPRINT);
         } else if (aktion.rubrikId === RUBRIK_DIPLOMARBEIT) {
           daten.rubriken[index] = strukturKopie(VORLAGE_RUBRIK_DIPLOMARBEIT);
+        }
+      }
+      break;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Nachfrage zur Peer-Bewertung (FA-53)                                */
+    /* ------------------------------------------------------------------ */
+    case 'peer/entscheidung': {
+      const eintrag: PeerEntscheidung = {
+        abschnittId: aktion.abschnittId,
+        am: aktion.am ?? new Date().toISOString(),
+        antwort: aktion.antwort,
+      };
+      // Eine Antwort je Abschnitt; eine spätere ersetzt die frühere.
+      daten.peerEntscheidungen = [
+        ...daten.peerEntscheidungen.filter((e) => e.abschnittId !== aktion.abschnittId),
+        eintrag,
+      ];
+
+      // Bei „ja“ wird der **nächste vorhandene** Abschnitt desselben Strangs
+      // eingeschaltet – das ist die Entscheidung der Lehrkraft, ausgeführt.
+      // Für erst noch anzulegende Abschnitte bleibt die Vorgabe „aus“
+      // (FA-52 AK-1); die Anwendung schaltet nichts von sich aus (FA-53 AK-5).
+      if (aktion.antwort === 'ja') {
+        const dieser = daten.abschnitte.find((a) => a.id === aktion.abschnittId);
+        if (dieser) {
+          const naechster = daten.abschnitte
+            .filter(
+              (a) =>
+                a.klasseId === dieser.klasseId &&
+                a.strang === dieser.strang &&
+                a.art !== 'test' &&
+                a.nummer > dieser.nummer,
+            )
+            .sort((a, b) => a.nummer - b.nummer)[0];
+          if (naechster) naechster.peerAktiv = true;
         }
       }
       break;
