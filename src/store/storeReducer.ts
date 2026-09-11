@@ -33,6 +33,7 @@ import type {
   Rubrik,
   Stichtag,
   Strang,
+  Verstehensstufe,
 } from '../domain/types';
 
 export type PunkteKategorie = Extract<KategorieSchluessel, 'team' | 'prozess'>;
@@ -52,6 +53,7 @@ export type Aktion =
   | { art: 'abschnitt/anlegen'; abschnitt: Abschnitt; rubrik?: Rubrik }
   | { art: 'abschnitt/aendern'; id: Id; aenderung: Partial<Omit<Abschnitt, 'id' | 'klasseId'>> }
   | { art: 'abschnitt/loeschen'; id: Id }
+  | { art: 'abschnitt/angleichen'; rubrikId: Id }
   | {
       art: 'bewertung/punkte';
       abschnittId: Id;
@@ -69,6 +71,16 @@ export type Aktion =
       wert: number | null;
     }
   | { art: 'bewertung/individuellNotiz'; abschnittId: Id; teamId: Id | null; personId: Id; notiz: string }
+  | {
+      art: 'bewertung/verstehen';
+      abschnittId: Id;
+      teamId: Id | null;
+      personId: Id;
+      /** `null` entfernt den Nachweis wieder. */
+      stufe: Verstehensstufe | null;
+      notiz?: string;
+    }
+  | { art: 'bewertung/reflexion'; abschnittId: Id; teamId: Id | null; personId: Id; text: string }
   | {
       art: 'bewertung/rueckmeldung';
       abschnittId: Id;
@@ -100,6 +112,7 @@ export type Aktion =
   | { art: 'notengrenze'; note: number; ab: number }
   | { art: 'strang/gewicht'; strang: Strang; wert: number }
   | { art: 'peerDeckelung'; wert: number }
+  | { art: 'verstehensAnteil'; wert: number }
   | { art: 'zeitfaktor'; wert: number }
   | { art: 'sperre'; wert: boolean }
   | { art: 'stichtag/anlegen'; stichtag: Stichtag }
@@ -216,7 +229,9 @@ function leereBewertungenEntfernen(daten: Datenbestand): void {
       const leer =
         Object.keys(eintrag.punkte).length === 0 &&
         eintrag.notiz.trim() === '' &&
-        eintrag.rueckmeldung === undefined;
+        eintrag.rueckmeldung === undefined &&
+        eintrag.verstehen === undefined &&
+        eintrag.reflexion === undefined;
       if (leer) delete bewertung.individuell[personId];
     }
   }
@@ -389,6 +404,25 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       break;
     }
 
+    /**
+     * Eine Rubrikänderung ausdrücklich auf bereits bewertete Abschnitte
+     * übertragen (FA-47 AK-1).
+     *
+     * Bewusst eine **eigene** Aktion: Als Nebenwirkung einer Rubrikänderung
+     * wäre dasselbe ein stiller Eingriff in bereits erteilte Beurteilungen.
+     */
+    case 'abschnitt/angleichen': {
+      const aktuell = rubrikSuchen(daten, aktion.rubrikId);
+      if (!aktuell) break;
+      const jetzt = new Date().toISOString();
+      for (const abschnitt of daten.abschnitte) {
+        if (abschnitt.rubrikId !== aktion.rubrikId || !abschnitt.rubrikKopie) continue;
+        abschnitt.rubrikKopie = strukturKopie(aktuell);
+        abschnitt.angeglichenAm = jetzt;
+      }
+      break;
+    }
+
     case 'abschnitt/loeschen': {
       const abschnitt = daten.abschnitte.find((a) => a.id === aktion.id);
       daten.abschnitte = daten.abschnitte.filter((a) => a.id !== aktion.id);
@@ -431,6 +465,35 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
       eintrag.notiz = aktion.notiz;
+      leereBewertungenEntfernen(daten);
+      break;
+    }
+
+    // FA-40: Der mündliche Verstehensnachweis aus dem Review.
+    case 'bewertung/verstehen': {
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
+      const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
+      if (aktion.stufe === null) delete eintrag.verstehen;
+      else {
+        eintrag.verstehen = {
+          stufe: aktion.stufe,
+          notiz: aktion.notiz ?? eintrag.verstehen?.notiz ?? '',
+          gesetztAm: new Date().toISOString(),
+        };
+        // Der Nachweis fließt in die Rechnung ein – also gilt hier dieselbe
+        // Regel wie beim ersten Punkt: Die Rubrik wird eingefroren (FA-65).
+        einfrierenFallsNoetig(daten, aktion.abschnittId);
+      }
+      leereBewertungenEntfernen(daten);
+      break;
+    }
+
+    // FA-41: Die Sicht der Person auf den Abschnitt. Geht in keine Rechnung ein.
+    case 'bewertung/reflexion': {
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
+      const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
+      if (aktion.text.trim() === '') delete eintrag.reflexion;
+      else eintrag.reflexion = aktion.text;
       leereBewertungenEntfernen(daten);
       break;
     }
@@ -654,6 +717,12 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     // wäre sie keine Korrektur mehr, sondern die Beurteilung selbst.
     case 'peerDeckelung':
       daten.peerDeckelung = Math.max(0, Math.min(50, aktion.wert));
+      break;
+
+    // FA-40 AK-2: einstellbar. 0 nimmt den Nachweis aus der Rechnung, ohne ihn
+    // aus den Aufzeichnungen zu entfernen.
+    case 'verstehensAnteil':
+      daten.verstehensAnteil = Math.max(0, Math.min(100, aktion.wert));
       break;
 
     // FA-54 AK-6: einstellbar. Unter 1 ergäbe der Faktor keinen Sinn – dann

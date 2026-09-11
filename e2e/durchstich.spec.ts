@@ -150,6 +150,32 @@ test('erfasst einen Test ohne Team über die ganze Klasse (FA-56, FA-60)', async
   await expect(page.getByText('100 %').first()).toBeVisible();
 });
 
+test('zeigt die Herleitung erst auf Abruf (FA-51)', async ({ page }) => {
+  await grunddatenAnlegen(page);
+  await reiter(page, 'Bewerten').click();
+  await teamErgebnisVollBewerten(page);
+  await reiter(page, 'Auswertung').click();
+
+  const einzelergebnisse = page
+    .locator('section.karte')
+    .filter({ has: page.getByRole('heading', { name: 'Einzelergebnisse' }) });
+
+  // AK-1: Standardansicht ohne Punkte je Abschnitt, dafür Tendenz und offene
+  // Kategorien.
+  await expect(einzelergebnisse.getByRole('columnheader', { name: 'Tendenz' })).toBeVisible();
+  await expect(einzelergebnisse.getByRole('columnheader', { name: 'offen' })).toBeVisible();
+  await expect(einzelergebnisse.getByRole('columnheader', { name: 'S1' })).toHaveCount(0);
+
+  // AK-2: mit einem Schritt erreichbar.
+  await page.getByRole('button', { name: 'Herleitung zeigen' }).click();
+  await expect(einzelergebnisse.getByRole('columnheader', { name: 'S1' })).toBeVisible();
+
+  // Und wieder zurück – die Einstellung wirkt nur auf die Anzeige (AK-3).
+  await page.getByRole('button', { name: 'Herleitung ausblenden' }).click();
+  await expect(einzelergebnisse.getByRole('columnheader', { name: 'S1' })).toHaveCount(0);
+  await expect(einzelergebnisse.getByRole('cell', { name: 'Berger Lena' })).toBeVisible();
+});
+
 test('bietet die automatische Sicherung nur an, wo der Browser sie kann (FA-64 AK-7, NFA-05)', async ({
   page,
 }) => {

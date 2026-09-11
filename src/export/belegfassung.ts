@@ -24,6 +24,7 @@ import type {
   KategorieSchluessel,
   Person,
 } from '../domain/types';
+import { VERSTEHENS_BEZEICHNUNG } from '../domain/defaults';
 import { maskiert } from './rubrikblatt';
 
 /** Nur die drei gewichteten Kategorien – Peer wirkt seit FA-45 als Korrektur. */
@@ -116,7 +117,13 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
 
       // AK-6: Rubrik und Team je Abschnitt. Nach dem Einfrieren gilt die Kopie.
       const kopfzeilen = [
-        `Rubrik „${rubrik.name}“${abschnitt.rubrikKopie ? ' (beim ersten Eintrag festgehalten)' : ''}`,
+        `Rubrik „${rubrik.name}“${
+          abschnitt.rubrikKopie
+            ? abschnitt.angeglichenAm
+              ? ` (beim ersten Eintrag festgehalten, am ${datumDeutsch(new Date(abschnitt.angeglichenAm))} an die geänderte Rubrik angeglichen)`
+              : ' (beim ersten Eintrag festgehalten)'
+            : ''
+        }`,
         abschnitt.art === 'test' ? 'Test – ohne Team' : teamname ? `Team ${teamname}` : 'ohne Team',
         `Gewicht ${abschnitt.faktor} × Zeitfaktor ${zeitfaktor}`,
       ];
@@ -142,6 +149,22 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
       })
         .filter(Boolean)
         .join('\n');
+
+      // FA-40 AK-4, FA-41 AK-4: Beide gehören in die Belegfassung – der
+      // Nachweis, weil er in die Rechnung eingeht; die Reflexion, weil im
+      // Anlassfall belegbar sein muss, dass die Sicht der Person erhoben wurde.
+      const eintrag = bewertung?.individuell?.[person.id];
+      const verstehenZeile = eintrag?.verstehen
+        ? `      <p class="verstehen">Verstehensnachweis im Review:
+         <b>${maskiert(VERSTEHENS_BEZEICHNUNG[eintrag.verstehen.stufe])}</b> –
+         Anteil am individuellen Beitrag ${daten.verstehensAnteil} %${
+           eintrag.verstehen.notiz ? ` · ${maskiert(eintrag.verstehen.notiz)}` : ''
+         }</p>`
+        : '';
+
+      const reflexionZeile = eintrag?.reflexion
+        ? `      <p class="reflexion">Sicht der Person: ${maskiert(eintrag.reflexion)}</p>`
+        : '';
 
       const peerZeile =
         abschnitt.peerAktiv && e.peer
@@ -170,6 +193,8 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
       <h3>${maskiert(abschnitt.name)} <span class="ergebnis">${prozentOderLeer(e.prozent)}</span></h3>
       <p class="kopf">${maskiert(kopfzeilen.join(' · '))}</p>
 ${bloecke}
+${verstehenZeile}
+${reflexionZeile}
 ${peerZeile}
 ${schema}
 ${gesetztZeile}
@@ -203,7 +228,7 @@ ${gesetztZeile}
                       page-break-inside: avoid; }
   section.kategorie { margin-left: 4px; }
   p.kopf { margin: 0 0 8px; color: #555; font-size: 0.85rem; }
-  p.peer, p.gesetzt, p.schema { margin: 8px 0 0; font-size: 0.85rem; color: #444;
+  p.peer, p.gesetzt, p.schema, p.verstehen, p.reflexion { margin: 8px 0 0; font-size: 0.85rem; color: #444;
                                 background: #f4f2ec; padding: 6px 9px; border-radius: 4px; }
   span.gewicht { font-weight: 400; color: #666; font-size: 0.82rem; }
   span.ergebnis { float: right; font-variant-numeric: tabular-nums; }

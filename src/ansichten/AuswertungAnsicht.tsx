@@ -5,10 +5,13 @@
 
 import { useMemo } from 'react';
 
+import type { AbschnittMitErgebnis } from '../domain/types';
 import {
   datumDeutsch,
   gesamtErgebnis,
   notenstandWeichtAb,
+  offeneKategorien,
+  tendenz,
   notenvorschlag,
   strangUnterGrenze,
   zeitfaktorWeichtAb,
@@ -28,6 +31,30 @@ import {
   Textfeld,
 } from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
+
+const TENDENZ_ZEICHEN: Record<string, { zeichen: string; text: string }> = {
+  steigend: { zeichen: '↗', text: 'steigend' },
+  fallend: { zeichen: '↘', text: 'fallend' },
+  gleich: { zeichen: '→', text: 'gleichbleibend' },
+};
+
+/** Die Richtung als Zeichen – die Zahl dahinter steht schon daneben. */
+function TendenzZelle({ eintraege }: { eintraege: AbschnittMitErgebnis[] }) {
+  const richtung = tendenz(eintraege);
+  if (richtung === null) {
+    return (
+      <td className="zahl anmerkung" title="Für eine Richtung braucht es zwei bewertete Abschnitte">
+        –
+      </td>
+    );
+  }
+  const { zeichen, text } = TENDENZ_ZEICHEN[richtung];
+  return (
+    <td className="zahl" title={text}>
+      <span aria-label={text}>{zeichen}</span>
+    </td>
+  );
+}
 
 export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
   const index = useMemo(() => bewertungsIndex(daten), [daten]);
@@ -78,6 +105,9 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
   // Die Auslassung hängt am Zeitraum, nicht an der Person – einmal ablesen genügt.
   const ohneDatum = ergebnisse[0]?.ergebnis.auslassung.ohneDatum ?? [];
 
+  // FA-51 AK-1: Die Standardansicht zeigt Stand, Tendenz und offene
+  // Kategorien. Die Punkte je Abschnitt sind die Herleitung und kommen erst
+  // auf Abruf – die Einstellung wirkt nur hier, nie auf die Daten (AK-3).
   const verteilung = new Map<number | 'offen', number>();
   for (const eintrag of ergebnisse) {
     // Gezählt wird der Vorschlag **mit** Sperre – sonst zeigte die Verteilung
@@ -142,6 +172,15 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
             </select>
           </div>
         ) : null}
+        {/* FA-51 AK-2: die Herleitung mit einem Schritt. */}
+        <button
+          type="button"
+          className="schalter"
+          aria-pressed={ui.ausfuehrlich}
+          onClick={() => setUi({ ausfuehrlich: !ui.ausfuehrlich })}
+        >
+          {ui.ausfuehrlich ? 'Herleitung ausblenden' : 'Herleitung zeigen'}
+        </button>
         <button type="button" className="schalter" onClick={exportieren}>
           CSV exportieren
         </button>
@@ -179,7 +218,8 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
                   <tr>
                     <th>Name</th>
                     <th>Team</th>
-                    {abschnitte.map((abschnitt) => (
+                    {ui.ausfuehrlich ? <th className="zahl">Tendenz</th> : null}
+                    {(ui.ausfuehrlich ? abschnitte : []).map((abschnitt) => (
                       <th
                         key={abschnitt.id}
                         className="zahl"
@@ -198,6 +238,8 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
                         </span>
                       </th>
                     ))}
+                    {ui.ausfuehrlich ? null : <th className="zahl">Tendenz</th>}
+                    {ui.ausfuehrlich ? null : <th>offen</th>}
                     <th className="zahl">Praxis</th>
                     <th className="zahl">Theorie</th>
                     <th className="zahl">Gesamt</th>
@@ -217,7 +259,8 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
                         <td className="anmerkung">
                           {teams.find((t) => t.id === teamVon(person.id))?.name ?? '–'}
                         </td>
-                        {abschnitte.map((abschnitt) => {
+                        {ui.ausfuehrlich ? <TendenzZelle eintraege={ergebnis.alle} /> : null}
+                        {(ui.ausfuehrlich ? abschnitte : []).map((abschnitt) => {
                           const wert = nachId.get(abschnitt.id)?.prozent ?? null;
                           return (
                             <td key={abschnitt.id} className="zahl">
@@ -227,6 +270,12 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
                             </td>
                           );
                         })}
+                        {ui.ausfuehrlich ? null : <TendenzZelle eintraege={ergebnis.alle} />}
+                        {ui.ausfuehrlich ? null : (
+                          <td className="anmerkung">
+                            {offeneKategorien(ergebnis.alle).join(', ') || '–'}
+                          </td>
+                        )}
                         {/* FA-61 AK-5: Ein Strang unter der Grenze ist erkennbar,
                             bevor der Beurteilungszeitraum endet. */}
                         <td

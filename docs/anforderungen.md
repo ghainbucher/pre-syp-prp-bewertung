@@ -4,11 +4,11 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung |
 | **Dokument** | Anforderungsdokument |
-| **Version** | 0.20 |
+| **Version** | 0.21 |
 | **Datum** | 2026-09-11 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.2.0 |
+| **Gültig für Softwarestand** | 0.3.0 |
 | **Zuletzt geprüft** | 2026-09-11 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Rahmenbedingung** | RB-01 |
@@ -23,6 +23,7 @@
 | 0.2 | 2026-09-09 | G. Hainbucher | Umstellung auf Satzschablone; Stakeholderanalyse und Product Goal ausgelagert; neun neue Anforderungen FA-39 bis FA-47 aus Fachkonzept und Risikoanalyse; Rahmenbedingungen RB-07 bis RB-10 ergänzt | Entwurf |
 | 0.3 | 2026-09-10 | G. Hainbucher | Zeitraum berichtigt (1. Oktober bis 30. April statt Semester), Annahmen an das tatsächliche Zeitbudget angepasst, FA-48 für die Auswertung zu einem Stichtag ergänzt | Entwurf |
 | 0.4 | 2026-09-10 | G. Hainbucher | OP-F2 entschieden: Peer-Werte wirken als gedeckelter Korrekturfaktor. FA-45 von „Kann/offen“ auf „Soll/geplant“, FA-22 entsprechend angepasst | Entwurf |
+| 0.21 | 2026-09-11 | G. Hainbucher | Release 0.3.0 umgesetzt: FA-32, FA-40 (AK-1 bis AK-4 nachgetragen), FA-41 (AK-3, AK-4), FA-42, FA-45, FA-47, FA-48 (AK-6, AK-7), FA-49, FA-50, FA-51, FA-54, FA-61 | Entwurf |
 | 0.20 | 2026-09-11 | G. Hainbucher | Release 0.2.0 umgesetzt: FA-17 (AK-1 bis AK-5 nachgetragen), FA-39 (AK-4 bis AK-7 nachgetragen), FA-46, FA-64, DS-06, FA-53 (AK-6, AK-7 nachgetragen). OP-F16 aufgenommen | Entwurf |
 | 0.19 | 2026-09-11 | G. Hainbucher | Schemastand 2 umgesetzt: FA-52, FA-55 bis FA-60 und FA-65 von „geplant“ auf „umgesetzt“, jeweils durch Tests belegt | Entwurf |
 | 0.18 | 2026-09-10 | G. Hainbucher | OP-R1 entschieden: Die Rubrik wird beim ersten Eintrag je Abschnitt eingefroren (FA-65); FA-47 auf das Angleichen umgestellt | Entwurf |
@@ -265,7 +266,7 @@ wird überschrieben. Gehört ins Datenmodell und damit nach 0.2.0.*
 
 ### FA-47 Eingefrorene Rubrik an die aktuelle angleichen
 
-`Soll` · 0.3.0 · SH-1, SH-4 · geplant
+`Soll` · 0.3.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich eine Rubrikänderung ausdrücklich auf bereits bewertete Abschnitte übertragen können,
@@ -547,27 +548,33 @@ damit meine Einschätzung unbeeinflusst bleibt und die Lehrkraft sie nicht abtip
 
 ### FA-40 Verstehensnachweis erfassen
 
-`Soll` · 0.3.0 · SH-1, SH-4 · geplant
+`Soll` · 0.3.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich je Person und Sprint festhalten, wie der mündliche Verstehensnachweis im Review ausgefallen ist,
 damit ich belegen kann, dass die Person für den eingebrachten Code einstehen konnte.
 
-- **AK-1** Erfasst werden eine Einstufung und ein kurzer Freitext.
-- **AK-2** Der Verstehensnachweis geht als eigener Anteil in den individuellen Beitrag ein.
+- **AK-1** Erfasst werden eine Einstufung in vier Stufen – **sicher, überwiegend, teilweise, nicht** – und ein kurzer Freitext. Der Freitext ist freiwillig.
+- **AK-2** Der Verstehensnachweis geht als eigener Anteil in den individuellen Beitrag ein: Die Kriterien der Kategorie tragen 70 %, der Nachweis 30 %. Der Anteil ist einstellbar.
+- **AK-3** Liegt kein Verstehensnachweis vor, zählt der individuelle Beitrag unverändert aus seinen Kriterien – ein fehlender Nachweis ist kein misslungener (ADR-004).
+- **AK-4** Die Einstufung erscheint in der Belegfassung (FA-32), nicht in der Rückmeldung an die Person (FA-42).
 
-*Grundlage: Fachkonzept 8.3.*
+*Grundlage: Fachkonzept 8.3. Stufen und Anteil entschieden am 11.09.2026: vier Stufen
+(100/67/33/0 %) und 30 % Anteil – spürbar, aber ein schwaches Review kippt die Note nicht
+allein.*
 
 ### FA-41 Reflexionsnotiz der Person
 
-`Soll` · 0.3.0 · SH-2 · geplant
+`Soll` · 0.3.0 · SH-2 · umgesetzt
 
 Als Schülerin oder Schüler
 möchte ich am Sprintende kurz festhalten, was ich beigetragen und gelernt habe und was ich mir vornehme,
 damit meine Sicht in die Beurteilung eingeht und ich im Folgesprint daran anknüpfen kann.
 
-- **AK-1** Die Notiz wird der Person und dem Sprint zugeordnet und bleibt dauerhaft sichtbar.
+- **AK-1** Die Notiz wird der Person und dem Abschnitt zugeordnet und bleibt dauerhaft sichtbar.
 - **AK-2** Erfassung erfolgt in der ersten Ausbaustufe durch die Lehrkraft.
+- **AK-3** Sie geht in keine Rechnung ein: Die Sicht der Person ist Grundlage des Gesprächs, nicht ein Prozentwert.
+- **AK-4** Sie erscheint in der Belegfassung (FA-32), damit im Anlassfall belegbar ist, dass die Sicht der Person erhoben wurde.
 
 ### FA-44 Rückmeldung des Auftraggebers erfassen
 
@@ -894,7 +901,7 @@ damit ich dort, wo ich sicher bin, nicht den Umweg über Einzelpunkte gehen muss
 
 ### FA-51 Zurückhaltende Darstellung
 
-`Soll` · 0.3.0 · SH-1, SH-2 · geplant
+`Soll` · 0.3.0 · SH-1, SH-2 · umgesetzt
 
 Als Lehrkraft
 möchte ich standardmäßig nur den Wert und seine Einordnung sehen und die Herleitung erst auf Abruf,

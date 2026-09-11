@@ -21,6 +21,13 @@ export interface UiZustand {
   rubrikId: string | null;
   /** Stichtag der Auswertung; `null` = alles (FA-48). */
   stichtagId: string | null;
+  /**
+   * Herleitung anzeigen (FA-51)? Vorgabe aus.
+   *
+   * Steht bewusst hier und nicht im Datenbestand: Die Einstellung wirkt nur auf
+   * die Anzeige und darf nie in einer Sicherung landen (AK-3).
+   */
+  ausfuehrlich: boolean;
 }
 
 // Stand 2: Bis dahin hieß der gewählte Abschnitt „sprintId“. Ein neuer
@@ -36,6 +43,7 @@ const START: UiZustand = {
   bewerterId: null,
   rubrikId: null,
   stichtagId: null,
+  ausfuehrlich: false,
 };
 
 function gelesen(): UiZustand {

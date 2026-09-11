@@ -121,6 +121,14 @@ export interface Abschnitt {
   rubrikKopie?: Rubrik;
   /** Zeitpunkt des Einfrierens (FA-65 AK-5). */
   eingefrorenAm?: string;
+  /**
+   * Zeitpunkt des letzten Angleichens an die aktuelle Rubrik (FA-47 AK-4).
+   *
+   * Gehört in die Belegfassung: Wer nachvollziehen soll, wie ein Stand
+   * zustande kam, muss wissen, dass die Kriterien nachträglich berichtigt
+   * wurden.
+   */
+  angeglichenAm?: string;
   von: string;
   bis: string;
   /** Eigenart des Abschnitts: Vorgabe 1, Lernsprint 0,5 (FA-04, FA-24). */
@@ -210,12 +218,37 @@ export interface Rueckmeldung {
   gesetztAm: string;
 }
 
+/**
+ * Einstufung des mündlichen Verstehensnachweises (FA-40 AK-1).
+ *
+ * Vier Stufen, kein Punktewert: Der Nachweis fragt, ob die Person für ihren
+ * Code einstehen kann (Fachkonzept 8.3) – das ist eine Einschätzung und keine
+ * Messung. Scheingenauigkeit wäre hier das falsche Signal.
+ */
+export type Verstehensstufe = 'sicher' | 'ueberwiegend' | 'teilweise' | 'nicht';
+
+export interface Verstehensnachweis {
+  stufe: Verstehensstufe;
+  /** Kurzer Freitext, freiwillig. */
+  notiz: string;
+  gesetztAm: string;
+}
+
 export interface Einzelbewertung {
   punkte: Punkte;
   /** Aufzeichnung der Lehrkraft (FA-17) – geht nicht an die Person. */
   notiz: string;
   /** Rückmeldung an die Person (FA-42) – geht an sie. */
   rueckmeldung?: Rueckmeldung;
+  /** Mündlicher Verstehensnachweis im Review (FA-40). */
+  verstehen?: Verstehensnachweis;
+  /**
+   * Sicht der Person auf den Abschnitt (FA-41).
+   *
+   * Geht in **keine** Rechnung ein (AK-3): Was jemand beigetragen und gelernt
+   * hat, ist Grundlage des Gesprächs und nicht ein weiterer Prozentwert.
+   */
+  reflexion?: string;
 }
 
 /**
@@ -274,6 +307,11 @@ export interface Datenbestand {
    * Vorgabe 5. Additiv innerhalb von Schemastand 2.
    */
   peerDeckelung: number;
+  /**
+   * Anteil des Verstehensnachweises am individuellen Beitrag in Prozent
+   * (FA-40 AK-2). Vorgabe 30; 0 schaltet ihn aus der Rechnung.
+   */
+  verstehensAnteil: number;
   /**
    * Zeitfaktor der zweiten Hälfte eines Beurteilungszeitraums (FA-54 AK-6).
    * Vorgabe 2 nach § 20 Abs. 1 LBVO; 1 ist zulässig, weicht aber ab.

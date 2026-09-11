@@ -7,17 +7,25 @@
  * ganzen Gegenstand.
  */
 
+import { useState } from 'react';
+
 import {
   RUBRIK_DIPLOMARBEIT,
   RUBRIK_SPRINT,
   VORLAGE_RUBRIK_SPRINT,
   strukturKopie,
 } from '../domain/defaults';
-import { genuegendGrenze, zeitfaktorWeichtAb } from '../domain/scoring';
+import {
+  angleichungAendertWerte,
+  angleichungsVorschau,
+  genuegendGrenze,
+  zeitfaktorWeichtAb,
+} from '../domain/scoring';
+import { bewertungsIndex } from '../store/storeReducer';
 import { rubrikMitId } from '../domain/zuordnung';
 import type { KategorieSchluessel, Rubrik } from '../domain/types';
 import { neueId } from '../ui/auswahl';
-import { BestaetigenSchalter, Karte, Textfeld } from '../ui/bausteine';
+import { BestaetigenSchalter, Karte, Prozent, Textfeld } from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
 
 const KATEGORIEN: Array<{
@@ -63,12 +71,20 @@ function hatVorlage(rubrik: Rubrik): boolean {
 }
 
 export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
+  // Zweite Bestätigung, wenn sich Prozentwerte ändern (FA-47 AK-3). Sie zwingt
+  // dazu, die Vorschau anzusehen – ein zweiter Klick allein täte das nicht.
+  const [gesehen, setGesehen] = useState(false);
   const rubrik =
     (ui.rubrikId ? rubrikMitId(daten, ui.rubrikId) : undefined) ??
     rubrikMitId(daten, daten.vorgabeRubrikId) ??
     daten.rubriken[0];
 
   if (!rubrik) return <div className="leer">Keine Rubrik vorhanden.</div>;
+
+  // FA-47 AK-2: Was würde ein Übertragen bewirken? Ohne Antwort darauf ist
+  // die Handlung nicht verantwortbar.
+  const vorschau = angleichungsVorschau(daten, rubrik.id, bewertungsIndex(daten));
+  const aendertWerte = angleichungAendertWerte(vorschau);
 
   const gewichtssumme = KATEGORIEN.filter((k) => k.schluessel !== 'peer').reduce(
     (summe, kategorie) => summe + (rubrik.gewichte[kategorie.schluessel] ?? 0),
@@ -154,6 +170,107 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
               ) : null}
             </div>
           </Karte>
+
+          {/* FA-47: Eine Rubrikänderung ausdrücklich auf bereits Bewertetes
+              übertragen – nie als Nebenwirkung (AK-1). */}
+          {vorschau.length > 0 ? (
+            <Karte
+              titel="Auf bewertete Abschnitte übertragen"
+              hinweis={`${vorschau.length} ${vorschau.length === 1 ? 'Abschnitt' : 'Abschnitte'} betroffen`}
+              buendig
+            >
+              <div className="tabellenrahmen">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Abschnitt</th>
+                      <th>Person</th>
+                      <th className="zahl">bisher</th>
+                      <th className="zahl">danach</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {vorschau.flatMap((eintrag) =>
+                      eintrag.folgen.length === 0
+                        ? [
+                            <tr key={eintrag.abschnitt.id}>
+                              <td>
+                                <b>{eintrag.abschnitt.name}</b>
+                              </td>
+                              <td colSpan={3} className="anmerkung">
+                                keine erfassten Ergebnisse
+                              </td>
+                            </tr>,
+                          ]
+                        : eintrag.folgen.map((folge, i) => {
+                            const gleich =
+                              folge.vorher !== null &&
+                              folge.nachher !== null &&
+                              Math.abs(folge.vorher - folge.nachher) <= 0.0001;
+                            return (
+                              <tr key={`${eintrag.abschnitt.id}-${folge.person.id}`}>
+                                <td>{i === 0 ? <b>{eintrag.abschnitt.name}</b> : null}</td>
+                                <td>{folge.person.name}</td>
+                                <td className="zahl">
+                                  <Prozent wert={folge.vorher} stellen={1} />
+                                </td>
+                                <td className={gleich ? 'zahl anmerkung' : 'zahl'}>
+                                  {gleich ? (
+                                    'unverändert'
+                                  ) : (
+                                    <b>
+                                      <Prozent wert={folge.nachher} stellen={1} />
+                                    </b>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          }),
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="inhalt">
+                {aendertWerte ? (
+                  <>
+                    <p className="anmerkung" style={{ margin: '0 0 10px' }}>
+                      <b>Das Übertragen ändert erteilte Prozentwerte.</b> Bereits besprochene
+                      Beurteilungen sehen danach anders aus. Für einen Tippfehler ist das der
+                      falsche Weg – dafür genügt eine Textänderung, die nichts rechnet.
+                    </p>
+                    <label className="zeile" style={{ gap: 7, cursor: 'pointer', marginBottom: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={gesehen}
+                        aria-label="Änderungen oben gesehen"
+                        onChange={(e) => setGesehen(e.target.checked)}
+                      />
+                      <span>Ich habe die Änderungen oben durchgesehen</span>
+                    </label>
+                  </>
+                ) : (
+                  <p className="anmerkung" style={{ margin: '0 0 10px' }}>
+                    Es ändern sich nur Bezeichnungen und Beschreibungen – kein Prozentwert bewegt
+                    sich.
+                  </p>
+                )}
+                {aendertWerte && !gesehen ? (
+                  <button type="button" className="schalter" disabled>
+                    Übertragen
+                  </button>
+                ) : (
+                  <BestaetigenSchalter
+                    beschriftung="Auf bewertete Abschnitte übertragen"
+                    klasse="schalter"
+                    onBestaetigt={() => {
+                      dispatch({ art: 'abschnitt/angleichen', rubrikId: rubrik.id });
+                      setGesehen(false);
+                    }}
+                  />
+                )}
+              </div>
+            </Karte>
+          ) : null}
 
           {KATEGORIEN.map((kategorie) => {
             const kriterien = rubrik[kategorie.schluessel];
@@ -336,6 +453,26 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                 }
               />
               <span className="maximum">± PP</span>
+            </div>
+            {/* FA-40 AK-2: Anteil des Verstehensnachweises am individuellen Beitrag. */}
+            <div className="uebersichtszeile">
+              <div className="bezeichnung">
+                <b>Verstehensnachweis</b>
+                <span>Anteil am individuellen Beitrag</span>
+              </div>
+              <input
+                type="number"
+                className="schmal"
+                min={0}
+                max={100}
+                step={5}
+                value={daten.verstehensAnteil}
+                aria-label="Anteil des Verstehensnachweises"
+                onChange={(e) =>
+                  dispatch({ art: 'verstehensAnteil', wert: Number(e.target.value) || 0 })
+                }
+              />
+              <span className="maximum">%</span>
             </div>
             <div className="uebersichtszeile summe">
               <div className="bezeichnung">

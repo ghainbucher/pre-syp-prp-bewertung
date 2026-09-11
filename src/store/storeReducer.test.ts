@@ -762,3 +762,118 @@ describe('Rückmeldung an die Person (FA-42)', () => {
     expect(rueckmeldungOffen(daten, 's1', bewertungsIndex(daten)).map((p) => p.id)).toEqual(['p1']);
   });
 });
+
+describe('Verstehensnachweis und Reflexion (FA-40, FA-41)', () => {
+  it('hält Stufe und Notiz fest und friert die Rubrik ein (FA-40, FA-65)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'bewertung/verstehen',
+      abschnittId: 's1',
+      teamId: 'team1',
+      personId: 'p1',
+      stufe: 'ueberwiegend',
+      notiz: 'Konnte die Abfrage erklären, bei der Transaktion unsicher',
+    });
+    const nachweis = daten.bewertungen[0].individuell.p1.verstehen!;
+    expect(nachweis.stufe).toBe('ueberwiegend');
+    expect(nachweis.notiz).toContain('Transaktion');
+    // Er geht in die Rechnung ein, also gilt ab jetzt die eingefrorene Rubrik.
+    expect(daten.abschnitte[0].rubrikKopie).toBeDefined();
+  });
+
+  it('behält die Notiz, wenn nur die Stufe geändert wird', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/verstehen', abschnittId: 's1', teamId: 'team1', personId: 'p1', stufe: 'teilweise', notiz: 'nachgefragt' },
+      { art: 'bewertung/verstehen', abschnittId: 's1', teamId: 'team1', personId: 'p1', stufe: 'sicher' },
+    );
+    expect(daten.bewertungen[0].individuell.p1.verstehen!.notiz).toBe('nachgefragt');
+  });
+
+  it('lässt sich wieder entfernen', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/verstehen', abschnittId: 's1', teamId: 'team1', personId: 'p1', stufe: 'sicher' },
+      { art: 'bewertung/verstehen', abschnittId: 's1', teamId: 'team1', personId: 'p1', stufe: null },
+    );
+    expect(daten.bewertungen).toHaveLength(0);
+  });
+
+  it('hält die Reflexion der Person fest und rechnet nicht damit (FA-41 AK-1, AK-3)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'bewertung/reflexion',
+      abschnittId: 's1',
+      teamId: 'team1',
+      personId: 'p1',
+      text: 'Habe die Schnittstelle gebaut und gelernt, früher zu fragen.',
+    });
+    expect(daten.bewertungen[0].individuell.p1.reflexion).toContain('früher zu fragen');
+    // Keine Rubrik eingefroren – die Reflexion ist keine Bewertung.
+    expect(daten.abschnitte[0].rubrikKopie).toBeUndefined();
+  });
+
+  it('entfernt eine geleerte Reflexion', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/reflexion', abschnittId: 's1', teamId: 'team1', personId: 'p1', text: 'etwas' },
+      { art: 'bewertung/reflexion', abschnittId: 's1', teamId: 'team1', personId: 'p1', text: '  ' },
+    );
+    expect(daten.bewertungen).toHaveLength(0);
+  });
+
+  it('begrenzt den Anteil des Verstehensnachweises auf 0 bis 100 (FA-40 AK-2)', () => {
+    expect(anwenden(leererDatenbestand(), { art: 'verstehensAnteil', wert: 140 }).verstehensAnteil).toBe(100);
+    expect(anwenden(leererDatenbestand(), { art: 'verstehensAnteil', wert: -1 }).verstehensAnteil).toBe(0);
+  });
+});
+
+describe('Rubrik angleichen (FA-47)', () => {
+  function mitEingefrorenem(): Datenbestand {
+    return anwenden(grundbestand(), {
+      art: 'bewertung/punkte',
+      abschnittId: 's1',
+      teamId: 'team1',
+      kategorie: 'team',
+      kriteriumId: 't1',
+      wert: 8,
+    });
+  }
+
+  it('überträgt die aktuelle Rubrik auf bewertete Abschnitte und hält den Zeitpunkt fest (AK-4)', () => {
+    const daten = anwenden(
+      mitEingefrorenem(),
+      { art: 'rubrik/kriteriumAendern', rubrikId: RUBRIK_SPRINT, kategorie: 'team', index: 0, aenderung: { name: 'Funktionsumfang' } },
+      { art: 'abschnitt/angleichen', rubrikId: RUBRIK_SPRINT },
+    );
+    expect(daten.abschnitte[0].rubrikKopie!.team[0].name).toBe('Funktionsumfang');
+    expect(daten.abschnitte[0].angeglichenAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // Der Zeitpunkt des Einfrierens bleibt daneben stehen.
+    expect(daten.abschnitte[0].eingefrorenAm).toBeDefined();
+  });
+
+  it('geschieht nie als Nebenwirkung einer Rubrikänderung (AK-1)', () => {
+    const daten = anwenden(mitEingefrorenem(), {
+      art: 'rubrik/kriteriumAendern',
+      rubrikId: RUBRIK_SPRINT,
+      kategorie: 'team',
+      index: 0,
+      aenderung: { name: 'Funktionsumfang' },
+    });
+    expect(daten.abschnitte[0].rubrikKopie!.team[0].name).toBe('Funktionalität');
+    expect(daten.abschnitte[0].angeglichenAm).toBeUndefined();
+  });
+
+  it('rührt Abschnitte anderer Rubriken nicht an', () => {
+    const daten = anwenden(
+      mitEingefrorenem(),
+      { art: 'rubrik/anlegen', rubrik: testRubrik('r2', 'Andere') },
+      { art: 'abschnitt/angleichen', rubrikId: 'r2' },
+    );
+    expect(daten.abschnitte[0].angeglichenAm).toBeUndefined();
+  });
+
+  it('rührt Abschnitte ohne eingefrorene Kopie nicht an', () => {
+    const daten = anwenden(grundbestand(), { art: 'abschnitt/angleichen', rubrikId: RUBRIK_SPRINT });
+    expect(daten.abschnitte[0].rubrikKopie).toBeUndefined();
+    expect(daten.abschnitte[0].angeglichenAm).toBeUndefined();
+  });
+});

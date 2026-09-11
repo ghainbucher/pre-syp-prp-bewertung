@@ -5,7 +5,14 @@
  * und Schülern begründbar sind (FA-09).
  */
 
-import type { Datenbestand, Notenstufe, Rubrik, Stichtag, Strang } from './types';
+import type {
+  Datenbestand,
+  Notenstufe,
+  Rubrik,
+  Stichtag,
+  Strang,
+  Verstehensstufe,
+} from './types';
 
 export const SCHEMA_VERSION = 2;
 
@@ -23,6 +30,33 @@ export const PEER_DECKELUNG = 5;
  * Wert 1 hebt die Regel auf und ist deshalb als Abweichung zu kennzeichnen.
  */
 export const ZEITFAKTOR_ZWEITE_HAELFTE = 2;
+
+/** Anteil des Verstehensnachweises am individuellen Beitrag (FA-40 AK-2). */
+export const VERSTEHENS_ANTEIL = 30;
+
+/** Prozentwerte der vier Stufen des Verstehensnachweises (FA-40 AK-1). */
+export const VERSTEHENS_PROZENT: Record<Verstehensstufe, number> = {
+  sicher: 100,
+  ueberwiegend: 200 / 3,
+  teilweise: 100 / 3,
+  nicht: 0,
+};
+
+/** Die vier Stufen in der Reihenfolge, in der sie angeboten werden. */
+export const VERSTEHENS_STUFEN: Verstehensstufe[] = [
+  'sicher',
+  'ueberwiegend',
+  'teilweise',
+  'nicht',
+];
+
+/** Beschriftungen der vier Stufen, für Oberfläche und Belegfassung. */
+export const VERSTEHENS_BEZEICHNUNG: Record<Verstehensstufe, string> = {
+  sicher: 'sicher erklärt',
+  ueberwiegend: 'überwiegend erklärt',
+  teilweise: 'teilweise erklärt',
+  nicht: 'nicht erklärt',
+};
 
 /** Gewicht der beiden Stränge – drei von vier Wochenstunden gegen eine (FA-59). */
 export const STRANG_GEWICHTE: Record<Strang, number> = { praxis: 75, theorie: 25 };
@@ -180,6 +214,7 @@ export function leererDatenbestand(): Datenbestand {
     notenschluessel: strukturKopie(STANDARD_NOTENSCHLUESSEL),
     strangGewichte: { ...STRANG_GEWICHTE },
     peerDeckelung: PEER_DECKELUNG,
+    verstehensAnteil: VERSTEHENS_ANTEIL,
     zeitfaktorZweiteHaelfte: ZEITFAKTOR_ZWEITE_HAELFTE,
     sperreAktiv: true,
     stichtage: [],

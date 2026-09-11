@@ -12,6 +12,7 @@ import {
   SCHEMA_VERSION,
   STANDARD_NOTENSCHLUESSEL,
   STRANG_GEWICHTE,
+  VERSTEHENS_ANTEIL,
   ZEITFAKTOR_ZWEITE_HAELFTE,
   VORLAGE_RUBRIK_SPRINT,
   leererDatenbestand,
@@ -145,6 +146,7 @@ function vonStand1(roh: RoherBestand): Datenbestand {
       : strukturKopie(STANDARD_NOTENSCHLUESSEL),
     strangGewichte: { ...STRANG_GEWICHTE },
     peerDeckelung: PEER_DECKELUNG,
+    verstehensAnteil: VERSTEHENS_ANTEIL,
     zeitfaktorZweiteHaelfte: ZEITFAKTOR_ZWEITE_HAELFTE,
     sperreAktiv: true,
     stichtage: [],
@@ -200,6 +202,10 @@ function vervollstaendigen(roh: RoherBestand): Datenbestand {
       typeof roh.peerDeckelung === 'number' && Number.isFinite(roh.peerDeckelung)
         ? roh.peerDeckelung
         : PEER_DECKELUNG,
+    verstehensAnteil:
+      typeof roh.verstehensAnteil === 'number' && Number.isFinite(roh.verstehensAnteil)
+        ? roh.verstehensAnteil
+        : VERSTEHENS_ANTEIL,
     zeitfaktorZweiteHaelfte:
       typeof roh.zeitfaktorZweiteHaelfte === 'number' && Number.isFinite(roh.zeitfaktorZweiteHaelfte)
         ? roh.zeitfaktorZweiteHaelfte

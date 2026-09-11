@@ -10,18 +10,22 @@
 
 import { useMemo, type ReactNode } from 'react';
 
+import { VERSTEHENS_BEZEICHNUNG, VERSTEHENS_STUFEN } from '../domain/defaults';
 import {
   bewertungsSchluessel,
   datumDeutsch,
   ergebnisAusRubrik,
   formatProzent,
+  gesamtErgebnis,
   kategorieErgebnis,
   peerFrageFaellig,
   selbstbildAbweichung,
+  tendenz,
 } from '../domain/scoring';
 import { abschnitteVon, mitgliederIn, rubrikVon, rueckmeldungOffen } from '../domain/zuordnung';
 import type {
   Abschnitt,
+  Verstehensstufe,
   GesetzterWert,
   Bewertung,
   Kriterium,
@@ -646,6 +650,111 @@ function TeamMaske({
             )}
           </Karte>
 
+          {/* FA-40 und FA-41: Was im Review gesprochen wurde. Der Nachweis
+              rechnet mit, die Reflexion nicht. */}
+          <Karte
+            titel="Verstehensnachweis und Reflexion"
+            hinweis={`Nachweis zählt ${daten.verstehensAnteil} % des individuellen Beitrags`}
+            buendig
+          >
+            {mitglieder.length === 0 ? (
+              <div className="leer">Diesem Team ist in diesem Abschnitt noch niemand zugeordnet.</div>
+            ) : (
+              <div className="tabellenrahmen">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Verstehensnachweis</th>
+                      <th>Notiz dazu</th>
+                      <th>Sicht der Person</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mitglieder.map((person) => {
+                      const eintrag = bewertung?.individuell?.[person.id];
+                      return (
+                        <tr key={person.id}>
+                          <td style={{ verticalAlign: 'top' }}>
+                            <b>{person.name}</b>
+                          </td>
+                          <td style={{ verticalAlign: 'top' }}>
+                            <select
+                              aria-label={`Verstehensnachweis – ${person.name}`}
+                              value={eintrag?.verstehen?.stufe ?? ''}
+                              onChange={(e) =>
+                                dispatch({
+                                  art: 'bewertung/verstehen',
+                                  abschnittId: abschnitt.id,
+                                  teamId: team.id,
+                                  personId: person.id,
+                                  stufe: (e.target.value || null) as Verstehensstufe | null,
+                                })
+                              }
+                            >
+                              <option value="">– nicht erhoben –</option>
+                              {VERSTEHENS_STUFEN.map((stufe) => (
+                                <option key={stufe} value={stufe}>
+                                  {VERSTEHENS_BEZEICHNUNG[stufe]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            {eintrag?.verstehen ? (
+                              <Textfeld
+                                breit
+                                wert={eintrag.verstehen.notiz}
+                                beschriftung={`Notiz zum Verstehensnachweis – ${person.name}`}
+                                platzhalter="freiwillig"
+                                onAendern={(notiz) =>
+                                  dispatch({
+                                    art: 'bewertung/verstehen',
+                                    abschnittId: abschnitt.id,
+                                    teamId: team.id,
+                                    personId: person.id,
+                                    stufe: eintrag.verstehen!.stufe,
+                                    notiz,
+                                  })
+                                }
+                              />
+                            ) : (
+                              <span className="anmerkung">–</span>
+                            )}
+                          </td>
+                          <td>
+                            <Textfeld
+                              mehrzeilig
+                              wert={eintrag?.reflexion ?? ''}
+                              beschriftung={`Reflexion – ${person.name}`}
+                              platzhalter="Was habe ich beigetragen, was gelernt, was nehme ich mir vor?"
+                              onAendern={(text) =>
+                                dispatch({
+                                  art: 'bewertung/reflexion',
+                                  abschnittId: abschnitt.id,
+                                  teamId: team.id,
+                                  personId: person.id,
+                                  text,
+                                })
+                              }
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="inhalt">
+              <p className="anmerkung" style={{ margin: 0 }}>
+                Der Nachweis fragt nicht, wie der Code entstanden ist, sondern ob die Person für
+                ihn einstehen kann (Fachkonzept 8.3). Die Sicht der Person geht in keine Rechnung
+                ein – sie steht in der Belegfassung, weil sie erhoben wurde.
+              </p>
+            </div>
+          </Karte>
+
           {/* FA-42: Was an die Person geht – ohne Punkte, ohne Note. */}
           <RueckmeldungsKarte
             personen={mitglieder}
@@ -775,6 +884,20 @@ function TeamMaske({
                   teile.push(`Selbstbild ${abweichung === 'hoeher' ? 'höher' : 'niedriger'}`);
                 }
                 if (ergebnis.fehlend.length > 0) teile.push(`offen: ${ergebnis.fehlend.join(', ')}`);
+                // FA-51 AK-1: Stand, Tendenz und offene Kategorien – die
+                // Punkte stehen links, hier steht die Einordnung.
+                const richtung = tendenz(
+                  gesamtErgebnis(daten, person, index).praxis.abschnitte,
+                );
+                if (richtung !== null) {
+                  teile.push(
+                    richtung === 'steigend'
+                      ? 'Tendenz steigend'
+                      : richtung === 'fallend'
+                        ? 'Tendenz fallend'
+                        : 'Tendenz gleichbleibend',
+                  );
+                }
 
                 return (
                   <div className="uebersichtszeile" key={person.id}>

@@ -6,8 +6,49 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ## [Unveröffentlicht]
 
+Noch nichts.
+
+## [0.3.0] – 2026-09-11 · „Beurteilen“
+
+Aus den erfassten Punkten wird ein begründbarer Stand: Zeitfaktor nach § 20 Abs. 1 LBVO,
+Peer-Werte als gedeckelte Korrektur, Sperre bei negativem Strang nach § 14 LBVO, Stichtage,
+gesetzte Werte auf jeder Ebene ohne Überschreiben, Notenstand, Belegfassung und Rückmeldung.
+Umgesetzt: FA-32, FA-40 bis FA-42, FA-45, FA-47 bis FA-51, FA-54 und FA-61.
+
 ### Geändert
 
+- **FA-47 Eingefrorene Rubrik angleichen.** Eine Rubrikänderung lässt sich ausdrücklich auf
+  bereits bewertete Abschnitte übertragen – als eigene Handlung, nie als Nebenwirkung (AK-1).
+  Davor steht eine Vorschau: welche Abschnitte betroffen sind und wie sich der Prozentwert
+  **je Person** ändert (AK-2). Ändern sich Werte, ist zusätzlich zu bestätigen, dass die
+  Vorschau durchgesehen wurde – ein zweiter Klick allein erzwänge das nicht; ändern sich nur
+  Bezeichnungen und Beschreibungen, genügt die einfache Bestätigung (AK-3)
+- Ob sich Werte ändern können, wird am **rechnenden Teil** der Rubrik entschieden – Kennungen,
+  Maximalpunkte, Gewichte, `selbstZaehlt`. Ist der gleich, kann kein Prozentwert wandern
+- Das Angleichen wird mit Zeitpunkt am Abschnitt festgehalten und erscheint in der Belegfassung
+  (AK-4): Wer nachvollziehen soll, wie ein Stand zustande kam, muss wissen, dass die Kriterien
+  nachträglich berichtigt wurden
+- **FA-40 Verstehensnachweis** und **FA-41 Reflexionsnotiz** je Person und Abschnitt. Der
+  Nachweis wird in vier Stufen erfasst – sicher, überwiegend, teilweise, nicht (100/67/33/0 %) –
+  und geht mit **30 % in den individuellen Beitrag** ein; die Kriterien tragen die übrigen 70 %.
+  Beides entschieden am 11.09.2026 und als AK-1 bis AK-4 nachgetragen, weil die Anforderung nur
+  „ein eigener Anteil“ sagte. Der Anteil ist einstellbar; 0 nimmt den Nachweis aus der Rechnung,
+  ohne ihn aus den Aufzeichnungen zu entfernen
+- **Ein fehlender Nachweis ist kein misslungener:** Ohne Einstufung zählt der individuelle
+  Beitrag unverändert aus seinen Kriterien (dieselbe Regel wie ADR-004). Liegt umgekehrt nur der
+  Nachweis vor, trägt er die Kategorie allein – auch er ist eine erhobene Leistung
+- Das Erfassen einer Einstufung friert die Rubrik ein (FA-65), weil sie in die Rechnung eingeht;
+  eine Reflexionsnotiz tut das nicht – sie ist keine Bewertung
+- Beide erscheinen in der **Belegfassung** (FA-32) und ausdrücklich **nicht** in der Rückmeldung
+  an die Person (FA-42); Tests prüfen beides
+- **FA-51 Zurückhaltende Darstellung.** Die Auswertung zeigt standardmäßig Stand, **Tendenz**
+  und offene Kategorien; die Punkte je Abschnitt sind die Herleitung und kommen mit einem
+  Klick auf „Herleitung zeigen“. Der Schalter liegt im Oberflächenzustand, nicht im
+  Datenbestand – er kann damit gar nicht in einer Sicherung landen (AK-3)
+- **Die Tendenz vergleicht die Mediane der beiden Verlaufshälften**, geteilt wie beim
+  Zeitfaktor. Der erste Ansatz – letzter Wert gegen das Mittel der früheren – lag bei drei der
+  neun Testverläufe falsch: Ein einzelner Ausfall ließ einen unveränderten Verlauf als Anstieg
+  (TF-F) oder als Absturz (TF-G) erscheinen. Alle neun Verläufe sind als Test hinterlegt
 - **FA-32 Belegfassung je Person** und **FA-42 Rückmeldung je Person** – zwei Ausgaben, die
   sich ausdrücklich ausschließen. Die Belegfassung zeigt alles: je Abschnitt Rubrik, Team,
   Kategorien mit Kriterien und Punkten, gesetzte Werte samt gerechnetem Vergleichswert und

@@ -26,9 +26,16 @@ import type {
   Rubrik,
   Strang,
   Strangergebnis,
+  Verstehensnachweis,
   Zeitraum,
 } from './types';
-import { OHNE_STICHTAG, PEER_DECKELUNG, ZEITFAKTOR_ZWEITE_HAELFTE } from './defaults';
+import {
+  OHNE_STICHTAG,
+  PEER_DECKELUNG,
+  VERSTEHENS_ANTEIL,
+  VERSTEHENS_PROZENT,
+  ZEITFAKTOR_ZWEITE_HAELFTE,
+} from './defaults';
 import {
   abschnitteVon,
   auslassungen,
@@ -161,6 +168,41 @@ export function selbstEinschaetzung(
 }
 
 /**
+ * Verrechnet den Verstehensnachweis in den individuellen Beitrag (FA-40 AK-2).
+ *
+ * Die Kriterien der Kategorie tragen `100 − anteil` Prozent, der Nachweis
+ * `anteil`. Liegt **kein** Nachweis vor, bleibt die Kategorie unverändert
+ * (AK-3) – ein fehlender Nachweis ist kein misslungener, das ist dieselbe
+ * Regel wie bei den Kategorien (ADR-004). Liegt umgekehrt nur der Nachweis
+ * vor, trägt er die Kategorie allein: Auch er ist eine erhobene Leistung.
+ */
+export function mitVerstehensnachweis(
+  kategorie: Kategorieergebnis | null,
+  nachweis: Verstehensnachweis | undefined,
+  anteil = VERSTEHENS_ANTEIL,
+): Kategorieergebnis | null {
+  if (!nachweis) return kategorie;
+  const teil = klemme(istZahl(anteil) ? anteil : 0, 0, 100);
+  if (teil === 0) return kategorie;
+
+  const nachweisProzent = VERSTEHENS_PROZENT[nachweis.stufe];
+  if (!kategorie) {
+    return {
+      prozent: nachweisProzent,
+      prozentBerechnet: nachweisProzent,
+      gesetzt: null,
+      erreicht: 0,
+      moeglich: 0,
+      ausgefuellt: 0,
+      gesamt: 0,
+    };
+  }
+
+  const gemischt = ((100 - teil) * kategorie.prozent + teil * nachweisProzent) / 100;
+  return { ...kategorie, prozent: gemischt, prozentBerechnet: gemischt };
+}
+
+/**
  * Legt einen gesetzten Wert über ein Kategorieergebnis (FA-50 AK-1, AK-3).
  *
  * Der berechnete Wert bleibt daneben stehen – auch dann, wenn gar keiner
@@ -211,6 +253,7 @@ export function ergebnisAusRubrik(
   rubrik: Rubrik,
   peerAktiv: boolean,
   deckelung = PEER_DECKELUNG,
+  verstehensAnteil = VERSTEHENS_ANTEIL,
 ): Abschnittsergebnis {
   const gesetzteKategorien = bewertung?.gesetzt?.kategorie;
   const team = kategorieMitGesetzt(
@@ -221,8 +264,15 @@ export function ergebnisAusRubrik(
     kategorieErgebnis(bewertung?.prozess, rubrik.prozess),
     gesetzteKategorien?.prozess,
   );
+  // Reihenfolge: erst den Verstehensnachweis einrechnen (FA-40), dann einen
+  // gesetzten Wert darüberlegen (FA-50) – ein gesetzter Wert ist die
+  // Entscheidung der Lehrkraft und steht über jeder Rechnung.
   const individuell = kategorieMitGesetzt(
-    kategorieErgebnis(bewertung?.individuell?.[person.id]?.punkte, rubrik.individuell),
+    mitVerstehensnachweis(
+      kategorieErgebnis(bewertung?.individuell?.[person.id]?.punkte, rubrik.individuell),
+      bewertung?.individuell?.[person.id]?.verstehen,
+      verstehensAnteil,
+    ),
     gesetzteKategorien?.individuell,
   );
   const peer = peerAktiv ? peerErgebnis(bewertung, person.id, teammitglieder, rubrik) : null;
@@ -300,6 +350,7 @@ export function abschnittsErgebnis(
     rubrik,
     abschnitt.peerAktiv,
     daten.peerDeckelung,
+    daten.verstehensAnteil,
   );
 }
 
@@ -463,6 +514,153 @@ export function gesamtErgebnis(
     alle,
     auslassung: { ohneDatum: auslassungen(daten, person.klasseId, zeitraum) },
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Eingefrorene Rubrik angleichen (FA-47)                                      */
+/* -------------------------------------------------------------------------- */
+
+/** Was sich für eine Person ändern würde. */
+export interface Angleichungsfolge {
+  person: Person;
+  vorher: number | null;
+  nachher: number | null;
+}
+
+export interface Angleichung {
+  abschnitt: Abschnitt;
+  /**
+   * Nur Bezeichnungen und Beschreibungen betroffen (FA-47 AK-3)?
+   *
+   * Verglichen werden Kennungen, Maximalpunkte, Gewichte und `selbstZaehlt` –
+   * alles, was rechnet. Ist das gleich, kann sich kein Prozentwert ändern.
+   */
+  nurTexte: boolean;
+  folgen: Angleichungsfolge[];
+}
+
+/** Der rechnende Teil einer Rubrik, ohne Namen und Beschreibungen. */
+function rechenkern(rubrik: Rubrik): string {
+  const kategorien = (['team', 'prozess', 'individuell', 'peer'] as const).map((k) =>
+    rubrik[k].map((kriterium) => `${kriterium.id}:${kriterium.max}`).join(','),
+  );
+  return JSON.stringify([kategorien, rubrik.gewichte, rubrik.selbstZaehlt]);
+}
+
+/**
+ * Was ein Angleichen an die aktuelle Rubrik bewirken würde (FA-47 AK-2).
+ *
+ * Betroffen sind nur Abschnitte, die dieser Rubrik zugeordnet sind **und**
+ * bereits eine eingefrorene Kopie tragen – bei allen anderen wirkt eine
+ * Rubrikänderung ohnehin (FA-65) und es gibt nichts anzugleichen.
+ *
+ * Die Funktion rechnet nur; sie verändert nichts.
+ */
+export function angleichungsVorschau(
+  daten: Datenbestand,
+  rubrikId: Id,
+  bewertungen: Map<string, Bewertung>,
+): Angleichung[] {
+  const aktuell = daten.rubriken.find((r) => r.id === rubrikId);
+  if (!aktuell) return [];
+
+  return daten.abschnitte
+    .filter((a) => a.rubrikId === rubrikId && a.rubrikKopie)
+    .filter((a) => JSON.stringify(a.rubrikKopie) !== JSON.stringify(aktuell))
+    .map((abschnitt) => {
+      const kopie = abschnitt.rubrikKopie!;
+      const nurTexte = rechenkern(kopie) === rechenkern(aktuell);
+      const teamId = abschnitt.art === 'test' ? null : undefined;
+
+      const folgen = daten.personen
+        .filter((p) => p.klasseId === abschnitt.klasseId)
+        .map((person) => {
+          const inTeam = teamId === null ? null : teamIn(daten, abschnitt.id, person.id);
+          const bewertung = bewertungen.get(bewertungsSchluessel(abschnitt.id, inTeam));
+          const mitglieder = mitgliederIn(daten, abschnitt.id, inTeam);
+          const wie = (rubrik: Rubrik) =>
+            ergebnisAusRubrik(
+              bewertung,
+              person,
+              mitglieder,
+              rubrik,
+              abschnitt.peerAktiv,
+              daten.peerDeckelung,
+              daten.verstehensAnteil,
+            ).prozent;
+          return { person, vorher: wie(kopie), nachher: wie(aktuell) };
+        })
+        // Wer kein Ergebnis hat und keines bekommt, ist nicht betroffen.
+        .filter((f) => f.vorher !== null || f.nachher !== null);
+
+      return { abschnitt, nurTexte, folgen };
+    });
+}
+
+/** Ändert das Angleichen einen Prozentwert (FA-47 AK-3)? */
+export function angleichungAendertWerte(angleichungen: Angleichung[]): boolean {
+  return angleichungen.some((a) =>
+    a.folgen.some((f) => {
+      if (f.vorher === null || f.nachher === null) return f.vorher !== f.nachher;
+      return Math.abs(f.vorher - f.nachher) > 0.0001;
+    }),
+  );
+}
+
+/**
+ * Ab wie vielen Prozentpunkten Unterschied von einer Tendenz gesprochen wird.
+ *
+ * Darunter ist es Rauschen: Ein Abschnitt schwankt aus Gründen, die nichts mit
+ * einer Entwicklung zu tun haben.
+ */
+export const TENDENZ_SCHWELLE = 5;
+
+export type Tendenz = 'steigend' | 'fallend' | 'gleich';
+
+/** Median einer nicht leeren Werteliste. */
+function median(werte: number[]): number {
+  const sortiert = [...werte].sort((a, b) => a - b);
+  const mitte = Math.floor(sortiert.length / 2);
+  return sortiert.length % 2 === 1
+    ? sortiert[mitte]
+    : (sortiert[mitte - 1] + sortiert[mitte]) / 2;
+}
+
+/**
+ * Wohin sich eine Person entwickelt (FA-51 AK-1).
+ *
+ * Verglichen werden die **Mediane der beiden Hälften** des Verlaufs, geteilt
+ * wie beim Zeitfaktor (FA-54): zweite Hälfte aufgerundet.
+ *
+ * *Warum nicht der letzte Wert gegen das Mittel der früheren:* Ein einzelner
+ * Ausfall verschiebt dann die Aussage, und zwar in beide Richtungen. Liegt er
+ * früh, sieht ein unveränderter Verlauf wie ein Anstieg aus (TF-F); liegt er
+ * spät, wie ein Absturz (TF-G). Gegen die neun Verläufe aus
+ * `docs/testfaelle-notenfindung.md` geprüft, trifft der Median beide Fälle
+ * richtig und das Mittel nicht.
+ *
+ * `null`, solange es weniger als zwei bewertete Abschnitte gibt: Aus einem
+ * Punkt lässt sich keine Richtung ablesen.
+ */
+export function tendenz(eintraege: AbschnittMitErgebnis[]): Tendenz | null {
+  const werte = eintraege
+    .map((e) => e.ergebnis.prozent)
+    .filter((wert): wert is number => wert !== null);
+  if (werte.length < 2) return null;
+
+  const zweite = Math.ceil(werte.length / 2);
+  const abstand = median(werte.slice(werte.length - zweite)) - median(werte.slice(0, werte.length - zweite));
+  if (Math.abs(abstand) < TENDENZ_SCHWELLE) return 'gleich';
+  return abstand > 0 ? 'steigend' : 'fallend';
+}
+
+/** Bezeichnungen der Kategorien, zu denen in einem Abschnitt nichts erfasst ist. */
+export function offeneKategorien(eintraege: AbschnittMitErgebnis[]): string[] {
+  const gesehen = new Set<string>();
+  for (const eintrag of eintraege) {
+    for (const name of eintrag.ergebnis.fehlend) gesehen.add(name);
+  }
+  return [...gesehen];
 }
 
 /**

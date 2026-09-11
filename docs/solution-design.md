@@ -4,14 +4,14 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung – Bewertung von Schüler-Softwareprojekten in Sprints |
 | **Dokument** | Solution-Design / Technisches Konzept |
-| **Version** | 0.13 |
+| **Version** | 0.14 |
 | **Datum** | 2026-09-11 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.2.0 |
+| **Gültig für Softwarestand** | 0.3.0 |
 | **Zuletzt geprüft** | 2026-09-11 |
 | **Nächste Prüfung** | Ende Sprint 1 |
-| **Bezug** | [Anforderungen](anforderungen.md) v0.20 · [Fachkonzept](fachkonzept-unterricht.md) v0.19 · [Risiken](risiken.md) |
+| **Bezug** | [Anforderungen](anforderungen.md) v0.21 · [Fachkonzept](fachkonzept-unterricht.md) v0.19 · [Risiken](risiken.md) |
 | **Rahmenbedingung** | RB-02 |
 
 ---
@@ -20,6 +20,7 @@
 
 | Version | Datum | Autor | Änderung | Status |
 |---|---|---|---|---|
+| 0.14 | 2026-09-11 | G. Hainbucher | Release 0.3.0: Kap. 6.4a Verstehensnachweis im individuellen Beitrag (FA-40), Kap. 6.6a Tendenz (FA-51); Modulliste um `export/belegfassung.ts` und `export/rueckmeldung.ts` ergänzt; Rechenbeispiel in 6.8 berichtigt | Entwurf |
 | 0.13 | 2026-09-11 | G. Hainbucher | Umsetzung nachgezogen: Modulliste um `domain/zuordnung.ts`, `store/sicherung.ts`, `store/ordner.ts` und `export/rubrikblatt.ts` ergänzt; Kap. 5.0 berichtigt (Notenschlüssel im Bestand, `Person.teamId` bleibt als Vorbelegung, `sperreAktiv` erst mit FA-61, `peerEntscheidungen` additiv); Kap. 7.2 zur Berechtigung und zum Schreibtakt berichtigt | Entwurf |
 | 0.1 | 2026-09-09 | G. Hainbucher | Ersterstellung: Architektur, Datenmodell, Berechnungslogik, Teststrategie, CI/CD | Entwurf |
 | 0.2 | 2026-09-09 | G. Hainbucher | Aktualitätskopf ergänzt; Datenmodell um Auftraggeber, Verstehensnachweis, Reflexion und Auftraggeber-Rückmeldung erweitert (FA-40 bis FA-44); offene Punkte an Risikoanalyse angeschlossen | Entwurf |
@@ -439,6 +440,23 @@ $$P_{\text{Sprint}}(p) = \min\left(100,\ \max\left(0,\ \frac{\sum_{c \in C} g_c 
 Dadurch ist eine Normierung der Gewichte auf 100 % nicht erforderlich, und fehlende
 Kategorien verzerren das Ergebnis nicht nach unten.
 
+### 6.4a Verstehensnachweis im individuellen Beitrag (FA-40)
+
+Der mündliche Verstehensnachweis (Fachkonzept 8.3) ist **keine eigene Kategorie**, sondern ein
+Anteil innerhalb des individuellen Beitrags. Mit dem Anteil $v$ (Vorgabe 30 %) und dem
+Stufenwert $S \in \{100,\ 66{,}7,\ 33{,}3,\ 0\}$:
+
+$$P_{\text{individuell}} = \frac{(100 - v) \cdot P_{\text{Kriterien}} + v \cdot S}{100}$$
+
+Liegt **kein** Nachweis vor, bleibt $P_{\text{individuell}} = P_{\text{Kriterien}}$ – ein
+fehlender Nachweis ist kein misslungener, dieselbe Regel wie bei den Kategorien (ADR-004).
+Liegt umgekehrt nur der Nachweis vor, ist $P_{\text{individuell}} = S$: Auch er ist eine
+erhobene Leistung und kein Zuschlag auf etwas anderes.
+
+Die Reihenfolge ist festgelegt: **Kriterien → Verstehensnachweis → gesetzter Wert.** Ein
+gesetzter Wert (FA-50) steht über beidem; der gerechnete Wert daneben enthält den Nachweis,
+damit in der Belegfassung sichtbar bleibt, wovon abgewichen wurde.
+
 ### 6.5 Gesamtstand (FA-24)
 
 $$P_{\text{gesamt}}(p) = \frac{\sum_{s} f_s \cdot P_{\text{Sprint},s}(p)}{\sum_{s} f_s}
@@ -494,6 +512,19 @@ entscheiden nichts (FA-61 AK-2).
 **Kein gespeicherter Wert ändert sich durch die Sperre** (AK-3). Sie ist eine Aussage über
 den Bestand, nicht ein Eingriff in ihn – dieselbe Trennung wie zwischen berechnetem und
 gesetztem Wert (ADR-006).
+
+### 6.6a Tendenz (FA-51)
+
+Die Standardansicht zeigt statt der Herleitung eine Richtung. Verglichen werden die
+**Mediane der beiden Verlaufshälften**, geteilt wie beim Zeitfaktor (zweite Hälfte
+aufgerundet); ab $|\Delta| \ge 5$ Prozentpunkten heißt es *steigend* oder *fallend*, darunter
+*gleichbleibend*. Weniger als zwei bewertete Abschnitte ergeben keine Richtung.
+
+*Warum der Median und nicht der letzte Wert gegen das Mittel der früheren:* Der zweite Ansatz
+lag bei drei der neun Verläufe aus [Testfälle zur Notenfindung](testfaelle-notenfindung.md)
+falsch. Ein einzelner Ausfall ließ einen unveränderten Verlauf als Anstieg erscheinen (TF-F)
+oder als Absturz (TF-G), und ein schwankender Verlauf ohne Trend als Abstieg (TF-H). Alle neun
+sind als Regressionstest hinterlegt.
 
 ### 6.7 Notenvorschlag – und was daraus wird (FA-25, FA-49)
 

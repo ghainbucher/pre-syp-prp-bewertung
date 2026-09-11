@@ -70,3 +70,13 @@ describe('rueckmeldungHtml (FA-42)', () => {
     );
   });
 });
+
+describe('Abgrenzung zur Belegfassung (FA-40 AK-4, FA-41)', () => {
+  it('nennt weder Verstehensnachweis noch Reflexion', () => {
+    // Beide sind Aufzeichnungen der Lehrkraft beziehungsweise Grundlage des
+    // Gesprächs – sie gehören in die Belegfassung, nicht in dieses Blatt.
+    const html = blatt();
+    expect(html).not.toContain('Verstehensnachweis');
+    expect(html).not.toContain('Sicht der Person');
+  });
+});

@@ -177,3 +177,43 @@ describe('belegfassungHtml (FA-32)', () => {
     );
   });
 });
+
+describe('Verstehensnachweis und Reflexion in der Belegfassung (FA-40 AK-4, FA-41 AK-4)', () => {
+  it('nennt Einstufung, Anteil und Notiz des Verstehensnachweises', () => {
+    const { html } = lage([
+      {
+        art: 'bewertung/verstehen',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        stufe: 'ueberwiegend',
+        notiz: 'Bei der Transaktion unsicher',
+      },
+    ]);
+    expect(html).toContain('überwiegend erklärt');
+    expect(html).toContain('Anteil am individuellen Beitrag 30 %');
+    expect(html).toContain('Bei der Transaktion unsicher');
+  });
+
+  it('nennt die Sicht der Person', () => {
+    const { html } = lage([
+      {
+        art: 'bewertung/reflexion',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        text: 'Habe die Schnittstelle gebaut und gelernt, früher zu fragen.',
+      },
+    ]);
+    expect(html).toContain('Sicht der Person');
+    expect(html).toContain('früher zu fragen');
+  });
+
+  it('lässt beide weg, wenn nichts erhoben wurde', () => {
+    const { html } = lage([
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 8 },
+    ]);
+    expect(html).not.toContain('Verstehensnachweis im Review');
+    expect(html).not.toContain('Sicht der Person');
+  });
+});

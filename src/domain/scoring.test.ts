@@ -15,15 +15,19 @@ import {
   ABWEICHUNG_SCHWELLE,
   abschnittsErgebnis,
   abschnittAbgeschlossen,
+  angleichungAendertWerte,
+  angleichungsVorschau,
   bewertungsSchluessel,
   datumDeutsch,
   ergebnisAusRubrik,
   genuegendGrenze,
   gesamtErgebnis,
   kategorieErgebnis,
+  mitVerstehensnachweis,
   note,
   notenstandWeichtAb,
   notenvorschlag,
+  offeneKategorien,
   peerErgebnis,
   peerFrageFaellig,
   peerKorrektur,
@@ -32,6 +36,7 @@ import {
   selbstbildAbweichung,
   strangErgebnis,
   strangUnterGrenze,
+  tendenz,
   zeitfaktorWeichtAb,
   zeitfaktoren,
 } from './scoring';
@@ -43,6 +48,7 @@ import type {
   Kriterium,
   Person,
   Rubrik,
+  Verstehensstufe,
 } from './types';
 
 /* -------------------------------------------------------------------------- */
@@ -1248,5 +1254,262 @@ describe('Gesetzter Gesamtstand und Notenstand (FA-49, FA-50)', () => {
     expect(notenstandWeichtAb(null, vorschlag)).toBe(false);
     // Ohne Vorschlag gibt es nichts, wovon abgewichen werden könnte.
     expect(notenstandWeichtAb(stand, { note: null, gesperrtDurch: null, ohneSperre: null })).toBe(false);
+  });
+});
+
+describe('Tendenz und offene Kategorien (FA-51)', () => {
+  function verlaufEintraege(werte: Array<number | null>) {
+    return werte.map((prozent, i) => ({
+      abschnitt: {
+        id: `s${i + 1}`,
+        klasseId: 'k1',
+        nummer: i + 1,
+        name: `Sprint ${i + 1}`,
+        art: 'sprint' as const,
+        strang: 'praxis' as const,
+        rubrikId: RUBRIK_SPRINT,
+        von: '',
+        bis: '',
+        faktor: 1,
+        peerAktiv: false,
+      },
+      ergebnis: {
+        prozent,
+        prozentBerechnet: prozent,
+        gesetzt: null,
+        prozentVorKorrektur: prozent,
+        korrektur: 0,
+        team: null,
+        prozess: null,
+        individuell: null,
+        peer: null,
+        selbst: null,
+        fehlend: [] as string[],
+      },
+      zeitfaktor: 1,
+    }));
+  }
+
+  it('liest aus einem einzigen Abschnitt keine Richtung ab', () => {
+    expect(tendenz(verlaufEintraege([70]))).toBeNull();
+    expect(tendenz([])).toBeNull();
+  });
+
+  it('erkennt eine steigende und eine fallende Entwicklung', () => {
+    expect(tendenz(verlaufEintraege([50, 55, 75]))).toBe('steigend');
+    expect(tendenz(verlaufEintraege([80, 78, 55]))).toBe('fallend');
+  });
+
+  it('nennt kleine Schwankungen keine Tendenz', () => {
+    expect(tendenz(verlaufEintraege([70, 72, 74]))).toBe('gleich');
+    // Die Schwelle an zwei Abschnitten, wo die Hälften je ein Wert sind:
+    // 4,9 Prozentpunkte sind noch gleichbleibend, 5 sind eine Tendenz.
+    expect(tendenz(verlaufEintraege([70, 74.9]))).toBe('gleich');
+    expect(tendenz(verlaufEintraege([70, 75]))).toBe('steigend');
+    expect(tendenz(verlaufEintraege([75, 70]))).toBe('fallend');
+  });
+
+  it('lässt sich von einem einzelnen Ausfall nicht umdrehen (TF-F, TF-G)', () => {
+    // Derselbe Vorfall früh und spät – beide Male ist der Verlauf im Kern
+    // unverändert. Ein Vergleich des letzten Werts mit dem Mittel der früheren
+    // meldete hier „steigend“ beziehungsweise „fallend“.
+    expect(tendenz(verlaufEintraege([30, 80, 82, 85, 83, 86, 84, 85]))).toBe('gleich');
+    expect(tendenz(verlaufEintraege([85, 84, 86, 83, 85, 82, 30, 84]))).toBe('gleich');
+  });
+
+  it('trifft die neun Verläufe aus dem Testfalldokument', () => {
+    const erwartet: Array<[string, number[], string]> = [
+      ['TF-A', [85, 85, 85, 85, 85, 85, 85, 85], 'gleich'],
+      ['TF-B', [45, 50, 60, 68, 75, 82, 88, 90], 'steigend'],
+      ['TF-C', [90, 88, 82, 75, 68, 60, 50, 45], 'fallend'],
+      ['TF-D', [80, 82, 80, 83, 81, 40, 35, 30], 'fallend'],
+      ['TF-E', [50, 48, 52, 50, 55, 75, 88, 92], 'steigend'],
+      ['TF-F', [30, 80, 82, 85, 83, 86, 84, 85], 'gleich'],
+      ['TF-G', [85, 84, 86, 83, 85, 82, 30, 84], 'gleich'],
+      ['TF-H', [80, 45, 85, 50, 78, 48, 82, 52], 'gleich'],
+      ['TF-I', [55, 54, 56, 55, 53, 56, 55, 54], 'gleich'],
+    ];
+    for (const [name, werte, richtung] of erwartet) {
+      expect([name, tendenz(verlaufEintraege(werte))]).toEqual([name, richtung]);
+    }
+  });
+
+  it('lässt nicht bewertete Abschnitte aus', () => {
+    expect(tendenz(verlaufEintraege([50, null, null, 80]))).toBe('steigend');
+    expect(tendenz(verlaufEintraege([null, 70]))).toBeNull();
+  });
+
+  it('sammelt die offenen Kategorien ohne Wiederholung', () => {
+    const eintraege = verlaufEintraege([70, 80]);
+    eintraege[0].ergebnis.fehlend = ['Scrum-Prozess', 'Individueller Beitrag'];
+    eintraege[1].ergebnis.fehlend = ['Scrum-Prozess'];
+    expect(offeneKategorien(eintraege)).toEqual(['Scrum-Prozess', 'Individueller Beitrag']);
+  });
+});
+
+describe('Verstehensnachweis im individuellen Beitrag (FA-40)', () => {
+  const team = [person('p1'), person('p2')];
+
+  function mitNachweis(stufe: Verstehensstufe | null, punkte = true): Bewertung {
+    const b = leereBewertung();
+    b.individuell = {
+      p1: {
+        punkte: punkte ? { i1: 10, i2: 8, i3: 6, i4: 6 } : {}, // 100 %
+        notiz: '',
+        ...(stufe ? { verstehen: { stufe, notiz: '', gesetztAm: '2026-11-14T10:00:00.000Z' } } : {}),
+      },
+    };
+    return b;
+  }
+
+  it('lässt die Kategorie unverändert, solange kein Nachweis vorliegt (AK-3)', () => {
+    const ergebnis = ergebnisAusRubrik(mitNachweis(null), person('p1'), team, rubrik(), false);
+    expect(ergebnis.individuell!.prozent).toBe(100);
+  });
+
+  it('mischt Kriterien und Nachweis im Verhältnis 70 zu 30 (AK-2)', () => {
+    // Kriterien 100 %, Nachweis „teilweise“ = 33,3 % → 0,7·100 + 0,3·33,3 = 80 %.
+    const ergebnis = ergebnisAusRubrik(
+      mitNachweis('teilweise'),
+      person('p1'),
+      team,
+      rubrik(),
+      false,
+    );
+    expect(ergebnis.individuell!.prozent).toBeCloseTo(80, 6);
+  });
+
+  it('bildet die vier Stufen auf 100, 67, 33 und 0 Prozent ab (AK-1)', () => {
+    const werte = (['sicher', 'ueberwiegend', 'teilweise', 'nicht'] as const).map(
+      (stufe) =>
+        mitVerstehensnachweis(
+          { prozent: 0, prozentBerechnet: 0, gesetzt: null, erreicht: 0, moeglich: 1, ausgefuellt: 1, gesamt: 1 },
+          { stufe, notiz: '', gesetztAm: '2026-11-14T10:00:00.000Z' },
+          100,
+        )!.prozent,
+    );
+    expect(werte[0]).toBe(100);
+    expect(werte[1]).toBeCloseTo(66.667, 3);
+    expect(werte[2]).toBeCloseTo(33.333, 3);
+    expect(werte[3]).toBe(0);
+  });
+
+  it('trägt die Kategorie allein, wenn nur der Nachweis vorliegt', () => {
+    const ergebnis = ergebnisAusRubrik(
+      mitNachweis('sicher', false),
+      person('p1'),
+      team,
+      rubrik(),
+      false,
+    );
+    expect(ergebnis.individuell!.prozent).toBe(100);
+  });
+
+  it('ist einstellbar; bei 0 bleibt die Kategorie unberührt (AK-2)', () => {
+    const ohne = ergebnisAusRubrik(mitNachweis('nicht'), person('p1'), team, rubrik(), false, 5, 0);
+    expect(ohne.individuell!.prozent).toBe(100);
+    const halb = ergebnisAusRubrik(mitNachweis('nicht'), person('p1'), team, rubrik(), false, 5, 50);
+    expect(halb.individuell!.prozent).toBe(50);
+  });
+
+  it('wird von einem gesetzten Wert überstimmt (FA-50 AK-3)', () => {
+    const b = mitNachweis('nicht');
+    b.gesetzt = {
+      kategorie: { individuell: { prozent: 90, begruendung: '', gesetztAm: '2026-11-14T10:00:00.000Z' } },
+    };
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    expect(ergebnis.individuell!.prozent).toBe(90);
+    // Der gerechnete Wert daneben enthält den Nachweis.
+    expect(ergebnis.individuell!.prozentBerechnet).toBeCloseTo(70, 6);
+  });
+});
+
+describe('Rubrik angleichen (FA-47)', () => {
+  /** Ein bewerteter Abschnitt mit eingefrorener Rubrik. */
+  function lage(): { daten: Datenbestand; bewertungen: Map<string, Bewertung> } {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Team Kepler' });
+    daten.personen.push(person('p1'));
+    const kopie = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+    daten.abschnitte.push({
+      id: 's1',
+      klasseId: 'k1',
+      nummer: 1,
+      name: 'Sprint 1',
+      art: 'sprint',
+      strang: 'praxis',
+      rubrikId: RUBRIK_SPRINT,
+      rubrikKopie: kopie,
+      eingefrorenAm: '2026-10-24T10:00:00.000Z',
+      von: '',
+      bis: '',
+      faktor: 1,
+      peerAktiv: false,
+    });
+    daten.zugehoerigkeiten.push({ abschnittId: 's1', personId: 'p1', teamId: 'team1' });
+    const bewertung: Bewertung = {
+      abschnittId: 's1',
+      teamId: 'team1',
+      team: { t1: 8 },
+      prozess: {},
+      individuell: {},
+      peer: {},
+      notiz: '',
+    };
+    daten.bewertungen.push(bewertung);
+    return { daten, bewertungen: new Map([['s1__team1', bewertung]]) };
+  }
+
+  function aktuelleRubrik(daten: Datenbestand) {
+    return daten.rubriken.find((r) => r.id === RUBRIK_SPRINT)!;
+  }
+
+  it('meldet nichts, solange die Rubrik unverändert ist', () => {
+    const { daten, bewertungen } = lage();
+    expect(angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen)).toEqual([]);
+  });
+
+  it('erkennt eine reine Textänderung als folgenlos (AK-3)', () => {
+    const { daten, bewertungen } = lage();
+    aktuelleRubrik(daten).team[0].name = 'Funktionsumfang';
+    aktuelleRubrik(daten).team[1].beschreibung = 'neu formuliert';
+    const vorschau = angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen);
+    expect(vorschau).toHaveLength(1);
+    expect(vorschau[0].nurTexte).toBe(true);
+    expect(angleichungAendertWerte(vorschau)).toBe(false);
+  });
+
+  it('zeigt die Änderung der Prozentwerte je Person (AK-2)', () => {
+    const { daten, bewertungen } = lage();
+    // Das Maximum des bewerteten Kriteriums halbieren: 8 von 5 wird gekappt.
+    aktuelleRubrik(daten).team[0].max = 5;
+    const vorschau = angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen);
+    expect(vorschau[0].nurTexte).toBe(false);
+    expect(vorschau[0].folgen[0].vorher).toBeCloseTo(80, 6);
+    expect(vorschau[0].folgen[0].nachher).toBe(100);
+    expect(angleichungAendertWerte(vorschau)).toBe(true);
+  });
+
+  it('erkennt auch eine geänderte Gewichtung als wertverändernd', () => {
+    const { daten, bewertungen } = lage();
+    aktuelleRubrik(daten).gewichte.team = 10;
+    expect(angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen)[0].nurTexte).toBe(false);
+  });
+
+  it('lässt Abschnitte ohne eingefrorene Kopie außen vor (FA-65)', () => {
+    const { daten, bewertungen } = lage();
+    delete daten.abschnitte[0].rubrikKopie;
+    aktuelleRubrik(daten).team[0].name = 'Funktionsumfang';
+    // Dort wirkt die Änderung ohnehin – es gibt nichts anzugleichen.
+    expect(angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen)).toEqual([]);
+  });
+
+  it('verändert bei der Vorschau nichts (AK-1)', () => {
+    const { daten, bewertungen } = lage();
+    aktuelleRubrik(daten).team[0].max = 5;
+    const vorher = JSON.stringify(daten);
+    angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen);
+    expect(JSON.stringify(daten)).toBe(vorher);
   });
 });
