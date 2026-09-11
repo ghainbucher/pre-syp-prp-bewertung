@@ -6,7 +6,13 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ## [Unveröffentlicht]
 
-Noch nichts.
+### Behoben
+
+- **Der Deploy-Workflow schob auch für einen Tag nach GitHub Pages** und scheiterte dort an der
+  Schutzregel der Umgebung `github-pages`, die nur `main` zulässt. Weil das Release am
+  Veröffentlichen hing, entstand dadurch kein GitHub-Release. Seite und Release sind jetzt
+  getrennt: `main` veröffentlicht die Seite, der Tag legt das Release an, und beide hängen nur
+  am gemeinsamen Bauen. Die Schutzregel bleibt, wie sie ist – sie hatte recht
 
 ## [0.3.0] – 2026-09-11 · „Beurteilen“
 

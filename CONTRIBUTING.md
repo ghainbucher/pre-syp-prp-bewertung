@@ -58,7 +58,10 @@ Die Dokumente haben eigene Versionen (`0.1`, `1.0`, `1.1` …) und eigene Tags
    git tag -a v0.2.0 -m "PRE/SYP-PRP-Bewertung 0.2.0"
    git push origin main --follow-tags
    ```
-5. Die Pipeline baut, testet, veröffentlicht auf GitHub Pages und legt das GitHub-Release an.
+5. Die Pipeline baut und testet beide Läufe. Der Lauf für `main` veröffentlicht die Seite auf
+   GitHub Pages, der Lauf für den Tag legt das GitHub-Release an. Ein Tag schiebt **nicht**
+   nach Pages – die Umgebung `github-pages` lässt nur `main` zu, und zweimal denselben Commit
+   zu veröffentlichen brächte ohnehin nichts.
 
 ## Issues
 

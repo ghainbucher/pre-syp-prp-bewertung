@@ -1,7 +1,16 @@
 # Auslieferung der Testumgebung (RB-04)
 #
-# Jeder Stand auf `main` und jede Version `vX.Y.Z` wird nach GitHub Pages
-# veröffentlicht. Die Seite ist damit die jederzeit prüfbare Testumgebung.
+# Zwei Dinge, die bewusst getrennt sind:
+#
+# - **Die Seite** wird von `main` nach GitHub Pages veröffentlicht. Sie ist
+#   damit die jederzeit prüfbare Testumgebung.
+# - **Das Release** entsteht aus dem Tag `vX.Y.Z`.
+#
+# Warum getrennt: `main` und der Tag zeigen beim Release auf denselben Commit.
+# Beide Läufe nach Pages zu schieben, veröffentlicht zweimal dasselbe – und
+# scheitert obendrein, weil die Umgebung `github-pages` nur `main` zulässt.
+# Diese Schutzregel ist richtig und bleibt; der Workflow richtet sich nach ihr.
+#
 # Einmalig einzurichten: Repository → Settings → Pages → Source: GitHub Actions.
 
 name: Deploy
@@ -37,17 +46,21 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm run dokumente
       - run: npx vite build
 
-      - uses: actions/configure-pages@v5
+      # Der Seitenabzug wird nur gebraucht, wenn auch veröffentlicht wird.
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
 
-      - uses: actions/upload-pages-artifact@v3
+      - if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   veroeffentlichen:
     name: Veröffentlichen
+    # Nur von `main`: Ein Tag darf nicht nach `github-pages` schieben.
+    if: github.ref == 'refs/heads/main'
     needs: bauen
     runs-on: ubuntu-latest
     environment:
@@ -59,8 +72,10 @@ jobs:
 
   release:
     name: Release anlegen
+    # Hängt an `bauen`, nicht an `veroeffentlichen`: Ein Release soll nicht
+    # daran scheitern, dass die Seite gerade nicht ausgeliefert wird.
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: veroeffentlichen
+    needs: bauen
     runs-on: ubuntu-latest
     permissions:
       contents: write
