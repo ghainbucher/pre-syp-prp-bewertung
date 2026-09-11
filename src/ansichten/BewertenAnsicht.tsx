@@ -14,13 +14,15 @@ import {
   bewertungsSchluessel,
   datumDeutsch,
   ergebnisAusRubrik,
+  formatProzent,
   kategorieErgebnis,
   peerFrageFaellig,
   selbstbildAbweichung,
 } from '../domain/scoring';
-import { mitgliederIn, rubrikVon, abschnitteVon } from '../domain/zuordnung';
+import { abschnitteVon, mitgliederIn, rubrikVon, rueckmeldungOffen } from '../domain/zuordnung';
 import type {
   Abschnitt,
+  GesetzterWert,
   Bewertung,
   Kriterium,
   Notenstufe,
@@ -30,9 +32,18 @@ import type {
 } from '../domain/types';
 import { dateiAnbieten } from '../export/csv';
 import { rubrikblattDateiname, rubrikblattHtml } from '../export/rubrikblatt';
+import { rueckmeldungDateiname, rueckmeldungHtml } from '../export/rueckmeldung';
 import { bewertungsIndex, type PunkteKategorie } from '../store/storeReducer';
 import { personenVon, teamsVon } from '../ui/auswahl';
-import { Karte, LeerHinweis, Notenzeichen, Prozent, Punktefeld, Textfeld } from '../ui/bausteine';
+import {
+  GesetztFeld,
+  Karte,
+  LeerHinweis,
+  Notenzeichen,
+  Prozent,
+  Punktefeld,
+  Textfeld,
+} from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
 
 /** Kurzzeichen für die Abschnittswahl. */
@@ -298,6 +309,10 @@ function TeamMaske({
   const bewertung = index.get(bewertungsSchluessel(abschnitt.id, team.id));
   const bewerter = mitglieder.find((p) => p.id === ui.bewerterId) ?? mitglieder[0] ?? null;
   const zeitraum = [abschnitt.von, abschnitt.bis].filter(Boolean).map(datumDeutsch).join(' – ');
+  // FA-42 AK-4: Für wen steht die Rückmeldung noch aus?
+  const offeneRueckmeldungen = new Set(
+    rueckmeldungOffen(daten, abschnitt.id, index).map((p) => p.id),
+  );
 
   /** Kriterienblatt für die Klasse (FA-39) – ohne Namen und ohne Punkte. */
   function kriterienAusgeben() {
@@ -387,6 +402,7 @@ function TeamMaske({
             kriterien={rubrik.team}
             punkte={bewertung?.team}
             notenschluessel={daten.notenschluessel}
+            gesetzt={bewertung?.gesetzt?.kategorie?.team}
             onAendern={(kriteriumId, wert) =>
               dispatch({
                 art: 'bewertung/punkte',
@@ -397,6 +413,25 @@ function TeamMaske({
                 wert,
               })
             }
+            onGesetzt={(prozent) =>
+              dispatch({
+                art: 'gesetzt/kategorie',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+                kategorie: 'team',
+                wert: prozent,
+              })
+            }
+            onBegruendung={(begruendung) =>
+              dispatch({
+                art: 'gesetzt/kategorie',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+                kategorie: 'team',
+                wert: bewertung?.gesetzt?.kategorie?.team?.prozent ?? 0,
+                begruendung,
+              })
+            }
           />
 
           <KriterienKarte
@@ -405,6 +440,7 @@ function TeamMaske({
             kriterien={rubrik.prozess}
             punkte={bewertung?.prozess}
             notenschluessel={daten.notenschluessel}
+            gesetzt={bewertung?.gesetzt?.kategorie?.prozess}
             onAendern={(kriteriumId, wert) =>
               dispatch({
                 art: 'bewertung/punkte',
@@ -413,6 +449,25 @@ function TeamMaske({
                 kategorie: 'prozess' as PunkteKategorie,
                 kriteriumId,
                 wert,
+              })
+            }
+            onGesetzt={(prozent) =>
+              dispatch({
+                art: 'gesetzt/kategorie',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+                kategorie: 'prozess',
+                wert: prozent,
+              })
+            }
+            onBegruendung={(begruendung) =>
+              dispatch({
+                art: 'gesetzt/kategorie',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+                kategorie: 'prozess',
+                wert: bewertung?.gesetzt?.kategorie?.prozess?.prozent ?? 0,
+                begruendung,
               })
             }
           />
@@ -504,6 +559,133 @@ function TeamMaske({
             </p>
           )}
 
+          {/* FA-50 AK-1: das Abschnittsergebnis je Person unmittelbar setzen,
+              ohne den Umweg über die Kategorien. */}
+          <Karte
+            titel="Ergebnis je Person setzen"
+            hinweis="tritt neben das gerechnete, ersetzt es nicht"
+            buendig
+          >
+            {mitglieder.length === 0 ? (
+              <div className="leer">Diesem Team ist in diesem Abschnitt noch niemand zugeordnet.</div>
+            ) : (
+              <div className="tabellenrahmen">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th className="zahl">gerechnet</th>
+                      <th className="zahl">gesetzt</th>
+                      <th>Begründung</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mitglieder.map((person) => {
+                      const ergebnis = ergebnisAusRubrik(
+                        bewertung,
+                        person,
+                        mitglieder,
+                        rubrik,
+                        abschnitt.peerAktiv,
+                        daten.peerDeckelung,
+                      );
+                      const gesetzt = ergebnis.gesetzt;
+                      return (
+                        <tr key={person.id}>
+                          <td>
+                            <b>{person.name}</b>
+                          </td>
+                          <td className="zahl">
+                            <Prozent wert={ergebnis.prozentBerechnet} stellen={1} />
+                          </td>
+                          <td className="zahl">
+                            <Punktefeld
+                              schmal
+                              wert={gesetzt?.prozent}
+                              max={100}
+                              beschriftung={`Ergebnis gesetzt – ${person.name}`}
+                              onAendern={(wert) =>
+                                dispatch({
+                                  art: 'gesetzt/abschnitt',
+                                  abschnittId: abschnitt.id,
+                                  teamId: team.id,
+                                  personId: person.id,
+                                  wert,
+                                })
+                              }
+                            />
+                          </td>
+                          <td>
+                            {gesetzt ? (
+                              <Textfeld
+                                breit
+                                wert={gesetzt.begruendung}
+                                beschriftung={`Begründung – ${person.name}`}
+                                platzhalter="freiwillig"
+                                onAendern={(begruendung) =>
+                                  dispatch({
+                                    art: 'gesetzt/abschnitt',
+                                    abschnittId: abschnitt.id,
+                                    teamId: team.id,
+                                    personId: person.id,
+                                    wert: gesetzt.prozent,
+                                    begruendung,
+                                  })
+                                }
+                              />
+                            ) : (
+                              <span className="anmerkung">–</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Karte>
+
+          {/* FA-42: Was an die Person geht – ohne Punkte, ohne Note. */}
+          <RueckmeldungsKarte
+            personen={mitglieder}
+            bewertung={bewertung}
+            offen={offeneRueckmeldungen}
+            onAendern={(personId, staerken, entwicklung) =>
+              dispatch({
+                art: 'bewertung/rueckmeldung',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+                personId,
+                staerken,
+                entwicklung,
+              })
+            }
+            onAusgeben={(person) => {
+              const e = ergebnisAusRubrik(
+                bewertung,
+                person,
+                mitglieder,
+                rubrik,
+                abschnitt.peerAktiv,
+                daten.peerDeckelung,
+              );
+              const r = bewertung?.individuell?.[person.id]?.rueckmeldung;
+              dateiAnbieten(
+                rueckmeldungDateiname(person.name, abschnitt.name),
+                rueckmeldungHtml({
+                  personenname: person.name,
+                  abschnittsname: abschnitt.name,
+                  stand: e.prozent,
+                  staerken: r?.staerken ?? '',
+                  entwicklung: r?.entwicklung ?? '',
+                  zeitraum: zeitraum || undefined,
+                }),
+                'text/html;charset=utf-8',
+              );
+            }}
+          />
+
           <NotizenKarte
             personen={mitglieder}
             bewertung={bewertung}
@@ -571,6 +753,23 @@ function TeamMaske({
                   teile.push(`ind. ${Math.round(ergebnis.individuell.prozent)} %`);
                 }
                 if (ergebnis.peer) teile.push(`peer ${Math.round(ergebnis.peer.prozent)} %`);
+                if (ergebnis.korrektur !== 0) {
+                  // FA-45: Die Verschiebung wird ausgewiesen, nicht versteckt –
+                  // sonst ist der Unterschied zum gewichteten Wert nicht erklärbar.
+                  const vorzeichen = ergebnis.korrektur > 0 ? '+' : '−';
+                  teile.push(
+                    `Peer-Korrektur ${vorzeichen}${formatProzent(Math.abs(ergebnis.korrektur), 1)} PP`,
+                  );
+                }
+                if (ergebnis.gesetzt) {
+                  teile.push(
+                    `gesetzt – gerechnet ${
+                      ergebnis.prozentBerechnet === null
+                        ? 'kein Wert'
+                        : `${formatProzent(ergebnis.prozentBerechnet, 1)} %`
+                    }`,
+                  );
+                }
                 const abweichung = selbstbildAbweichung(ergebnis);
                 if (abweichung) {
                   teile.push(`Selbstbild ${abweichung === 'hoeher' ? 'höher' : 'niedriger'}`);
@@ -604,6 +803,106 @@ function TeamMaske({
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Rückmeldung an die Person (FA-42).
+ *
+ * Bewusst neben, nicht in der Notizkarte: Die Notiz bleibt bei der Lehrkraft,
+ * diese Rückmeldung geht hinaus. Zwei Felder statt eines Freitexts, weil
+ * AK-1 drei Fragen verlangt und die dritte – der Stand – aus der Rechnung
+ * kommt.
+ */
+function RueckmeldungsKarte({
+  personen,
+  bewertung,
+  offen,
+  onAendern,
+  onAusgeben,
+}: {
+  personen: Person[];
+  bewertung: Bewertung | undefined;
+  offen: Set<string>;
+  onAendern: (personId: string, staerken: string, entwicklung: string) => void;
+  onAusgeben: (person: Person) => void;
+}) {
+  if (personen.length === 0) return null;
+  const offeneHier = personen.filter((p) => offen.has(p.id));
+
+  return (
+    <Karte
+      titel="Rückmeldung an die Person"
+      hinweis="geht hinaus – ohne Punkte, ohne Note"
+      buendig
+      rechts={
+        <span className="maximum">
+          {offeneHier.length === 0
+            ? 'alle erledigt'
+            : `${offeneHier.length} offen: ${offeneHier.map((p) => p.name).join(', ')}`}
+        </span>
+      }
+    >
+      <div className="tabellenrahmen">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Das ist gelungen</th>
+              <th>Daran arbeiten</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {personen.map((person) => {
+              const r = bewertung?.individuell?.[person.id]?.rueckmeldung;
+              return (
+                <tr key={person.id}>
+                  <td style={{ verticalAlign: 'top' }}>
+                    <b>{person.name}</b>
+                    {offen.has(person.id) ? <span className="maximum"> offen</span> : null}
+                  </td>
+                  <td>
+                    <Textfeld
+                      mehrzeilig
+                      wert={r?.staerken ?? ''}
+                      beschriftung={`Stärken – ${person.name}`}
+                      platzhalter="zwei bis drei – je Zeile eine"
+                      onAendern={(text) => onAendern(person.id, text, r?.entwicklung ?? '')}
+                    />
+                  </td>
+                  <td>
+                    <Textfeld
+                      mehrzeilig
+                      wert={r?.entwicklung ?? ''}
+                      beschriftung={`Entwicklungsfelder – ${person.name}`}
+                      platzhalter="ein bis zwei – je Zeile eines"
+                      onAendern={(text) => onAendern(person.id, r?.staerken ?? '', text)}
+                    />
+                  </td>
+                  <td className="zahl" style={{ verticalAlign: 'top' }}>
+                    <button
+                      type="button"
+                      className="schalter klein"
+                      disabled={r === undefined}
+                      onClick={() => onAusgeben(person)}
+                    >
+                      ausgeben
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="inhalt">
+        <p className="anmerkung" style={{ margin: 0 }}>
+          Je Person eine eigene Datei – so enthält jedes Blatt nur die Daten einer Person. Die
+          vollständige Herleitung ist die Belegfassung (FA-32) und geht nicht mit hinaus.
+        </p>
+      </div>
+    </Karte>
   );
 }
 
@@ -690,17 +989,26 @@ function KriterienKarte({
   kriterien,
   punkte,
   notenschluessel,
+  gesetzt,
   onAendern,
+  onGesetzt,
+  onBegruendung,
 }: {
   titel: string;
   hinweis: string;
   kriterien: Kriterium[];
   punkte: Punkte | undefined;
   notenschluessel: Notenstufe[];
+  gesetzt: GesetzterWert | undefined;
   onAendern: (kriteriumId: string, wert: number | null) => void;
+  onGesetzt: (prozent: number | null) => void;
+  onBegruendung: (text: string) => void;
 }) {
   if (kriterien.length === 0) return null;
-  const ergebnis = kategorieErgebnis(punkte, kriterien);
+  const berechnet = kategorieErgebnis(punkte, kriterien);
+  // FA-50 AK-3: Liegt ein gesetzter Wert vor, gilt er – die Rechnung darunter
+  // läuft weiter und bleibt sichtbar.
+  const ergebnis = gesetzt ? { ...berechnet, prozent: gesetzt.prozent } : berechnet;
   return (
     <Karte
       titel={titel}
@@ -736,6 +1044,13 @@ function KriterienKarte({
           </tbody>
         </table>
       </div>
+      <GesetztFeld
+        wert={gesetzt ?? null}
+        berechnet={berechnet?.prozent ?? null}
+        beschriftung={`${titel} gesetzt`}
+        onAendern={onGesetzt}
+        onBegruendung={onBegruendung}
+      />
     </Karte>
   );
 }

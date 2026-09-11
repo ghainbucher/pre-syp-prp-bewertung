@@ -79,6 +79,8 @@ describe('uebersichtZeilen (FA-31)', () => {
       'Theorie (%)',
       'Gesamt (%)',
       'Notenvorschlag',
+      'Sperre',
+      'Notenstand',
     ]);
   });
 
@@ -133,6 +135,65 @@ describe('uebersichtZeilen (FA-31)', () => {
     expect(alsCsv(zeilen(daten))).not.toContain('Interne Beobachtung');
   });
 
+  it('setzt den Vorschlag bei negativem Strang auf 5 und nennt den Grund (FA-61)', () => {
+    const daten = bestand();
+    // Der Test steht auf 60 %; ein zweiter Test mit 0 Punkten drückt den
+    // Theoriestrang unter die Genügend-Grenze.
+    const schlecht: Aktion[] = [
+      {
+        art: 'abschnitt/anlegen',
+        abschnitt: abschnitt({ id: 'x2', nummer: 4, name: 'Test 2', art: 'test', strang: 'theorie', rubrikId: 'rubrik-test-2' }),
+        rubrik: testRubrik('rubrik-test-2', 'Test 2'),
+      },
+      { art: 'bewertung/individuell', abschnittId: 'x2', teamId: null, personId: 'p1', kriteriumId: 'f1', wert: 0 },
+    ];
+    const mitSperre = schlecht.reduce(storeReducer, daten);
+    const [, datenzeile] = zeilen(mitSperre);
+    expect(datenzeile[datenzeile.length - 3]).toBe(5);
+    expect(datenzeile[datenzeile.length - 2]).toBe('Theorie negativ');
+  });
+
+  it('lässt die Spalte „Sperre“ leer, solange kein Strang negativ ist (FA-61)', () => {
+    const [, datenzeile] = zeilen();
+    expect(datenzeile[datenzeile.length - 2]).toBe('');
+  });
+
+  it('gibt den eingetragenen Notenstand aus und rechnet ihn nicht (FA-49)', () => {
+    const daten = bestand();
+    daten.notenstaende['gesamter-durchgang'] = {
+      p1: { note: 2, begruendung: 'Verlauf steigend', gesetztAm: '2027-06-05T10:00:00.000Z' },
+    };
+    const [, datenzeile] = zeilen(daten);
+    expect(datenzeile[datenzeile.length - 1]).toBe(2);
+    // Der Vorschlag daneben bleibt, was er war – 3.
+    expect(datenzeile[datenzeile.length - 3]).toBe(3);
+  });
+
+  it('folgt dem gewählten Stichtag (FA-48 AK-1)', () => {
+    const daten = bestand();
+    daten.stichtage = [
+      { id: 'st1', name: 'Semesterzeugnis', bis: '2027-01-31', art: 'zeugnis' },
+    ];
+    // Sprint 1 endet vor dem Stichtag, der Test danach.
+    daten.abschnitte[0].bis = '2026-11-14';
+    daten.abschnitte[2].bis = '2027-03-20';
+    const zeilenMitStichtag = uebersichtZeilen({
+      daten,
+      klasseId: 'k1',
+      personen: daten.personen,
+      teams: daten.teams,
+      abschnitte: daten.abschnitte.filter((a) => a.bis && a.bis <= '2027-01-31'),
+      bewertungen: bewertungsIndex(daten),
+      stichtagId: 'st1',
+    });
+    const [kopf, datenzeile] = zeilenMitStichtag;
+    // Nur Sprint 1 steht in den Spalten, der Test nicht.
+    expect(kopf).toContain('Sprint 1 (%)');
+    expect(kopf).not.toContain('Test 1 (%)');
+    // Theorie hat in diesem Zeitraum keinen Stand.
+    expect(datenzeile[kopf.indexOf('Theorie (%)')]).toBe('');
+  });
+
   it('nennt in der Spalte „Team“ die Zuordnung im letzten Abschnitt (FA-58)', () => {
     const wechsel: Aktion[] = [
       { art: 'team/anlegen', id: 'team2', klasseId: 'k1', name: 'Team Galilei' },
@@ -168,5 +229,19 @@ describe('csvDateiname', () => {
 
   it('fängt einen leeren Klassennamen ab', () => {
     expect(csvDateiname('   ', new Date('2026-09-09T08:00:00Z'))).toBe('pre-syp-prp-Klasse-2026-09-09.csv');
+  });
+});
+
+describe('csvDateiname mit Stichtag (FA-48)', () => {
+  it('nimmt den Stichtag in den Namen auf', () => {
+    expect(csvDateiname('4 AHIF', new Date('2027-01-31T08:00:00Z'), 'Semesterzeugnis')).toBe(
+      'pre-syp-prp-4_AHIF-Semesterzeugnis-2027-01-31.csv',
+    );
+  });
+
+  it('lässt ihn weg, wenn keiner gewählt ist', () => {
+    expect(csvDateiname('4 AHIF', new Date('2027-01-31T08:00:00Z'))).toBe(
+      'pre-syp-prp-4_AHIF-2027-01-31.csv',
+    );
   });
 });

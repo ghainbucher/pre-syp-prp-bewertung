@@ -61,6 +61,13 @@ export function auswahlKorrigieren(daten: Datenbestand, ui: UiZustand): Partial<
     : (daten.vorgabeRubrikId ?? daten.rubriken[0]?.id ?? null);
   if (rubrikId !== ui.rubrikId) aenderung.rubrikId = rubrikId;
 
+  // Ein gelöschter Stichtag darf die Auswertung nicht leer stehen lassen.
+  const stichtagId =
+    ui.stichtagId === null || daten.stichtage.some((s) => s.id === ui.stichtagId)
+      ? ui.stichtagId
+      : null;
+  if (stichtagId !== ui.stichtagId) aenderung.stichtagId = stichtagId;
+
   return Object.keys(aenderung).length > 0 ? aenderung : null;
 }
 

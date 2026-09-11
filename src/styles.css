@@ -663,6 +663,34 @@ textarea {
   font-size: 14px;
 }
 
+/* Feld für einen gesetzten Wert (FA-50, FA-51). */
+.gesetzt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-top: 1px dashed var(--linie);
+  background: var(--flaeche-2);
+}
+
+.gesetzt input[type='text'] {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* Ein Wert, der von der Rechnung abweicht, wird gekennzeichnet – nicht betont. */
+.abweichend {
+  border-bottom: 1px dotted var(--gedaempft);
+  cursor: help;
+}
+
+/* Strang unter der Genügend-Grenze – Frühwarnung (FA-61 AK-5). */
+td.gefaehrdet .prozent {
+  color: var(--schlecht);
+  font-weight: 700;
+}
+
 /* Deutlichere Stufe der Erinnerung an die Sicherung (FA-46 AK-5). */
 .meldung.dringend {
   border-color: var(--schlecht);

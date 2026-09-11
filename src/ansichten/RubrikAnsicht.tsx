@@ -13,6 +13,7 @@ import {
   VORLAGE_RUBRIK_SPRINT,
   strukturKopie,
 } from '../domain/defaults';
+import { genuegendGrenze, zeitfaktorWeichtAb } from '../domain/scoring';
 import { rubrikMitId } from '../domain/zuordnung';
 import type { KategorieSchluessel, Rubrik } from '../domain/types';
 import { neueId } from '../ui/auswahl';
@@ -50,7 +51,7 @@ const KATEGORIEN: Array<{
   {
     schluessel: 'peer',
     titel: 'Peer-Kriterien',
-    hinweis: 'gegenseitige Einschätzung im Team',
+    hinweis: 'gegenseitige Einschätzung im Team – wirkt als Korrektur, nicht als Gewicht',
     erklaerung: 'Einschätzung im Team',
     mitPunkten: false,
   },
@@ -69,7 +70,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
 
   if (!rubrik) return <div className="leer">Keine Rubrik vorhanden.</div>;
 
-  const gewichtssumme = KATEGORIEN.reduce(
+  const gewichtssumme = KATEGORIEN.filter((k) => k.schluessel !== 'peer').reduce(
     (summe, kategorie) => summe + (rubrik.gewichte[kategorie.schluessel] ?? 0),
     0,
   );
@@ -289,7 +290,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
         <div className="seite">
           <div className="uebersicht">
             <h3>Gewichtung</h3>
-            {KATEGORIEN.map((kategorie) => (
+            {KATEGORIEN.filter((kategorie) => kategorie.schluessel !== 'peer').map((kategorie) => (
               <div className="uebersichtszeile" key={kategorie.schluessel}>
                 <div className="bezeichnung">
                   <b>{kategorie.titel}</b>
@@ -315,6 +316,27 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                 <span className="maximum">%</span>
               </div>
             ))}
+            {/* FA-45: Die Peer-Werte tragen kein Kategoriegewicht mehr,
+                sondern verschieben das Ergebnis um höchstens ± diesen Betrag. */}
+            <div className="uebersichtszeile">
+              <div className="bezeichnung">
+                <b>Peer-Korrektur</b>
+                <span>verschiebt das Ergebnis, kein eigenes Gewicht</span>
+              </div>
+              <input
+                type="number"
+                className="schmal"
+                min={0}
+                max={50}
+                step={1}
+                value={daten.peerDeckelung}
+                aria-label="Höchste Peer-Korrektur in Prozentpunkten"
+                onChange={(e) =>
+                  dispatch({ art: 'peerDeckelung', wert: Number(e.target.value) || 0 })
+                }
+              />
+              <span className="maximum">± PP</span>
+            </div>
             <div className="uebersichtszeile summe">
               <div className="bezeichnung">
                 <b>Summe</b>
@@ -372,9 +394,31 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
               />
               <span className="maximum">%</span>
             </div>
+            <div className="uebersichtszeile">
+              <div className="bezeichnung">
+                <b>Zeitfaktor zweite Hälfte</b>
+                <span>§ 20 Abs. 1 LBVO – der zuletzt erreichte Stand wiegt schwerer</span>
+              </div>
+              <input
+                type="number"
+                className="schmal"
+                min={1}
+                max={5}
+                step={1}
+                value={daten.zeitfaktorZweiteHaelfte}
+                aria-label="Zeitfaktor der zweiten Hälfte"
+                onChange={(e) =>
+                  dispatch({ art: 'zeitfaktor', wert: Number(e.target.value) || 1 })
+                }
+              />
+              <span className="maximum">×</span>
+            </div>
             <p className="anmerkung" style={{ margin: '10px 12px 0' }}>
               Vorgabe 75 zu 25 – drei von vier Wochenstunden Praxis. Ein Strang ohne Ergebnis fällt
               aus der Gewichtung, statt als 0 zu zählen.
+              {zeitfaktorWeichtAb(daten.zeitfaktorZweiteHaelfte)
+                ? ' Der Zeitfaktor 1 hebt die Gewichtung nach § 20 Abs. 1 LBVO auf – zulässig, aber eine bewusste Abweichung.'
+                : ''}
             </p>
           </div>
 
@@ -418,6 +462,18 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
             </div>
             <div className="inhalt">
               <label className="zeile" style={{ gap: 7, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={daten.sperreAktiv}
+                  aria-label="Negativer Strang sperrt den Notenvorschlag"
+                  onChange={(e) => dispatch({ art: 'sperre', wert: e.target.checked })}
+                />
+                <span>
+                  Ein Strang unter {genuegendGrenze(daten.notenschluessel)} % setzt den
+                  Notenvorschlag auf Nicht genügend (§ 14 LBVO)
+                </span>
+              </label>
+              <label className="zeile" style={{ gap: 7, cursor: 'pointer', marginTop: 8 }}>
                 <input
                   type="checkbox"
                   checked={rubrik.selbstZaehlt}

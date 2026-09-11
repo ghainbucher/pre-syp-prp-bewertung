@@ -5,13 +5,24 @@
  * und Schülern begründbar sind (FA-09).
  */
 
-import type { Datenbestand, Notenstufe, Rubrik, Strang } from './types';
+import type { Datenbestand, Notenstufe, Rubrik, Stichtag, Strang } from './types';
 
 export const SCHEMA_VERSION = 2;
 
 /** Feste Kennungen der ausgelieferten Rubriken. */
 export const RUBRIK_SPRINT = 'rubrik-sprint';
 export const RUBRIK_DIPLOMARBEIT = 'rubrik-diplomarbeit';
+
+/** Höchste Verschiebung durch Peer-Werte in Prozentpunkten (FA-45 AK-4). */
+export const PEER_DECKELUNG = 5;
+
+/**
+ * Zeitfaktor der zweiten Hälfte eines Beurteilungszeitraums (FA-54).
+ *
+ * § 20 Abs. 1 LBVO: Der zuletzt erreichte Leistungsstand wiegt schwerer. Der
+ * Wert 1 hebt die Regel auf und ist deshalb als Abweichung zu kennzeichnen.
+ */
+export const ZEITFAKTOR_ZWEITE_HAELFTE = 2;
 
 /** Gewicht der beiden Stränge – drei von vier Wochenstunden gegen eine (FA-59). */
 export const STRANG_GEWICHTE: Record<Strang, number> = { praxis: 75, theorie: 25 };
@@ -121,6 +132,41 @@ export function testRubrik(id: string, name: string): Rubrik {
   };
 }
 
+/**
+ * Schlüssel für Werte ohne gewählten Stichtag (FA-49, FA-50).
+ *
+ * Gesetzter Gesamtstand und Notenstand hängen am Stichtag. Ohne gewählten
+ * Stichtag – also über den ganzen Durchgang – braucht es trotzdem einen
+ * Schlüssel; ein fester ist ehrlicher als ein leerer String, der sich später
+ * nicht von „vergessen“ unterscheiden ließe.
+ */
+export const OHNE_STICHTAG = 'gesamter-durchgang';
+
+/**
+ * Die drei Stichtage eines Durchgangs (FA-48 AK-4).
+ *
+ * Die Daten hängen am Schuljahr und werden deshalb erzeugt, nicht fest
+ * ausgeliefert. `startjahr` ist das Kalenderjahr, in dem das Schuljahr beginnt;
+ * alle drei Stichtage liegen im Folgejahr.
+ */
+export function vorlageStichtage(startjahr: number): Stichtag[] {
+  const jahr = startjahr + 1;
+  return [
+    { id: 'stichtag-semester', name: 'Semesterzeugnis', bis: `${jahr}-01-31`, art: 'zeugnis' },
+    { id: 'stichtag-fruehwarnung', name: 'Frühwarnung', bis: `${jahr}-04-30`, art: 'kontrolle' },
+    { id: 'stichtag-jahr', name: 'Jahreszeugnis', bis: `${jahr}-06-10`, art: 'zeugnis' },
+  ];
+}
+
+/**
+ * Das Schuljahr, in dem ein Datum liegt – genauer: dessen Startjahr.
+ *
+ * Ein Schuljahr beginnt im September; der Jänner gehört noch zum Vorjahr.
+ */
+export function schuljahrVon(datum = new Date()): number {
+  return datum.getMonth() >= 8 ? datum.getFullYear() : datum.getFullYear() - 1;
+}
+
 /** Die mit der Anwendung ausgelieferten Rubriken. */
 export function vorlagenRubriken(): Rubrik[] {
   return [strukturKopie(VORLAGE_RUBRIK_SPRINT), strukturKopie(VORLAGE_RUBRIK_DIPLOMARBEIT)];
@@ -133,6 +179,12 @@ export function leererDatenbestand(): Datenbestand {
     vorgabeRubrikId: RUBRIK_SPRINT,
     notenschluessel: strukturKopie(STANDARD_NOTENSCHLUESSEL),
     strangGewichte: { ...STRANG_GEWICHTE },
+    peerDeckelung: PEER_DECKELUNG,
+    zeitfaktorZweiteHaelfte: ZEITFAKTOR_ZWEITE_HAELFTE,
+    sperreAktiv: true,
+    stichtage: [],
+    gesamtstand: {},
+    notenstaende: {},
     klassen: [],
     teams: [],
     personen: [],

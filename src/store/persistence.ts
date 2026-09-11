@@ -7,10 +7,12 @@
  */
 
 import {
+  PEER_DECKELUNG,
   RUBRIK_SPRINT,
   SCHEMA_VERSION,
   STANDARD_NOTENSCHLUESSEL,
   STRANG_GEWICHTE,
+  ZEITFAKTOR_ZWEITE_HAELFTE,
   VORLAGE_RUBRIK_SPRINT,
   leererDatenbestand,
   strukturKopie,
@@ -23,6 +25,7 @@ import type {
   Notenstufe,
   PeerEntscheidung,
   Rubrik,
+  Stichtag,
   Zugehoerigkeit,
 } from '../domain/types';
 
@@ -141,6 +144,12 @@ function vonStand1(roh: RoherBestand): Datenbestand {
       ? strukturKopie(alteRubrik.notenschluessel)
       : strukturKopie(STANDARD_NOTENSCHLUESSEL),
     strangGewichte: { ...STRANG_GEWICHTE },
+    peerDeckelung: PEER_DECKELUNG,
+    zeitfaktorZweiteHaelfte: ZEITFAKTOR_ZWEITE_HAELFTE,
+    sperreAktiv: true,
+    stichtage: [],
+    gesamtstand: {},
+    notenstaende: {},
     klassen: (roh.klassen ?? []) as Datenbestand['klassen'],
     teams: (roh.teams ?? []) as Datenbestand['teams'],
     personen: personen as Datenbestand['personen'],
@@ -187,6 +196,20 @@ function vervollstaendigen(roh: RoherBestand): Datenbestand {
       ...STRANG_GEWICHTE,
       ...((roh.strangGewichte as Datenbestand['strangGewichte'] | undefined) ?? {}),
     },
+    peerDeckelung:
+      typeof roh.peerDeckelung === 'number' && Number.isFinite(roh.peerDeckelung)
+        ? roh.peerDeckelung
+        : PEER_DECKELUNG,
+    zeitfaktorZweiteHaelfte:
+      typeof roh.zeitfaktorZweiteHaelfte === 'number' && Number.isFinite(roh.zeitfaktorZweiteHaelfte)
+        ? roh.zeitfaktorZweiteHaelfte
+        : ZEITFAKTOR_ZWEITE_HAELFTE,
+    // Vorgabe eingeschaltet: Ein älterer Bestand kannte die Sperre nicht, und
+    // § 14 LBVO gilt trotzdem.
+    sperreAktiv: typeof roh.sperreAktiv === 'boolean' ? roh.sperreAktiv : true,
+    stichtage: (roh.stichtage ?? []) as Stichtag[],
+    gesamtstand: (roh.gesamtstand ?? {}) as Datenbestand['gesamtstand'],
+    notenstaende: (roh.notenstaende ?? {}) as Datenbestand['notenstaende'],
     klassen: (roh.klassen ?? []) as Datenbestand['klassen'],
     teams: (roh.teams ?? []) as Datenbestand['teams'],
     personen: (roh.personen ?? []) as Datenbestand['personen'],

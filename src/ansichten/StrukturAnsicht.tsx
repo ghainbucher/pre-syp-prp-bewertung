@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 
-import { testRubrik } from '../domain/defaults';
+import { schuljahrVon, testRubrik } from '../domain/defaults';
 import { abschnitteVon, teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Abschnittsart, Strang } from '../domain/types';
 import { klassen as alleKlassen, neueId, personenVon, teamsVon } from '../ui/auswahl';
@@ -687,6 +687,80 @@ export function StrukturAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
               </div>
             </Karte>
           ) : null}
+
+          {/* FA-48: Die Stichtage gelten für den ganzen Bestand, nicht je Klasse. */}
+          <Karte titel="Stichtage" hinweis="Zeitpunkte der Auswertung" buendig>
+            {daten.stichtage.length === 0 ? (
+              <div className="inhalt">
+                <p className="anmerkung" style={{ margin: '0 0 10px' }}>
+                  Drei Zeitpunkte sind vorgesehen: Semesterzeugnis Ende Jänner, Frühwarnung Ende
+                  April, Jahreszeugnis Anfang Juni. Die Daten lassen sich danach anpassen.
+                </p>
+                <button
+                  type="button"
+                  className="schalter"
+                  onClick={() =>
+                    dispatch({ art: 'stichtag/vorlage', startjahr: schuljahrVon() })
+                  }
+                >
+                  Stichtage anlegen
+                </button>
+              </div>
+            ) : (
+              <div className="tabellenrahmen">
+                <table>
+                  <tbody>
+                    {[...daten.stichtage]
+                      .sort((a, b) => a.bis.localeCompare(b.bis))
+                      .map((stichtag) => (
+                        <tr key={stichtag.id}>
+                          <td>
+                            <Textfeld
+                              wert={stichtag.name}
+                              beschriftung="Name des Stichtags"
+                              onAendern={(name) =>
+                                dispatch({
+                                  art: 'stichtag/aendern',
+                                  id: stichtag.id,
+                                  aenderung: { name },
+                                })
+                              }
+                            />
+                            <span className="erlaeuterung">
+                              {stichtag.art === 'zeugnis'
+                                ? 'schließt einen Beurteilungszeitraum ab'
+                                : 'wertet den laufenden Zeitraum aus'}
+                            </span>
+                          </td>
+                          <td>
+                            <input
+                              type="date"
+                              value={stichtag.bis}
+                              aria-label={`Datum von ${stichtag.name}`}
+                              onChange={(e) =>
+                                dispatch({
+                                  art: 'stichtag/aendern',
+                                  id: stichtag.id,
+                                  aenderung: { bis: e.target.value },
+                                })
+                              }
+                            />
+                          </td>
+                          <td className="zahl">
+                            <BestaetigenSchalter
+                              beschriftung="löschen"
+                              onBestaetigt={() =>
+                                dispatch({ art: 'stichtag/loeschen', id: stichtag.id })
+                              }
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Karte>
 
           <p className="anmerkung">
             Beim Löschen einer Klasse werden auch ihre Teams, Abschnitte und Bewertungen entfernt.

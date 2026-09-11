@@ -14,8 +14,10 @@ import {
   STANDARD_NOTENSCHLUESSEL,
   VORLAGE_RUBRIK_DIPLOMARBEIT,
   VORLAGE_RUBRIK_SPRINT,
+  OHNE_STICHTAG,
   leererDatenbestand,
   strukturKopie,
+  vorlageStichtage,
 } from '../domain/defaults';
 import { bewertungsSchluessel } from '../domain/scoring';
 import { rubrikVon, teamIn } from '../domain/zuordnung';
@@ -23,11 +25,13 @@ import type {
   Abschnitt,
   Bewertung,
   Datenbestand,
+  GesetzterWert,
   Id,
   KategorieSchluessel,
   Kriterium,
   PeerEntscheidung,
   Rubrik,
+  Stichtag,
   Strang,
 } from '../domain/types';
 
@@ -66,6 +70,14 @@ export type Aktion =
     }
   | { art: 'bewertung/individuellNotiz'; abschnittId: Id; teamId: Id | null; personId: Id; notiz: string }
   | {
+      art: 'bewertung/rueckmeldung';
+      abschnittId: Id;
+      teamId: Id | null;
+      personId: Id;
+      staerken: string;
+      entwicklung: string;
+    }
+  | {
       art: 'bewertung/peer';
       abschnittId: Id;
       teamId: Id | null;
@@ -87,6 +99,45 @@ export type Aktion =
   | { art: 'peer/entscheidung'; abschnittId: Id; antwort: 'ja' | 'nein' | 'spaeter'; am?: string }
   | { art: 'notengrenze'; note: number; ab: number }
   | { art: 'strang/gewicht'; strang: Strang; wert: number }
+  | { art: 'peerDeckelung'; wert: number }
+  | { art: 'zeitfaktor'; wert: number }
+  | { art: 'sperre'; wert: boolean }
+  | { art: 'stichtag/anlegen'; stichtag: Stichtag }
+  | { art: 'stichtag/aendern'; id: Id; aenderung: Partial<Omit<Stichtag, 'id'>> }
+  | { art: 'stichtag/loeschen'; id: Id }
+  | { art: 'stichtag/vorlage'; startjahr: number }
+  | {
+      art: 'gesetzt/kategorie';
+      abschnittId: Id;
+      teamId: Id | null;
+      kategorie: KategorieSchluessel;
+      /** `null` entfernt den gesetzten Wert (FA-50 AK-6). */
+      wert: number | null;
+      begruendung?: string;
+    }
+  | {
+      art: 'gesetzt/abschnitt';
+      abschnittId: Id;
+      teamId: Id | null;
+      personId: Id;
+      wert: number | null;
+      begruendung?: string;
+    }
+  | {
+      art: 'gesetzt/gesamt';
+      stichtagId: Id | null;
+      personId: Id;
+      wert: number | null;
+      begruendung?: string;
+    }
+  | {
+      art: 'notenstand';
+      stichtagId: Id | null;
+      personId: Id;
+      /** `null` entfernt den Notenstand. */
+      note: 1 | 2 | 3 | 4 | 5 | null;
+      begruendung?: string;
+    }
   | { art: 'daten/ersetzen'; daten: Datenbestand }
   | { art: 'daten/loeschen' };
 
@@ -123,6 +174,26 @@ function einfrierenFallsNoetig(daten: Datenbestand, abschnittId: Id): void {
   abschnitt.eingefrorenAm = new Date().toISOString();
 }
 
+/** Baut einen gesetzten Wert; die Begründung ist freiwillig (FA-50 AK-5). */
+function gesetzterWert(prozent: number, begruendung?: string): GesetzterWert {
+  return {
+    prozent: Math.max(0, Math.min(100, prozent)),
+    begruendung: begruendung ?? '',
+    gesetztAm: new Date().toISOString(),
+  };
+}
+
+/** Entfernt leer gewordene Zweige gesetzter Werte. */
+function gesetztAufraeumen(bewertung: Bewertung): void {
+  const zweig = bewertung.gesetzt;
+  if (!zweig) return;
+  if (zweig.kategorie && Object.keys(zweig.kategorie).length === 0) delete zweig.kategorie;
+  if (zweig.abschnittsergebnis && Object.keys(zweig.abschnittsergebnis).length === 0) {
+    delete zweig.abschnittsergebnis;
+  }
+  if (Object.keys(zweig).length === 0) delete bewertung.gesetzt;
+}
+
 /** Setzt oder entfernt einen Punktewert. `null` bedeutet „nicht bewertet“. */
 function punktSetzen(ziel: Record<Id, number>, kriteriumId: Id, wert: number | null): void {
   if (wert === null || !Number.isFinite(wert)) {
@@ -142,9 +213,11 @@ function punktSetzen(ziel: Record<Id, number>, kriteriumId: Id, wert: number | n
 function leereBewertungenEntfernen(daten: Datenbestand): void {
   for (const bewertung of daten.bewertungen) {
     for (const [personId, eintrag] of Object.entries(bewertung.individuell)) {
-      if (Object.keys(eintrag.punkte).length === 0 && eintrag.notiz.trim() === '') {
-        delete bewertung.individuell[personId];
-      }
+      const leer =
+        Object.keys(eintrag.punkte).length === 0 &&
+        eintrag.notiz.trim() === '' &&
+        eintrag.rueckmeldung === undefined;
+      if (leer) delete bewertung.individuell[personId];
     }
   }
 
@@ -152,7 +225,10 @@ function leereBewertungenEntfernen(daten: Datenbestand): void {
     const hatPunkte = Object.keys(b.team).length > 0 || Object.keys(b.prozess).length > 0;
     const hatIndividuell = Object.keys(b.individuell).length > 0;
     const hatPeer = Object.values(b.peer).some((zeile) => Object.keys(zeile).length > 0);
-    return hatPunkte || hatIndividuell || hatPeer || b.notiz.trim() !== '';
+    // Ein gesetzter Wert ist Inhalt: Er darf nicht verschwinden, nur weil
+    // darunter nichts erfasst ist – genau dafür gibt es ihn (FA-50).
+    const hatGesetzt = b.gesetzt !== undefined;
+    return hatPunkte || hatIndividuell || hatPeer || hatGesetzt || b.notiz.trim() !== '';
   });
 }
 
@@ -272,7 +348,11 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         delete bewertung.individuell[aktion.id];
         delete bewertung.peer[aktion.id];
         for (const zeile of Object.values(bewertung.peer)) delete zeile[aktion.id];
+        delete bewertung.gesetzt?.abschnittsergebnis?.[aktion.id];
+        gesetztAufraeumen(bewertung);
       }
+      for (const jeStichtag of Object.values(daten.gesamtstand)) delete jeStichtag[aktion.id];
+      for (const jeStichtag of Object.values(daten.notenstaende)) delete jeStichtag[aktion.id];
       leereBewertungenEntfernen(daten);
       break;
 
@@ -355,6 +435,25 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       break;
     }
 
+    // FA-42: Rückmeldung an die Person. Sind beide Felder leer, gilt sie als
+    // nicht erteilt und verschwindet – sonst zählte eine leere Rückmeldung als
+    // erledigt und stünde nicht mehr auf der Liste der offenen (AK-4).
+    case 'bewertung/rueckmeldung': {
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
+      const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
+      if (aktion.staerken.trim() === '' && aktion.entwicklung.trim() === '') {
+        delete eintrag.rueckmeldung;
+      } else {
+        eintrag.rueckmeldung = {
+          staerken: aktion.staerken,
+          entwicklung: aktion.entwicklung,
+          gesetztAm: new Date().toISOString(),
+        };
+      }
+      leereBewertungenEntfernen(daten);
+      break;
+    }
+
     case 'bewertung/peer': {
       if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
@@ -375,6 +474,55 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       bewertung.notiz = aktion.notiz;
       leereBewertungenEntfernen(daten);
+      break;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Gesetzte Werte und Notenstand (FA-49, FA-50)                        */
+    /* ------------------------------------------------------------------ */
+    case 'gesetzt/kategorie': {
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
+      const zweig = (bewertung.gesetzt ??= {});
+      const kategorien = (zweig.kategorie ??= {});
+      if (aktion.wert === null) delete kategorien[aktion.kategorie];
+      else kategorien[aktion.kategorie] = gesetzterWert(aktion.wert, aktion.begruendung);
+      gesetztAufraeumen(bewertung);
+      leereBewertungenEntfernen(daten);
+      break;
+    }
+
+    case 'gesetzt/abschnitt': {
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
+      const zweig = (bewertung.gesetzt ??= {});
+      const jePerson = (zweig.abschnittsergebnis ??= {});
+      if (aktion.wert === null) delete jePerson[aktion.personId];
+      else jePerson[aktion.personId] = gesetzterWert(aktion.wert, aktion.begruendung);
+      gesetztAufraeumen(bewertung);
+      leereBewertungenEntfernen(daten);
+      break;
+    }
+
+    case 'gesetzt/gesamt': {
+      const schluessel = aktion.stichtagId ?? OHNE_STICHTAG;
+      const jeStichtag = (daten.gesamtstand[schluessel] ??= {});
+      if (aktion.wert === null) delete jeStichtag[aktion.personId];
+      else jeStichtag[aktion.personId] = gesetzterWert(aktion.wert, aktion.begruendung);
+      if (Object.keys(jeStichtag).length === 0) delete daten.gesamtstand[schluessel];
+      break;
+    }
+
+    case 'notenstand': {
+      const schluessel = aktion.stichtagId ?? OHNE_STICHTAG;
+      const jeStichtag = (daten.notenstaende[schluessel] ??= {});
+      if (aktion.note === null) delete jeStichtag[aktion.personId];
+      else {
+        jeStichtag[aktion.personId] = {
+          note: aktion.note,
+          begruendung: aktion.begruendung ?? jeStichtag[aktion.personId]?.begruendung ?? '',
+          gesetztAm: new Date().toISOString(),
+        };
+      }
+      if (Object.keys(jeStichtag).length === 0) delete daten.notenstaende[schluessel];
       break;
     }
 
@@ -500,6 +648,51 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
 
     case 'strang/gewicht':
       daten.strangGewichte[aktion.strang] = Math.max(0, Math.min(100, aktion.wert));
+      break;
+
+    // FA-45 AK-4: Die Deckelung ist einstellbar. Über 50 Prozentpunkte hinaus
+    // wäre sie keine Korrektur mehr, sondern die Beurteilung selbst.
+    case 'peerDeckelung':
+      daten.peerDeckelung = Math.max(0, Math.min(50, aktion.wert));
+      break;
+
+    // FA-54 AK-6: einstellbar. Unter 1 ergäbe der Faktor keinen Sinn – dann
+    // wögen spätere Abschnitte weniger als frühere.
+    case 'zeitfaktor':
+      daten.zeitfaktorZweiteHaelfte = Math.max(1, Math.min(5, aktion.wert));
+      break;
+
+    // FA-61 AK-6: abschaltbar für einen Gegenstand ohne wesentliche Bereiche
+    // in diesem Sinn. Vorgabe eingeschaltet.
+    case 'sperre':
+      daten.sperreAktiv = aktion.wert;
+      break;
+
+    /* ------------------------------------------------------------------ */
+    /* Stichtage (FA-48)                                                   */
+    /* ------------------------------------------------------------------ */
+    case 'stichtag/anlegen':
+      if (!daten.stichtage.some((s) => s.id === aktion.stichtag.id)) {
+        daten.stichtage.push(strukturKopie(aktion.stichtag));
+      }
+      break;
+
+    case 'stichtag/aendern': {
+      const stichtag = daten.stichtage.find((s) => s.id === aktion.id);
+      if (stichtag) Object.assign(stichtag, aktion.aenderung);
+      break;
+    }
+
+    case 'stichtag/loeschen':
+      daten.stichtage = daten.stichtage.filter((s) => s.id !== aktion.id);
+      break;
+
+    // Legt nur an, was noch fehlt – bestehende Stichtage bleiben mit ihren
+    // vielleicht angepassten Daten stehen.
+    case 'stichtag/vorlage':
+      for (const stichtag of vorlageStichtage(aktion.startjahr)) {
+        if (!daten.stichtage.some((s) => s.id === stichtag.id)) daten.stichtage.push(stichtag);
+      }
       break;
   }
 

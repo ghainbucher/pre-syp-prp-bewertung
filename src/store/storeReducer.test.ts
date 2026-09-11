@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { RUBRIK_SPRINT, leererDatenbestand, testRubrik } from '../domain/defaults';
-import { rubrikVon, teamIn } from '../domain/zuordnung';
+import { rubrikVon, rueckmeldungOffen, teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Datenbestand } from '../domain/types';
 import { bewertungsIndex, storeReducer, type Aktion } from './storeReducer';
 
@@ -506,5 +506,259 @@ describe('Nachfrage zur Peer-Bewertung (FA-53)', () => {
       { art: 'abschnitt/loeschen', id: 's1' },
     );
     expect(daten.peerEntscheidungen).toEqual([]);
+  });
+});
+
+describe('Zeitfaktor und Peer-Deckelung einstellen (FA-45 AK-4, FA-54 AK-6)', () => {
+  it('begrenzt die Peer-Deckelung auf 0 bis 50 Prozentpunkte', () => {
+    expect(anwenden(leererDatenbestand(), { art: 'peerDeckelung', wert: 99 }).peerDeckelung).toBe(50);
+    expect(anwenden(leererDatenbestand(), { art: 'peerDeckelung', wert: -3 }).peerDeckelung).toBe(0);
+  });
+
+  it('lässt den Zeitfaktor nicht unter 1 fallen', () => {
+    // Unter 1 wögen spätere Abschnitte weniger als frühere – das wäre das
+    // Gegenteil von § 20 Abs. 1 LBVO, nicht bloß eine Abweichung.
+    const daten = anwenden(leererDatenbestand(), { art: 'zeitfaktor', wert: 0 });
+    expect(daten.zeitfaktorZweiteHaelfte).toBe(1);
+    expect(anwenden(leererDatenbestand(), { art: 'zeitfaktor', wert: 9 }).zeitfaktorZweiteHaelfte).toBe(5);
+  });
+});
+
+describe('Stichtage (FA-48)', () => {
+  it('legt die drei vorgesehenen Stichtage an (AK-4)', () => {
+    const daten = anwenden(leererDatenbestand(), { art: 'stichtag/vorlage', startjahr: 2026 });
+    expect(daten.stichtage.map((s) => s.art)).toEqual(['zeugnis', 'kontrolle', 'zeugnis']);
+  });
+
+  it('legt beim zweiten Aufruf nichts doppelt an und behält angepasste Daten', () => {
+    const daten = anwenden(
+      leererDatenbestand(),
+      { art: 'stichtag/vorlage', startjahr: 2026 },
+      { art: 'stichtag/aendern', id: 'stichtag-semester', aenderung: { bis: '2027-02-05' } },
+      { art: 'stichtag/vorlage', startjahr: 2026 },
+    );
+    expect(daten.stichtage).toHaveLength(3);
+    expect(daten.stichtage.find((s) => s.id === 'stichtag-semester')!.bis).toBe('2027-02-05');
+  });
+
+  it('entfernt einen Stichtag, ohne Abschnitte anzufassen (AK-2)', () => {
+    const daten = anwenden(
+      { ...grundbestand(), stichtage: [] },
+      { art: 'stichtag/vorlage', startjahr: 2026 },
+      { art: 'stichtag/loeschen', id: 'stichtag-fruehwarnung' },
+    );
+    expect(daten.stichtage.map((s) => s.id)).toEqual(['stichtag-semester', 'stichtag-jahr']);
+    expect(daten.abschnitte).toHaveLength(1);
+  });
+});
+
+describe('Gesetzte Werte (FA-50)', () => {
+  it('setzt ein Kategorieergebnis, ohne die Ebene darunter auszufüllen (AK-1)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'gesetzt/kategorie',
+      abschnittId: 's1',
+      teamId: 'team1',
+      kategorie: 'team',
+      wert: 85,
+      begruendung: 'Demo im Unterricht gesehen',
+    });
+    const gesetzt = daten.bewertungen[0].gesetzt!.kategorie!.team!;
+    expect(gesetzt.prozent).toBe(85);
+    expect(gesetzt.begruendung).toBe('Demo im Unterricht gesehen');
+    expect(gesetzt.gesetztAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // Die Punkte darunter bleiben leer – das ist der Zweck.
+    expect(daten.bewertungen[0].team).toEqual({});
+  });
+
+  it('hält einen gesetzten Wert, auch wenn sonst nichts erfasst ist', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'gesetzt/abschnitt',
+      abschnittId: 's1',
+      teamId: 'team1',
+      personId: 'p1',
+      wert: 70,
+    });
+    expect(daten.bewertungen).toHaveLength(1);
+  });
+
+  it('lässt den berechneten Wert unberührt (AK-2)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 5 },
+      { art: 'gesetzt/kategorie', abschnittId: 's1', teamId: 'team1', kategorie: 'team', wert: 85 },
+    );
+    expect(daten.bewertungen[0].team.t1).toBe(5);
+    expect(daten.bewertungen[0].gesetzt!.kategorie!.team!.prozent).toBe(85);
+  });
+
+  it('verdrängt einen gesetzten Wert nicht, wenn sich die Ebene darunter ändert (AK-4)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'gesetzt/abschnitt', abschnittId: 's1', teamId: 'team1', personId: 'p1', wert: 70 },
+      { art: 'bewertung/individuell', abschnittId: 's1', teamId: 'team1', personId: 'p1', kriteriumId: 'i1', wert: 10 },
+    );
+    expect(daten.bewertungen[0].gesetzt!.abschnittsergebnis!.p1.prozent).toBe(70);
+  });
+
+  it('entfernt einen gesetzten Wert wieder (AK-6)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'gesetzt/kategorie', abschnittId: 's1', teamId: 'team1', kategorie: 'team', wert: 85 },
+      { art: 'gesetzt/kategorie', abschnittId: 's1', teamId: 'team1', kategorie: 'team', wert: null },
+    );
+    // Ohne weiteren Inhalt verschwindet die Bewertung ganz.
+    expect(daten.bewertungen).toHaveLength(0);
+  });
+
+  it('begrenzt gesetzte Werte auf 0 bis 100 Prozent', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'gesetzt/gesamt', stichtagId: null, personId: 'p1', wert: 140 },
+      { art: 'gesetzt/gesamt', stichtagId: null, personId: 'p2', wert: -20 },
+    );
+    const stand = daten.gesamtstand['gesamter-durchgang'];
+    expect(stand.p1.prozent).toBe(100);
+    expect(stand.p2.prozent).toBe(0);
+  });
+
+  it('führt gesetzte Gesamtstände je Stichtag getrennt (FA-49 AK-5)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'stichtag/vorlage', startjahr: 2026 },
+      { art: 'gesetzt/gesamt', stichtagId: 'stichtag-semester', personId: 'p1', wert: 62 },
+      { art: 'gesetzt/gesamt', stichtagId: 'stichtag-jahr', personId: 'p1', wert: 78 },
+    );
+    expect(daten.gesamtstand['stichtag-semester'].p1.prozent).toBe(62);
+    expect(daten.gesamtstand['stichtag-jahr'].p1.prozent).toBe(78);
+  });
+
+  it('nimmt gesetzte Werte mit, wenn die Person gelöscht wird', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'gesetzt/abschnitt', abschnittId: 's1', teamId: 'team1', personId: 'p1', wert: 70 },
+      { art: 'gesetzt/gesamt', stichtagId: null, personId: 'p1', wert: 70 },
+      { art: 'notenstand', stichtagId: null, personId: 'p1', note: 3 },
+      { art: 'person/loeschen', id: 'p1' },
+    );
+    expect(daten.bewertungen).toHaveLength(0);
+    expect(daten.gesamtstand['gesamter-durchgang']?.p1).toBeUndefined();
+    expect(daten.notenstaende['gesamter-durchgang']?.p1).toBeUndefined();
+  });
+});
+
+describe('Notenstand (FA-49)', () => {
+  it('trägt eine Note ohne jeden Gesamtstand ein (AK-2)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'notenstand',
+      stichtagId: null,
+      personId: 'p1',
+      note: 2,
+      begruendung: 'Verlauf steigend, Einbruch war Krankheit',
+    });
+    const stand = daten.notenstaende['gesamter-durchgang'].p1;
+    expect(stand.note).toBe(2);
+    expect(stand.begruendung).toContain('Krankheit');
+    expect(daten.gesamtstand).toEqual({});
+  });
+
+  it('behält die Begründung, wenn nur die Note geändert wird (AK-4)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'notenstand', stichtagId: null, personId: 'p1', note: 3, begruendung: 'wie besprochen' },
+      { art: 'notenstand', stichtagId: null, personId: 'p1', note: 2 },
+    );
+    expect(daten.notenstaende['gesamter-durchgang'].p1.begruendung).toBe('wie besprochen');
+  });
+
+  it('entfernt den Notenstand wieder', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'notenstand', stichtagId: null, personId: 'p1', note: 3 },
+      { art: 'notenstand', stichtagId: null, personId: 'p1', note: null },
+    );
+    expect(daten.notenstaende).toEqual({});
+  });
+
+  it('ist die einzige personenbezogene Note im Bestand (AK-1, G8)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 9 },
+      { art: 'gesetzt/gesamt', stichtagId: null, personId: 'p1', wert: 88 },
+      { art: 'notenstand', stichtagId: null, personId: 'p1', note: 2 },
+    );
+    // Der Notenschlüssel führt Noten als **Einstellung** – das ist etwas
+    // anderes als die Note einer Person. Geprüft wird deshalb, dass an keiner
+    // personenbezogenen Stelle eine Note steht.
+    expect(JSON.stringify(daten.bewertungen)).not.toContain('"note"');
+    expect(JSON.stringify(daten.gesamtstand)).not.toContain('"note"');
+    expect(JSON.stringify(daten.personen)).not.toContain('"note"');
+    expect(Object.keys(daten.notenstaende['gesamter-durchgang'])).toEqual(['p1']);
+  });
+});
+
+describe('Rückmeldung an die Person (FA-42)', () => {
+  it('hält Stärken und Entwicklungsfelder getrennt von der Notiz (FA-17)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/individuellNotiz', abschnittId: 's1', teamId: 'team1', personId: 'p1', notiz: 'intern' },
+      {
+        art: 'bewertung/rueckmeldung',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        staerken: 'Schnittstelle sauber',
+        entwicklung: 'Tests früher',
+      },
+    );
+    const eintrag = daten.bewertungen[0].individuell.p1;
+    expect(eintrag.notiz).toBe('intern');
+    expect(eintrag.rueckmeldung!.staerken).toBe('Schnittstelle sauber');
+    expect(eintrag.rueckmeldung!.entwicklung).toBe('Tests früher');
+  });
+
+  it('gilt als nicht erteilt, solange beide Felder leer sind (AK-4)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'bewertung/rueckmeldung',
+      abschnittId: 's1',
+      teamId: 'team1',
+      personId: 'p1',
+      staerken: '  ',
+      entwicklung: '',
+    });
+    expect(daten.bewertungen).toHaveLength(0);
+  });
+
+  it('lässt sich zurücknehmen, ohne die Notiz mitzunehmen', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/individuellNotiz', abschnittId: 's1', teamId: 'team1', personId: 'p1', notiz: 'intern' },
+      { art: 'bewertung/rueckmeldung', abschnittId: 's1', teamId: 'team1', personId: 'p1', staerken: 'gut', entwicklung: '' },
+      { art: 'bewertung/rueckmeldung', abschnittId: 's1', teamId: 'team1', personId: 'p1', staerken: '', entwicklung: '' },
+    );
+    expect(daten.bewertungen[0].individuell.p1.rueckmeldung).toBeUndefined();
+    expect(daten.bewertungen[0].individuell.p1.notiz).toBe('intern');
+  });
+
+  it('nennt die Personen, für die sie noch aussteht (AK-4)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'bewertung/rueckmeldung',
+      abschnittId: 's1',
+      teamId: 'team1',
+      personId: 'p1',
+      staerken: 'gut',
+      entwicklung: '',
+    });
+    const offen = rueckmeldungOffen(daten, 's1', bewertungsIndex(daten));
+    expect(offen.map((p) => p.id)).toEqual(['p2']);
+  });
+
+  it('zählt niemanden ohne Teamzuordnung zu den offenen', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'zugehoerigkeit/setzen',
+      abschnittId: 's1',
+      personId: 'p2',
+      teamId: null,
+    });
+    expect(rueckmeldungOffen(daten, 's1', bewertungsIndex(daten)).map((p) => p.id)).toEqual(['p1']);
   });
 });

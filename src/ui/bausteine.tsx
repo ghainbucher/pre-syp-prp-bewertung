@@ -175,6 +175,59 @@ export function Textfeld({
 }
 
 /**
+ * Feld für einen gesetzten Wert samt Begründung (FA-50 AK-5, AK-6).
+ *
+ * Bewusst zurückhaltend gestaltet (FA-51): Der gerechnete Wert steht daneben,
+ * damit sichtbar bleibt, wovon abgewichen wird – nicht bloß, dass abgewichen
+ * wird.
+ */
+export function GesetztFeld({
+  wert,
+  berechnet,
+  beschriftung,
+  onAendern,
+  onBegruendung,
+}: {
+  wert: { prozent: number; begruendung: string } | null;
+  berechnet: number | null;
+  beschriftung: string;
+  onAendern: (prozent: number | null) => void;
+  onBegruendung: (text: string) => void;
+}) {
+  const abweichung =
+    wert !== null && berechnet !== null ? wert.prozent - berechnet : null;
+
+  return (
+    <div className="gesetzt">
+      <span className="etikett">gesetzt</span>
+      <Punktefeld
+        schmal
+        wert={wert?.prozent}
+        max={100}
+        beschriftung={beschriftung}
+        onAendern={onAendern}
+      />
+      <span className="maximum">%</span>
+      {abweichung !== null && Math.abs(abweichung) >= 0.05 ? (
+        <span className="maximum">
+          gerechnet {formatProzent(berechnet, 1)} % ({abweichung > 0 ? '+' : '−'}
+          {formatProzent(Math.abs(abweichung), 1)})
+        </span>
+      ) : null}
+      {wert !== null ? (
+        <Textfeld
+          breit
+          wert={wert.begruendung}
+          beschriftung={`Begründung – ${beschriftung}`}
+          platzhalter="Begründung (freiwillig)"
+          onAendern={onBegruendung}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Schalter, der eine zweite Bestätigung verlangt (FA-36).
  *
  * Bewusst kein `window.confirm`: Das blockiert den Browser und ist in

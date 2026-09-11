@@ -133,6 +133,8 @@ ist die Berechnungslogik ohne Oberfläche testbar (NFA-06).
 | `store/ordner.ts` | Zielordner der automatischen Sicherung, File System Access API (FA-64) | Entscheiden, wann gesichert wird |
 | `export/csv.ts` | Aufbereitung der Klassenübersicht als CSV | Rechnen (ruft `domain` auf) |
 | `export/rubrikblatt.ts` | Kriterienblatt für die Klasse als HTML (FA-39) | Namen oder Punkte kennen |
+| `export/belegfassung.ts` | Vollständige Herleitung je Person als HTML (FA-32) | interne Bezeichner ausgeben |
+| `export/rueckmeldung.ts` | Rückmeldung an eine Person als HTML (FA-42) | Punkte, Herleitung oder Note zeigen |
 | `ui/*` | Wiederverwendete Bausteine, Auswahl-Hilfen, Oberflächenzustand | Rechnen |
 | `ansichten/*` | Die vier Bereiche: Darstellung und Eingabe | Rechnen |
 
@@ -330,23 +332,23 @@ gespeichert; der gesetzte Wert wird gespeichert und **tritt daneben**.
 ```ts
 type GesetzterWert = {
   prozent: number;          // 0..100
-  begruendung?: string;     // FA-50 AK-5, freiwillig
-  gesetztAm: string;        // ISO-Datum, für die Belegfassung
+  begruendung: string;      // FA-50 AK-5, freiwillig – leer statt fehlend
+  gesetztAm: string;        // ISO-Zeitpunkt, für die Belegfassung
 };
 
 type Bewertung = {
   // …
   gesetzt?: {
-    kategorie?: Record<KategorieId, GesetzterWert>;          // FA-50 AK-1
-    sprintergebnis?: Record<PersonId, GesetzterWert>;
+    kategorie?: Partial<Record<KategorieSchluessel, GesetzterWert>>;  // FA-50 AK-1
+    abschnittsergebnis?: Record<PersonId, GesetzterWert>;   // hieß hier „sprintergebnis“
   };
 };
 
 type Datenbestand = {
   // …
   stichtage: Stichtag[];                                     // FA-48
-  gesamtstand?: Record<StichtagId, Record<PersonId, GesetzterWert>>;   // FA-50
-  notenstaende?: Record<StichtagId, Record<PersonId, Notenstand>>;     // FA-49
+  gesamtstand: Record<StichtagId, Record<PersonId, GesetzterWert>>;    // FA-50
+  notenstaende: Record<StichtagId, Record<PersonId, Notenstand>>;      // FA-49
 };
 
 type Notenstand = {
@@ -369,6 +371,8 @@ type Notenstand = {
   Person und Stichtag, nicht an einem Sprintergebnis, und kann ohne jeden Prozentwert
   gesetzt werden (FA-49 AK-2). Grund ist G8: Die Note vergibt die Lehrkraft, die Software
   rechnet sie nicht aus.
+- **Ohne gewählten Stichtag** greift der feste Schlüssel `gesamter-durchgang`. Ein leerer
+  String ließe sich später nicht von „vergessen“ unterscheiden.
 - **Kein Feld `note` sonst irgendwo.** Der Notenvorschlag (FA-25) wird bei der Anzeige aus
   dem Prozentwert und dem Notenschlüssel gebildet und **nicht gespeichert** (FA-25 AK-3).
   Wer ihn speichern wollte, hätte eine zweite Wahrheit im Bestand.
@@ -413,8 +417,11 @@ höchstens $D$ Prozentpunkte (Vorgabe $D = 5$), mit dem neutralen Punkt bei 50 %
 
 $$K(p) = \frac{P_{\text{Peer}}(p) - 50}{50} \cdot D \qquad \text{mit } K \in [-D,\ +D]$$
 
-Ist die Peer-Bewertung für den Sprint nicht eingeschaltet (FA-52) oder liegt kein
-Peer-Ergebnis vor, ist $K = 0$. Eine Klammerung ist rechnerisch nicht nötig, weil
+Ist die Peer-Bewertung für den Sprint nicht eingeschaltet (FA-52), liegt kein Peer-Ergebnis
+vor oder gibt es überhaupt kein gewichtetes Ergebnis, ist $K = 0$ – eine Person ohne jede
+Erfassung bekommt nicht plötzlich Prozentpunkte aus Peer-Werten. Das Ergebnis nach der
+Korrektur wird auf $[0, 100]$ geklemmt. `rubrik.gewichte.peer` bleibt ohne Wirkung; das Feld
+steht nur noch für die Lesbarkeit älterer Bestände. Eine Klammerung ist rechnerisch nicht nötig, weil
 $P_{\text{Peer}} \in [0,100]$ den Faktor bereits begrenzt; sie steht trotzdem im Code, damit
 eine spätere Skalenänderung die Deckelung nicht aushebelt.
 
@@ -527,13 +534,17 @@ $$P_{\text{Sprint}} = 74{,}0 + 3{,}1 = 77{,}1\ \%$$
 Der Notenvorschlag bei Standardschlüssel (1 ab 90, 2 ab 80, 3 ab 65, 4 ab 51) lautet **3**.
 Ob der Notenstand 3 wird, entscheidet die Lehrkraft.
 
-Zwei Varianten desselben Beispiels gehören zum Regressionstest in `scoring.test.ts`:
+Varianten desselben Beispiels gehören zum Regressionstest in `scoring.test.ts`:
 
-| Fall | Ergebnis |
-|---|---|
-| ohne Peer-Werte | $K = 0$, Sprintergebnis 74,0 % |
-| Peer durchgängig 1 von 5 | $K = -5$, Sprintergebnis 69,0 % – die Deckelung greift |
-| Kategorie „Individuell“ auf 85 % **gesetzt** | berechnet 74,0 % bleibt erhalten, weitergereicht wird $\frac{45 \cdot 74{,}44 + 20 \cdot 80 + 35 \cdot 85}{100} + 3{,}1 = 82{,}1\ \%$ |
+| Fall | Ergebnis | Stand |
+|---|---|---|
+| ohne Peer-Werte | $K = 0$, Sprintergebnis 74,0 % | umgesetzt |
+| Peer durchgängig 1 von 5 | $K = -5$, Sprintergebnis 69,0 % – die Deckelung greift | umgesetzt |
+| Kategorie „Individuell“ auf 85 % **gesetzt** | berechnet 74,0 % bleibt erhalten, weitergereicht wird $\frac{45 \cdot 74{,}44 + 20 \cdot 80 + 35 \cdot 85}{100} + 3{,}1 = 82{,}4\ \%$ | umgesetzt |
+
+*Berichtigt am 11.09.2026:* Der Bruch ergibt 79,25 %, nicht 79,0 %; mit der Peer-Korrektur
+also 82,4 % und nicht 82,1 %. Der Fehler fiel auf, als der Fall zum Test wurde – genau dafür
+stehen die Zahlen in diesem Dokument.
 
 ---
 

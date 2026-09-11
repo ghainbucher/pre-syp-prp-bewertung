@@ -55,7 +55,13 @@ export interface Rubrik {
   prozess: Kriterium[];
   individuell: Kriterium[];
   peer: Kriterium[];
-  /** Gewicht je Kategorie in Prozent; die Summe muss nicht 100 ergeben (FA-07). */
+  /**
+   * Gewicht je Kategorie in Prozent; die Summe muss nicht 100 ergeben (FA-07).
+   *
+   * `gewichte.peer` ist seit FA-45 **ohne Wirkung**: Peer-Werte gehen nicht als
+   * gewichtete Kategorie ein, sondern als gedeckelter Korrekturfaktor. Das Feld
+   * bleibt nur, damit ältere Bestände unverändert lesbar sind.
+   */
   gewichte: Record<KategorieSchluessel, number>;
   /** Zählt die Selbsteinschätzung in die Peer-Note (FA-15)? */
   selbstZaehlt: boolean;
@@ -127,15 +133,89 @@ export interface Abschnitt {
   arbeitszeitMinuten?: number;
 }
 
+/**
+ * Art eines Stichtags (FA-48 AK-5).
+ *
+ * Ein `zeugnis`-Stichtag **schließt** einen Beurteilungszeitraum ab; der
+ * folgende beginnt danach. Ein `kontrolle`-Stichtag (Ende April, Frühwarnung
+ * nach § 19 Abs. 3a SchUG) erzeugt keinen eigenen Zeitraum, sondern wertet den
+ * laufenden bis zu diesem Datum aus.
+ */
+export type Stichtagsart = 'zeugnis' | 'kontrolle';
+
+export interface Stichtag {
+  id: Id;
+  name: string;
+  /** Letztes einbezogenes Datum, ISO (JJJJ-MM-TT). */
+  bis: string;
+  art: Stichtagsart;
+}
+
+/** Ein Beurteilungszeitraum als Datumsspanne; `null` heißt „offen“. */
+export interface Zeitraum {
+  von: string | null;
+  bis: string | null;
+}
+
 /** Punkte je Kriterium. Ein fehlender Schlüssel bedeutet „nicht bewertet“. */
 export type Punkte = Record<Id, number>;
 
 /** Peer-Urteil: Wert 1–5 je Peer-Kriterium. */
 export type PeerUrteil = Record<Id, number>;
 
+/**
+ * Ein von der Lehrkraft gesetzter Wert (FA-50).
+ *
+ * Er **ersetzt den berechneten nicht** (AK-2, G9): Der berechnete Wert ist
+ * eine Funktion des Bestands und keine Spalte darin, also stehen beide
+ * jederzeit nebeneinander. Nur der berechnete erklärt, was die Person getan
+ * hat – nur der gesetzte, was die Lehrkraft entschieden hat.
+ */
+export interface GesetzterWert {
+  /** 0 bis 100. */
+  prozent: number;
+  /** Freiwillig (FA-50 AK-5). */
+  begruendung: string;
+  /** ISO-Zeitpunkt, für die Belegfassung. */
+  gesetztAm: string;
+}
+
+/**
+ * Der Notenstand einer Person zu einem Stichtag (FA-49).
+ *
+ * Die **einzige** Stelle im Datenbestand mit einer Ziffer 1 bis 5 (AK-1, G8).
+ * Der Notenvorschlag wird bei der Anzeige gebildet und nie gespeichert – wer
+ * ihn speicherte, hätte eine zweite Wahrheit im Bestand.
+ */
+export interface Notenstand {
+  note: 1 | 2 | 3 | 4 | 5;
+  /** Freiwillig (FA-49 AK-4). */
+  begruendung: string;
+  gesetztAm: string;
+}
+
+/**
+ * Rückmeldung an die Person nach einem Abschnitt (FA-42).
+ *
+ * Bewusst **nicht** dasselbe wie die Notiz der Lehrkraft (FA-17): Die Notiz ist
+ * eine Aufzeichnung für Gespräch und Begründung, die Rückmeldung geht an die
+ * Schülerin oder den Schüler. Sie enthält weder Punktetabelle noch Note
+ * (AK-2, AK-3, Fachkonzept G10).
+ */
+export interface Rueckmeldung {
+  /** Zwei bis drei Stärken (AK-1). */
+  staerken: string;
+  /** Ein bis zwei Entwicklungsfelder (AK-1). */
+  entwicklung: string;
+  gesetztAm: string;
+}
+
 export interface Einzelbewertung {
   punkte: Punkte;
+  /** Aufzeichnung der Lehrkraft (FA-17) – geht nicht an die Person. */
   notiz: string;
+  /** Rückmeldung an die Person (FA-42) – geht an sie. */
+  rueckmeldung?: Rueckmeldung;
 }
 
 /**
@@ -154,6 +234,15 @@ export interface Bewertung {
   /** peer[bewertendePersonId][bewertetePersonId][kriteriumId] = 1..5 */
   peer: Record<Id, Record<Id, PeerUrteil>>;
   notiz: string;
+  /**
+   * Gesetzte Werte unterhalb des Gesamtstands (FA-50 AK-1).
+   *
+   * `kategorie` gilt für das ganze Team, `abschnittsergebnis` je Person.
+   */
+  gesetzt?: {
+    kategorie?: Partial<Record<KategorieSchluessel, GesetzterWert>>;
+    abschnittsergebnis?: Record<Id, GesetzterWert>;
+  };
 }
 
 /**
@@ -180,6 +269,28 @@ export interface Datenbestand {
   notenschluessel: Notenstufe[];
   /** Gewicht der beiden Stränge, Vorgabe 75/25 (FA-59 AK-3). */
   strangGewichte: Record<Strang, number>;
+  /**
+   * Höchste Verschiebung durch Peer-Werte in Prozentpunkten (FA-45 AK-4).
+   * Vorgabe 5. Additiv innerhalb von Schemastand 2.
+   */
+  peerDeckelung: number;
+  /**
+   * Zeitfaktor der zweiten Hälfte eines Beurteilungszeitraums (FA-54 AK-6).
+   * Vorgabe 2 nach § 20 Abs. 1 LBVO; 1 ist zulässig, weicht aber ab.
+   */
+  zeitfaktorZweiteHaelfte: number;
+  /**
+   * Sperrt ein negativer Strang den Notenvorschlag (FA-61 AK-6)?
+   * Vorgabe eingeschaltet; § 14 LBVO verlangt die Erfüllung in den
+   * wesentlichen Bereichen.
+   */
+  sperreAktiv: boolean;
+  /** Beurteilungs- und Kontrollzeitpunkte (FA-48 AK-4). */
+  stichtage: Stichtag[];
+  /** Gesetzter Gesamtstand je Stichtag und Person (FA-50 AK-1). */
+  gesamtstand: Record<Id, Record<Id, GesetzterWert>>;
+  /** Notenstand je Stichtag und Person (FA-49 AK-5). */
+  notenstaende: Record<Id, Record<Id, Notenstand>>;
   klassen: Klasse[];
   teams: Team[];
   personen: Person[];
@@ -200,9 +311,18 @@ export interface Datenbestand {
 /* Ergebnisstrukturen der Berechnung                                          */
 /* -------------------------------------------------------------------------- */
 
-/** Ergebnis einer Kategorie; `null` bedeutet „nicht bewertet“ (FA-21). */
+/**
+ * Ergebnis einer Kategorie; `null` bedeutet „nicht bewertet“ (FA-21).
+ *
+ * `prozent` ist der **geltende** Wert: der gesetzte, wenn einer vorliegt, sonst
+ * der berechnete (FA-50 AK-3). `prozentBerechnet` bleibt daneben stehen.
+ */
 export interface Kategorieergebnis {
   prozent: number;
+  /** Der gerechnete Wert – auch dann, wenn ein gesetzter gilt. */
+  prozentBerechnet: number | null;
+  /** Der gesetzte Wert, sofern vorhanden (FA-50). */
+  gesetzt: GesetzterWert | null;
   erreicht: number;
   moeglich: number;
   /** Anzahl ausgefüllter Kriterien. */
@@ -217,13 +337,30 @@ export interface Peerergebnis {
   bewertende: number;
 }
 
-/** Ergebnis einer Person in einem Abschnitt (FA-23). */
+/**
+ * Ergebnis einer Person in einem Abschnitt (FA-23).
+ *
+ * `prozent` ist der geltende Wert (FA-50 AK-3), `prozentBerechnet` der
+ * gerechnete. Sie können auseinanderlaufen, wenn sich die Ebene darunter nach
+ * dem Setzen geändert hat – das ist beabsichtigt und sichtbar zu machen (AK-4).
+ */
 export interface Abschnittsergebnis {
   prozent: number | null;
+  /** Der gerechnete Wert einschließlich Peer-Korrektur. */
+  prozentBerechnet: number | null;
+  /** Gesetzter Wert für diese Person in diesem Abschnitt (FA-50). */
+  gesetzt: GesetzterWert | null;
   team: Kategorieergebnis | null;
   prozess: Kategorieergebnis | null;
   individuell: Kategorieergebnis | null;
   peer: Peerergebnis | null;
+  /**
+   * Prozentwert vor der Peer-Korrektur (FA-45). Gleich `prozent`, wenn keine
+   * Korrektur greift – die Ansichten können damit beides zeigen, ohne zu rechnen.
+   */
+  prozentVorKorrektur: number | null;
+  /** Verschiebung durch die Peer-Werte in Prozentpunkten, 0 wenn keine (FA-45). */
+  korrektur: number;
   /** Selbsteinschätzung in Prozent, unabhängig davon, ob sie in die Note zählt. */
   selbst: number | null;
   /** Bezeichnungen der Kategorien, zu denen noch nichts erfasst ist (FA-26). */
@@ -233,6 +370,13 @@ export interface Abschnittsergebnis {
 export interface AbschnittMitErgebnis {
   abschnitt: Abschnitt;
   ergebnis: Abschnittsergebnis;
+  /**
+   * Zeitfaktor aus der Lage im Beurteilungszeitraum (FA-54). Getrennt vom
+   * Faktor am Abschnitt gehalten: Wer nur das Produkt sieht, kann nicht mehr
+   * unterscheiden, ob ein Abschnitt schwerer wiegt, weil er später liegt,
+   * oder weil jemand den Faktor verstellt hat (AK-4).
+   */
+  zeitfaktor: number;
 }
 
 /** Stand einer Person in einem Strang (FA-59 AK-2). */
@@ -242,10 +386,40 @@ export interface Strangergebnis {
   abschnitte: AbschnittMitErgebnis[];
 }
 
+/** Was eine Stichtagsauswertung ausgelassen hat – nie stillschweigend (FA-48). */
+export interface Auslassung {
+  /** Abschnitte ohne Enddatum, die keinem Zeitraum zuzuordnen sind. */
+  ohneDatum: Abschnitt[];
+}
+
+/**
+ * Notenvorschlag samt Grund (FA-25, FA-61 AK-2).
+ *
+ * Die Sperre ist eine Aussage über den Bestand, kein Eingriff in ihn: Beide
+ * Strangstände und der Gesamtstand bleiben unverändert (AK-3).
+ */
+export interface Notenvorschlag {
+  /** `null`, solange zu wenig erfasst ist. */
+  note: number | null;
+  /** Strang, der die Sperre ausgelöst hat – sonst `null`. */
+  gesperrtDurch: Strang | null;
+  /** Note, die sich ohne Sperre ergäbe; zum Ausweisen des Unterschieds. */
+  ohneSperre: number | null;
+}
+
 export interface Gesamtergebnis {
+  /** Der geltende Gesamtstand: gesetzt, wenn vorhanden, sonst gerechnet. */
   prozent: number | null;
+  /** Der gerechnete Gesamtstand – bleibt neben einem gesetzten erhalten. */
+  prozentBerechnet: number | null;
+  /** Gesetzter Gesamtstand für diesen Stichtag (FA-50 AK-1). */
+  gesetzt: GesetzterWert | null;
+  /** Notenstand zu diesem Stichtag (FA-49); `null`, solange keiner gesetzt ist. */
+  notenstand: Notenstand | null;
   praxis: Strangergebnis;
   theorie: Strangergebnis;
   /** Alle Abschnitte beider Stränge in Reihenfolge – für Übersichten. */
   alle: AbschnittMitErgebnis[];
+  /** Abschnitte, die die Stichtagsauswertung nicht zuordnen konnte (FA-48). */
+  auslassung: Auslassung;
 }

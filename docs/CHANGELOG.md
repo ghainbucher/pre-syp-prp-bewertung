@@ -6,7 +6,92 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ## [Unveröffentlicht]
 
-Noch nichts.
+### Geändert
+
+- **FA-32 Belegfassung je Person** und **FA-42 Rückmeldung je Person** – zwei Ausgaben, die
+  sich ausdrücklich ausschließen. Die Belegfassung zeigt alles: je Abschnitt Rubrik, Team,
+  Kategorien mit Kriterien und Punkten, gesetzte Werte samt gerechnetem Vergleichswert und
+  Begründung, Peer-Korrektur, am Ende Notenvorschlag samt Sperrgrund und eingetragenen
+  Notenstand. Leere Kategorien stehen als „nicht bewertet“, nie als 0, und interne Bezeichner
+  kommen nicht vor – Punkte werden über Kriteriennamen aufgelöst. Sie geht nicht ohne Anlass
+  hinaus
+- Die **Rückmeldung** beantwortet drei Fragen – wo stehe ich, was ist gelungen, woran arbeite
+  ich – und enthält **keine** Punktetabelle, keine Herleitung, keine Note und keinen
+  Notenvorschlag (G10). Der Stand erscheint nur als grobe Prozentangabe. Tests prüfen
+  ausdrücklich das Fehlen dieser Teile
+- **Eine Datei je Person**, nicht eine je Team oder Klasse: So enthält jedes Blatt nur die
+  Daten einer Person und kann ohne weitere Prüfung weitergegeben werden
+- `Einzelbewertung` trägt neben der internen Notiz (FA-17) jetzt die `rueckmeldung` – beide
+  bewusst getrennt, weil das eine bleibt und das andere hinausgeht. Sind beide Felder der
+  Rückmeldung leer, gilt sie als nicht erteilt und steht weiter auf der Liste der offenen
+  (FA-42 AK-4); die Bewerten-Ansicht nennt sie namentlich
+- **FA-50 Werte auf jeder Ebene setzen** und **FA-49 Notenstand eintragen**. Setzbar sind
+  Kategorieergebnis, Abschnittsergebnis je Person und Gesamtstand je Stichtag – jeweils mit
+  freiwilliger Begründung und Zeitstempel. Ein gesetzter Wert **ersetzt den berechneten nicht**:
+  Der berechnete ist eine Funktion des Bestands, keine Spalte darin, also stehen beide
+  nebeneinander (AK-2, G9). Jedes Ergebnis führt seither `prozent` (geltend) und
+  `prozentBerechnet` (gerechnet) getrennt; ändert sich die Ebene darunter, bleibt der gesetzte
+  Wert stehen und die Abweichung wird sichtbar (AK-4)
+- Der **Notenstand** ist die einzige personenbezogene Ziffer im Bestand (FA-49 AK-1, G8) und
+  lässt sich ohne jeden Prozentwert eintragen (AK-2). Weicht er vom Vorschlag ab, bleiben beide
+  erhalten und die Abweichung ist in der Auswertung erkennbar (AK-3). Der CSV-Export trägt ihn
+  in einer eigenen Spalte
+- **Behoben:** Der CSV-Export rechnete ohne den gewählten Stichtag – FA-48 AK-1 verlangt ihn
+  auch dort. Der Fehler stammte aus dem vorigen Schritt und ist jetzt durch einen Test gedeckt
+- **Berichtigt:** Das Rechenbeispiel im Solution-Design (Kap. 6.8) nannte für die Variante mit
+  gesetzter Kategorie 79,0 % statt 79,25 % und damit 82,1 % statt 82,4 %. Der Fehler fiel auf,
+  als der Fall zum Test wurde – genau dafür stehen die Zahlen dort
+- Das Datenmodell in Kap. 5.1 hieß `sprintergebnis`; umgesetzt ist `abschnittsergebnis`
+  (Schemastand 2). Ohne gewählten Stichtag greift der feste Schlüssel `gesamter-durchgang`
+- **FA-48 Auswertung zu einem Stichtag.** Drei Zeitpunkte – Semesterzeugnis, Frühwarnung,
+  Jahreszeugnis – schränken Einzelergebnisse, Teamvergleich, Notenverteilung und Export auf
+  den jeweiligen Zeitraum ein; spätere Abschnitte bleiben erhalten und erscheinen nur nicht.
+  Der Zeitraum eines Zeugnis-Stichtags beginnt nach dem vorherigen **Zeugnis**-Stichtag; die
+  Frühwarnung Ende April erzeugt keinen eigenen Zeitraum, sondern wertet den laufenden aus
+  (AK-5, § 19 Abs. 3a SchUG). Der Zeitfaktor wird innerhalb des Zeitraums neu bestimmt – ein
+  Semester ist eine eigene Zeitreihe (neue AK-7)
+- Zugeordnet wird nach dem **Enddatum** eines Abschnitts. Ein Abschnitt ohne Enddatum bleibt in
+  der Stichtagsauswertung außen vor **und wird dabei genannt** (neue AK-6): stilles Weglassen
+  ergäbe einen falschen Stand, stilles Mitzählen einen falschen Zeitraum
+- Der Dateiname des CSV-Exports trägt den Stichtag – sonst hießen Semester- und Jahresexport
+  desselben Tages gleich und überschrieben einander
+- **FA-61 Sperre bei negativem Strang** (§ 14 LBVO). Liegt ein Strangstand unter der
+  Genügend-Grenze, lautet der Notenvorschlag „Nicht genügend“ – unabhängig vom Gesamtstand.
+  Die Sperre ist ein **Prädikat über den Strangständen**, keine Rechenoperation: Sie verändert
+  keinen gespeicherten Wert (AK-3). Ein Strang **ohne** Ergebnis löst sie nicht aus; sonst
+  zeigte die Anwendung im Oktober, wenn noch kein Test geschrieben wurde, jedem ein Nicht
+  genügend (Testfall TF-L). `notenvorschlag()` gibt Note, auslösenden Strang und die Note ohne
+  Sperre zurück; die Ansichten stellen dar und entscheiden nichts
+- Ein Strang unter der Grenze wird in der Auswertung hervorgehoben, bevor der
+  Beurteilungszeitraum endet (Frühwarnung, AK-5). Die Notenverteilung und der CSV-Export
+  zählen den Vorschlag **mit** Sperre, sonst widersprächen sie der Tabelle darüber; der Export
+  hat dafür die neue Spalte „Sperre“
+- Die Sperre ist abschaltbar (AK-6, `sperreAktiv`, Vorgabe eingeschaltet)
+- TF-J bis TF-M aus `docs/testfaelle-notenfindung.md` sind Regressionstests, einschließlich
+  beider Seiten der Schwelle und des Nachweises, dass die Sperre nichts verändert
+- **FA-54 Zeitfaktor: der zuletzt erreichte Leistungsstand wiegt schwerer** (§ 20 Abs. 1 LBVO).
+  Die zweite Hälfte der Abschnitte eines Strangs trägt den Faktor 2, die erste 1; bei
+  ungerader Zahl wird zugunsten der späteren aufgerundet. Das Gewicht eines Abschnitts ist
+  das **Produkt** aus Abschnitts- und Zeitfaktor; beide werden getrennt gespeichert und in der
+  Auswertung getrennt ausgewiesen (AK-4). Der Faktor ist einstellbar; der Wert 1 hebt die
+  Gewichtung auf und wird als Abweichung von § 20 Abs. 1 LBVO benannt statt stillschweigend
+  hingenommen (AK-6)
+- Der Zeitfaktor wird **je Strang** bestimmt: Tests und Sprints liegen in verschiedenen
+  Zeitreihen und dürfen sich ihre Hälften nicht gegenseitig verschieben (FA-59)
+- Alle neun Verläufe aus `docs/testfaelle-notenfindung.md` (TF-A bis TF-I) sind jetzt
+  Regressionstests – je einer mit und einer ohne Zeitfaktor, dazu die Kontrolltabelle der
+  Aufrundung und der Beleg, dass die spiegelbildlichen Verläufe TF-B und TF-C 9,3
+  Prozentpunkte auseinanderliegen
+- **FA-45 Peer-Werte als gedeckelter Korrekturfaktor.** Der Peer-Anteil geht nicht mehr als
+  gewichtete Kategorie ein, sondern verschiebt das Abschnittsergebnis um höchstens ±5
+  Prozentpunkte; neutraler Punkt ist 50 %. `rubrik.gewichte.peer` wird dabei **ignoriert** –
+  sonst zählte dieselbe Einschätzung zweimal; das Feld bleibt nur für ältere Bestände lesbar.
+  Die Deckelung ist einstellbar (`peerDeckelung`, additiv in Schemastand 2) und steht in der
+  Rubrikansicht anstelle des früheren Peer-Gewichts. Das Abschnittsergebnis führt jetzt auch
+  den Wert vor der Korrektur mit, damit die Ansichten beides zeigen können, ohne zu rechnen
+- Das dokumentierte Rechenbeispiel (Solution-Design 6.8) ergibt damit **77,1 %** statt 74,0 %.
+  Der Test dazu trug bis jetzt den Platzhalter „als Korrekturfaktor kommt er erst mit FA-45“;
+  die beiden im Dokument genannten Varianten sind nun ebenfalls als Test hinterlegt
 
 ## [0.2.0] – 2026-09-11 · „Erfassen“
 

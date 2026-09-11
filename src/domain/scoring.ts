@@ -13,18 +13,32 @@ import type {
   Bewertung,
   Datenbestand,
   Gesamtergebnis,
+  GesetzterWert,
   Id,
   Kategorieergebnis,
   Kriterium,
+  Notenstand,
   Notenstufe,
+  Notenvorschlag,
   Peerergebnis,
   Person,
   Punkte,
   Rubrik,
   Strang,
   Strangergebnis,
+  Zeitraum,
 } from './types';
-import { abschnitteVon, mitgliederIn, rubrikVon, teamIn, teamsIn } from './zuordnung';
+import { OHNE_STICHTAG, PEER_DECKELUNG, ZEITFAKTOR_ZWEITE_HAELFTE } from './defaults';
+import {
+  abschnitteVon,
+  auslassungen,
+  imZeitraum,
+  mitgliederIn,
+  rubrikVon,
+  teamIn,
+  teamsIn,
+  zeitraumVon,
+} from './zuordnung';
 
 export const PEER_MIN = 1;
 export const PEER_MAX = 5;
@@ -74,8 +88,11 @@ export function kategorieErgebnis(
   }
 
   if (ausgefuellt === 0 || moeglich === 0) return null;
+  const prozent = (erreicht / moeglich) * 100;
   return {
-    prozent: (erreicht / moeglich) * 100,
+    prozent,
+    prozentBerechnet: prozent,
+    gesetzt: null,
     erreicht,
     moeglich,
     ausgefuellt,
@@ -144,6 +161,43 @@ export function selbstEinschaetzung(
 }
 
 /**
+ * Legt einen gesetzten Wert über ein Kategorieergebnis (FA-50 AK-1, AK-3).
+ *
+ * Der berechnete Wert bleibt daneben stehen – auch dann, wenn gar keiner
+ * vorliegt, weil die Ebene darunter leer ist. Genau das ist der Fall, für den
+ * FA-50 da ist: setzen, ohne den Umweg über Einzelpunkte zu gehen.
+ */
+function kategorieMitGesetzt(
+  berechnet: Kategorieergebnis | null,
+  gesetzt: GesetzterWert | undefined,
+): Kategorieergebnis | null {
+  if (!gesetzt) return berechnet;
+  return {
+    prozent: klemme(gesetzt.prozent, 0, 100),
+    prozentBerechnet: berechnet?.prozent ?? null,
+    gesetzt,
+    erreicht: berechnet?.erreicht ?? 0,
+    moeglich: berechnet?.moeglich ?? 0,
+    ausgefuellt: berechnet?.ausgefuellt ?? 0,
+    gesamt: berechnet?.gesamt ?? 0,
+  };
+}
+
+/**
+ * Verschiebung des Abschnittsergebnisses durch die Peer-Werte (FA-45).
+ *
+ * Neutraler Punkt ist 50 %: Wer dort liegt, wird nicht verschoben (AK-2).
+ * Ohne Peer-Ergebnis ist die Korrektur 0 (AK-3). Die Klemmung ist rechnerisch
+ * nicht nötig, weil ein Peer-Ergebnis ohnehin in [0, 100] liegt – sie steht
+ * hier, damit eine spätere Skalenänderung die Deckelung nicht aushebelt.
+ */
+export function peerKorrektur(peerProzent: number | null, deckelung: number): number {
+  if (peerProzent === null || !istZahl(peerProzent)) return 0;
+  const grenze = Math.max(0, istZahl(deckelung) ? deckelung : 0);
+  return klemme(((peerProzent - 50) / 50) * grenze, -grenze, grenze);
+}
+
+/**
  * Ergebnis einer Person in einem Abschnitt aus schon aufgelösten Bausteinen.
  *
  * Gewichtetes Mittel der vorhandenen Kategorieergebnisse. Kategorien ohne
@@ -156,20 +210,31 @@ export function ergebnisAusRubrik(
   teammitglieder: Person[],
   rubrik: Rubrik,
   peerAktiv: boolean,
+  deckelung = PEER_DECKELUNG,
 ): Abschnittsergebnis {
-  const team = kategorieErgebnis(bewertung?.team, rubrik.team);
-  const prozess = kategorieErgebnis(bewertung?.prozess, rubrik.prozess);
-  const individuell = kategorieErgebnis(
-    bewertung?.individuell?.[person.id]?.punkte,
-    rubrik.individuell,
+  const gesetzteKategorien = bewertung?.gesetzt?.kategorie;
+  const team = kategorieMitGesetzt(
+    kategorieErgebnis(bewertung?.team, rubrik.team),
+    gesetzteKategorien?.team,
+  );
+  const prozess = kategorieMitGesetzt(
+    kategorieErgebnis(bewertung?.prozess, rubrik.prozess),
+    gesetzteKategorien?.prozess,
+  );
+  const individuell = kategorieMitGesetzt(
+    kategorieErgebnis(bewertung?.individuell?.[person.id]?.punkte, rubrik.individuell),
+    gesetzteKategorien?.individuell,
   );
   const peer = peerAktiv ? peerErgebnis(bewertung, person.id, teammitglieder, rubrik) : null;
 
+  // Peer steht bewusst **nicht** in dieser Liste: Seit FA-45 geht der
+  // Peer-Anteil nicht als gewichtete Kategorie ein, sondern als gedeckelter
+  // Korrekturfaktor weiter unten. `rubrik.gewichte.peer` bleibt wirkungslos –
+  // sonst zählte dieselbe Einschätzung zweimal.
   const anteile: Array<{ schluessel: keyof typeof KATEGORIE_BEZEICHNUNG; prozent: number | null }> = [
     { schluessel: 'team', prozent: team?.prozent ?? null },
     { schluessel: 'prozess', prozent: prozess?.prozent ?? null },
     { schluessel: 'individuell', prozent: individuell?.prozent ?? null },
-    { schluessel: 'peer', prozent: peer?.prozent ?? null },
   ];
 
   let gewichtssumme = 0;
@@ -187,8 +252,22 @@ export function ergebnisAusRubrik(
     summe += gewicht * anteil.prozent;
   }
 
+  const vorKorrektur = gewichtssumme > 0 ? summe / gewichtssumme : null;
+  // Ohne Grundlage gibt es nichts zu korrigieren: Eine Person ohne jedes
+  // Ergebnis bekommt nicht plötzlich 5 % aus Peer-Werten.
+  const korrektur = vorKorrektur === null ? 0 : peerKorrektur(peer?.prozent ?? null, deckelung);
+  const berechnet = vorKorrektur === null ? null : klemme(vorKorrektur + korrektur, 0, 100);
+
+  // FA-50 AK-3: Ein gesetztes Abschnittsergebnis gilt für alles darüber. Die
+  // Rechnung darunter läuft weiter – ihr Ergebnis wird nur nicht weitergereicht.
+  const gesetzt = bewertung?.gesetzt?.abschnittsergebnis?.[person.id] ?? null;
+
   return {
-    prozent: gewichtssumme > 0 ? summe / gewichtssumme : null,
+    prozent: gesetzt ? klemme(gesetzt.prozent, 0, 100) : berechnet,
+    prozentBerechnet: berechnet,
+    gesetzt,
+    prozentVorKorrektur: vorKorrektur,
+    korrektur,
     team,
     prozess,
     individuell,
@@ -214,7 +293,14 @@ export function abschnittsErgebnis(
   const teamId = abschnitt.art === 'test' ? null : teamIn(daten, abschnitt.id, person.id);
   const bewertung = bewertungen.get(bewertungsSchluessel(abschnitt.id, teamId));
   const mitglieder = mitgliederIn(daten, abschnitt.id, teamId);
-  return ergebnisAusRubrik(bewertung, person, mitglieder, rubrik, abschnitt.peerAktiv);
+  return ergebnisAusRubrik(
+    bewertung,
+    person,
+    mitglieder,
+    rubrik,
+    abschnitt.peerAktiv,
+    daten.peerDeckelung,
+  );
 }
 
 /**
@@ -261,16 +347,45 @@ export function peerFrageFaellig(
   return abschnittAbgeschlossen(daten, abschnitt, bewertungen);
 }
 
-/** Mittelt Abschnittsergebnisse mit dem Faktor des jeweiligen Abschnitts. */
+/**
+ * Zeitfaktoren für `anzahl` Abschnitte eines Beurteilungszeitraums (FA-54).
+ *
+ * Die zweite Hälfte trägt den höheren Faktor; bei ungerader Zahl wird
+ * **zugunsten der späteren** aufgerundet – bei fünf Abschnitten tragen drei
+ * den Faktor 2 (AK-2). Das ist § 20 Abs. 1 LBVO: Maßgeblich ist der zuletzt
+ * erreichte Leistungsstand, nicht der Durchschnitt.
+ */
+export function zeitfaktoren(anzahl: number, faktorZweiteHaelfte = ZEITFAKTOR_ZWEITE_HAELFTE): number[] {
+  if (anzahl <= 0) return [];
+  const faktor = istZahl(faktorZweiteHaelfte) ? Math.max(0, faktorZweiteHaelfte) : 1;
+  const zweiteHaelfte = Math.ceil(anzahl / 2);
+  return Array.from({ length: anzahl }, (_, i) => (i >= anzahl - zweiteHaelfte ? faktor : 1));
+}
+
+/**
+ * Weicht der eingestellte Zeitfaktor von § 20 Abs. 1 LBVO ab (FA-54 AK-6)?
+ *
+ * Zulässig ist das – die Anwendung soll es aber benennen, statt es
+ * stillschweigend hinzunehmen.
+ */
+export function zeitfaktorWeichtAb(faktor: number): boolean {
+  return faktor <= 1;
+}
+
+/**
+ * Mittelt Abschnittsergebnisse mit dem **Produkt** aus Abschnittsfaktor und
+ * Zeitfaktor (FA-24 AK-3, FA-54 AK-4).
+ */
 function gewichtetesMittel(eintraege: AbschnittMitErgebnis[]): number | null {
   let gewichtssumme = 0;
   let summe = 0;
   for (const eintrag of eintraege) {
     if (eintrag.ergebnis.prozent === null) continue;
     const faktor = istZahl(eintrag.abschnitt.faktor) ? Math.max(0, eintrag.abschnitt.faktor) : 1;
-    if (faktor === 0) continue;
-    gewichtssumme += faktor;
-    summe += faktor * eintrag.ergebnis.prozent;
+    const gewicht = faktor * eintrag.zeitfaktor;
+    if (gewicht === 0) continue;
+    gewichtssumme += gewicht;
+    summe += gewicht * eintrag.ergebnis.prozent;
   }
   return gewichtssumme > 0 ? summe / gewichtssumme : null;
 }
@@ -281,13 +396,20 @@ export function strangErgebnis(
   person: Person,
   strang: Strang,
   bewertungen: Map<string, Bewertung>,
+  zeitraum: Zeitraum = { von: null, bis: null },
 ): Strangergebnis {
-  const abschnitte = abschnitteVon(daten, person.klasseId)
-    .filter((a) => a.strang === strang)
-    .map((abschnitt) => ({
-      abschnitt,
-      ergebnis: abschnittsErgebnis(daten, abschnitt, person, bewertungen),
-    }));
+  const imStrang = abschnitteVon(daten, person.klasseId).filter(
+    (a) => a.strang === strang && imZeitraum(a, zeitraum),
+  );
+  // Der Zeitfaktor ergibt sich aus der Lage **innerhalb des Strangs**: Ein
+  // Test und ein Sprint liegen in verschiedenen Zeitreihen und dürfen sich
+  // ihre Hälften nicht gegenseitig verschieben (FA-54 AK-3, FA-59).
+  const faktoren = zeitfaktoren(imStrang.length, daten.zeitfaktorZweiteHaelfte);
+  const abschnitte = imStrang.map((abschnitt, i) => ({
+    abschnitt,
+    ergebnis: abschnittsErgebnis(daten, abschnitt, person, bewertungen),
+    zeitfaktor: faktoren[i] ?? 1,
+  }));
   return { strang, prozent: gewichtetesMittel(abschnitte), abschnitte };
 }
 
@@ -303,9 +425,14 @@ export function gesamtErgebnis(
   daten: Datenbestand,
   person: Person,
   bewertungen: Map<string, Bewertung>,
+  stichtagId: Id | null = null,
 ): Gesamtergebnis {
-  const praxis = strangErgebnis(daten, person, 'praxis', bewertungen);
-  const theorie = strangErgebnis(daten, person, 'theorie', bewertungen);
+  // FA-48: Ohne Stichtag ist der Zeitraum offen – dann zählt alles. Mit
+  // Stichtag wird der Zeitfaktor **innerhalb** des Zeitraums neu bestimmt
+  // (FA-54 AK-3): Ein Semester ist eine eigene Zeitreihe.
+  const zeitraum = zeitraumVon(daten, stichtagId);
+  const praxis = strangErgebnis(daten, person, 'praxis', bewertungen, zeitraum);
+  const theorie = strangErgebnis(daten, person, 'theorie', bewertungen, zeitraum);
 
   let gewichtssumme = 0;
   let summe = 0;
@@ -321,12 +448,87 @@ export function gesamtErgebnis(
     (a, b) => a.abschnitt.nummer - b.abschnitt.nummer,
   );
 
+  const berechnet = gewichtssumme > 0 ? summe / gewichtssumme : null;
+  const schluessel = stichtagId ?? OHNE_STICHTAG;
+  const gesetzt = daten.gesamtstand?.[schluessel]?.[person.id] ?? null;
+  const notenstand = daten.notenstaende?.[schluessel]?.[person.id] ?? null;
+
   return {
-    prozent: gewichtssumme > 0 ? summe / gewichtssumme : null,
+    prozent: gesetzt ? klemme(gesetzt.prozent, 0, 100) : berechnet,
+    prozentBerechnet: berechnet,
+    gesetzt,
+    notenstand,
     praxis,
     theorie,
     alle,
+    auslassung: { ohneDatum: auslassungen(daten, person.klasseId, zeitraum) },
   };
+}
+
+/**
+ * Untere Grenze für ein „Genügend“ aus dem Notenschlüssel (FA-61).
+ *
+ * Die Grenze der Note 4; fehlt sie, greift die Vorgabe 51 %.
+ */
+export function genuegendGrenze(notenschluessel: Notenstufe[]): number {
+  const stufe = notenschluessel.find((n) => n.note === 4);
+  return stufe && istZahl(stufe.ab) ? stufe.ab : 51;
+}
+
+/**
+ * Der Notenvorschlag samt Grund (FA-25, FA-61).
+ *
+ * Die Sperre ist ein **Prädikat über den Strangständen**, keine Rechenoperation:
+ * Sie verändert keinen gespeicherten Wert (AK-3) und keinen der beiden
+ * Strangstände. Ein Strang **ohne Ergebnis** löst sie nicht aus – alles andere
+ * würde eine noch nicht erhobene Leistung als misslungen werten und im Oktober
+ * jedem Schüler ein Nicht genügend anzeigen (Testfall TF-L).
+ *
+ * Rechtsgrundlage § 14 LBVO: „Genügend“ verlangt die Erfüllung in den
+ * wesentlichen Bereichen; ein nicht bestandener Strang ist ein solcher Bereich.
+ */
+export function notenvorschlag(
+  gesamt: Gesamtergebnis,
+  notenschluessel: Notenstufe[],
+  sperreAktiv = true,
+): Notenvorschlag {
+  const ohneSperre = note(gesamt.prozent, notenschluessel);
+  if (!sperreAktiv) return { note: ohneSperre, gesperrtDurch: null, ohneSperre };
+
+  const grenze = genuegendGrenze(notenschluessel);
+  // Reihenfolge fest: Praxis vor Theorie – damit die Begründung bei zwei
+  // negativen Strängen nicht von der Aufzählungsreihenfolge abhängt.
+  const gesperrtDurch =
+    gesamt.praxis.prozent !== null && gesamt.praxis.prozent < grenze
+      ? 'praxis'
+      : gesamt.theorie.prozent !== null && gesamt.theorie.prozent < grenze
+        ? 'theorie'
+        : null;
+
+  if (gesperrtDurch === null) return { note: ohneSperre, gesperrtDurch: null, ohneSperre };
+  return { note: 5, gesperrtDurch, ohneSperre };
+}
+
+/**
+ * Weicht der eingetragene Notenstand vom Vorschlag ab (FA-49 AK-3)?
+ *
+ * Beide Werte bleiben erhalten; die Abweichung ist nur festzustellen, nicht
+ * aufzulösen – sie ist der Normalfall, sobald die Lehrkraft entscheidet.
+ */
+export function notenstandWeichtAb(
+  notenstand: Notenstand | null,
+  vorschlag: Notenvorschlag,
+): boolean {
+  return notenstand !== null && vorschlag.note !== null && notenstand.note !== vorschlag.note;
+}
+
+/**
+ * Liegt dieser Strangstand unter der Genügend-Grenze (FA-61 AK-5)?
+ *
+ * Für die Frühwarnung: erkennbar, **bevor** der Beurteilungszeitraum endet.
+ */
+export function strangUnterGrenze(stand: number | null, notenschluessel: Notenstufe[]): boolean {
+  return stand !== null && stand < genuegendGrenze(notenschluessel);
 }
 
 /**

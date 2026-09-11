@@ -60,9 +60,14 @@ test('führt von der Klasse bis zur Note (FA-01 bis FA-04, FA-12, FA-18, FA-28)'
   await expect(page.getByText('100 %').first()).toBeVisible();
 
   await reiter(page, 'Auswertung').click();
-  await expect(page.getByRole('cell', { name: 'Berger Lena' })).toBeVisible();
+  // In der Karte „Einzelergebnisse“ gesucht: Die Karte „Gesamtstand setzen“
+  // (FA-50) führt dieselben Namen ein zweites Mal.
+  const einzelergebnisse = page
+    .locator('section.karte')
+    .filter({ has: page.getByRole('heading', { name: 'Einzelergebnisse' }) });
+  await expect(einzelergebnisse.getByRole('cell', { name: 'Berger Lena' })).toBeVisible();
   // Nur das Team-Ergebnis ist erfasst; es gilt für alle Mitglieder.
-  await expect(page.getByText('100,0 %').first()).toBeVisible();
+  await expect(einzelergebnisse.getByText('100,0 %').first()).toBeVisible();
 });
 
 test('zeigt Teamvergleich und Notenverteilung (FA-29, FA-30)', async ({ page }) => {

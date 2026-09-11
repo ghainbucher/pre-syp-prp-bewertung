@@ -7,7 +7,7 @@
  * Umlaute richtig erkannt werden.
  */
 
-import { formatProzent, gesamtErgebnis, note } from '../domain/scoring';
+import { formatProzent, gesamtErgebnis, notenvorschlag } from '../domain/scoring';
 import { teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Bewertung, Datenbestand, Person, Team } from '../domain/types';
 
@@ -29,16 +29,20 @@ export interface UebersichtEingabe {
   teams: Team[];
   abschnitte: Abschnitt[];
   bewertungen: Map<string, Bewertung>;
+  /** Stichtag der Auswertung; `null` = gesamter Durchgang (FA-48 AK-1). */
+  stichtagId?: string | null;
 }
 
 /**
  * Erzeugt die Zeilen der Klassenübersicht (FA-31).
  *
  * Die Spalte „Team“ nennt die Zuordnung im **letzten** Abschnitt, weil Teams
- * wechseln dürfen (FA-58); die Abschnittsspalten stehen für sich.
+ * wechseln dürfen (FA-58); die Abschnittsspalten stehen für sich. Die Spalte
+ * „Sperre“ nennt den Strang, der den Vorschlag auf Nicht genügend gesetzt hat
+ * (FA-61 AK-2) – sonst widerspräche der Export dem, was am Bildschirm steht.
  */
 export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string | number | null>> {
-  const { daten, personen, teams, abschnitte, bewertungen } = eingabe;
+  const { daten, personen, teams, abschnitte, bewertungen, stichtagId = null } = eingabe;
   const kopf: Array<string> = [
     'Name',
     'Team',
@@ -47,13 +51,16 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
     'Theorie (%)',
     'Gesamt (%)',
     'Notenvorschlag',
+    'Sperre',
+    'Notenstand',
   ];
 
   const zeilen: Array<Array<string | number | null>> = [kopf];
   const letzter = abschnitte[abschnitte.length - 1];
 
   for (const person of personen) {
-    const ergebnis = gesamtErgebnis(daten, person, bewertungen);
+    const ergebnis = gesamtErgebnis(daten, person, bewertungen, stichtagId);
+    const vorschlag = notenvorschlag(ergebnis, daten.notenschluessel, daten.sperreAktiv);
     const teamId = letzter ? teamIn(daten, letzter.id, person.id) : person.teamId;
     const team = teams.find((t) => t.id === teamId);
     const nachId = new Map(ergebnis.alle.map((e) => [e.abschnitt.id, e.ergebnis]));
@@ -68,17 +75,39 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
       ergebnis.praxis.prozent === null ? '' : formatProzent(ergebnis.praxis.prozent, 1),
       ergebnis.theorie.prozent === null ? '' : formatProzent(ergebnis.theorie.prozent, 1),
       ergebnis.prozent === null ? '' : formatProzent(ergebnis.prozent, 1),
-      note(ergebnis.prozent, daten.notenschluessel) ?? '',
+      vorschlag.note ?? '',
+      vorschlag.gesperrtDurch === 'praxis'
+        ? 'Praxis negativ'
+        : vorschlag.gesperrtDurch === 'theorie'
+          ? 'Theorie negativ'
+          : '',
+      // FA-49: die eingetragene Note – die einzige Ziffer, die nicht gerechnet ist.
+      ergebnis.notenstand?.note ?? '',
     ]);
   }
 
   return zeilen;
 }
 
-/** Dateiname des Exports, abgeleitet vom Klassennamen. */
-export function csvDateiname(klassenname: string, datum = new Date()): string {
-  const sauber = klassenname.trim().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '') || 'Klasse';
-  return `pre-syp-prp-${sauber}-${datum.toISOString().slice(0, 10)}.csv`;
+/** Vereinfacht einen Namen auf dateisystemtaugliche Zeichen. */
+function sauber(text: string, ersatz: string): string {
+  return text.trim().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '') || ersatz;
+}
+
+/**
+ * Dateiname des Exports, abgeleitet von Klasse und Stichtag.
+ *
+ * Der Stichtag gehört in den Namen: Ein Semesterexport und ein Jahresexport
+ * desselben Tages hießen sonst gleich und überschrieben einander.
+ */
+export function csvDateiname(
+  klassenname: string,
+  datum = new Date(),
+  stichtagsname?: string,
+): string {
+  const teile = [sauber(klassenname, 'Klasse')];
+  if (stichtagsname?.trim()) teile.push(sauber(stichtagsname, 'Stichtag'));
+  return `pre-syp-prp-${teile.join('-')}-${datum.toISOString().slice(0, 10)}.csv`;
 }
 
 /**

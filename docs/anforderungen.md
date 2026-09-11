@@ -364,7 +364,7 @@ betrifft nur Berufsschulen.*
 
 ### FA-61 Sperre bei negativem Strang
 
-`Muss` · 0.3.0 · SH-1, SH-2, SH-4 · geplant
+`Muss` · 0.3.0 · SH-1, SH-2, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich, dass ein Strang unterhalb der Genügend-Grenze den Notenvorschlag auf Nicht genügend setzt,
@@ -635,7 +635,7 @@ damit der Lernsprint weniger zählt als die übrigen Sprints.
 
 ### FA-54 Zeitfaktor: der zuletzt erreichte Leistungsstand wiegt schwerer
 
-`Muss` · 0.3.0 · SH-1, SH-4 · geplant
+`Muss` · 0.3.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich, dass spätere Sprints eines Beurteilungszeitraums stärker in den Gesamtstand eingehen als frühere,
@@ -685,7 +685,7 @@ damit ich das Gespräch suchen kann, statt es zu übersehen.
 
 ### FA-45 Peer-Werte als gedeckelter Korrekturfaktor
 
-`Soll` · 0.3.0 · SH-2 · geplant
+`Soll` · 0.3.0 · SH-2 · umgesetzt
 
 Als Schülerin oder Schüler
 möchte ich, dass die Einschätzung meiner Teammitglieder meine Note nur begrenzt verändern kann,
@@ -781,7 +781,7 @@ damit ich die Noten in meine übrigen Unterlagen übernehmen kann.
 
 ### FA-32 Belegfassung je Person
 
-`Soll` · 0.3.0 · SH-3, SH-4 · geplant
+`Soll` · 0.3.0 · SH-3, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich zu jeder Person auf Verlangen eine vollständige Herleitung ihres Stands erzeugen können,
@@ -829,7 +829,7 @@ damit ich meine Arbeit danach ausrichten kann und die Note nachher keine Überra
 
 ### FA-42 Rückmeldung je Person vor der Note
 
-`Soll` · 0.3.0 · SH-2 · geplant
+`Soll` · 0.3.0 · SH-2 · umgesetzt
 
 Als Schülerin oder Schüler
 möchte ich nach jedem Sprint kurz erfahren, wo ich stehe, was gut ist und woran ich arbeiten soll,
@@ -845,7 +845,7 @@ und geht nicht an die Person.*
 
 ### FA-48 Auswertung zu einem Stichtag
 
-`Soll` · 0.3.0 · SH-1, SH-4 · geplant
+`Soll` · 0.3.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich die Auswertung auf die bis zu einem Stichtag abgeschlossenen Sprints einschränken können,
@@ -856,6 +856,8 @@ damit ich zu jedem der drei Zeitpunkte im Jahr nach denselben Regeln einen Stand
 - **AK-3** Der gewählte Stichtag ist in der Ausgabe erkennbar.
 - **AK-4** Drei Stichtage sind vorgesehen: Ende Jänner (Semesterzeugnis), Ende April (Frühwarnung, Ende der Sprintphase), Anfang Juni (Jahreszeugnis).
 - **AK-5** Der Stichtag Ende April erzeugt keinen Beurteilungszeitraum; er wertet den laufenden aus.
+- **AK-6** Zugeordnet wird nach dem **Ende** eines Abschnitts. Ein Abschnitt ohne Enddatum lässt sich keinem Zeitraum zuordnen: Er bleibt in der Stichtagsauswertung außen vor und wird dabei ausdrücklich genannt – weder stilles Weglassen noch stilles Mitzählen.
+- **AK-7** Der Zeitfaktor (FA-54) wird innerhalb des gewählten Zeitraums neu bestimmt; ein Semester ist eine eigene Zeitreihe.
 
 *Grundlage: Fachkonzept 3.3 und 3.4. Der Stichtag Ende April dient der Frühwarnung nach
 § 19 Abs. 3a SchUG (Q6): Er ist der letzte Zeitpunkt, zu dem eine Warnung im zweiten Semester
@@ -863,7 +865,7 @@ noch etwas bewirken kann.*
 
 ### FA-49 Notenstand eintragen
 
-`Muss` · 0.3.0 · SH-1, SH-4 · geplant
+`Muss` · 0.3.0 · SH-1, SH-4 · umgesetzt
 
 Als Lehrkraft
 möchte ich den Notenstand je Person selbst eintragen,
@@ -877,7 +879,7 @@ damit die Beurteilung meine Entscheidung bleibt und nicht das Ergebnis einer Rec
 
 ### FA-50 Werte auf jeder Ebene setzen
 
-`Muss` · 0.3.0 · SH-1 · geplant
+`Muss` · 0.3.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
 möchte ich auf jeder Ebene der Bewertung einen Wert unmittelbar setzen können, ohne die Ebene darunter auszufüllen,

@@ -19,6 +19,8 @@ export interface UiZustand {
   bewerterId: string | null;
   /** In der Rubrikansicht geöffnete Rubrik (FA-55). */
   rubrikId: string | null;
+  /** Stichtag der Auswertung; `null` = alles (FA-48). */
+  stichtagId: string | null;
 }
 
 // Stand 2: Bis dahin hieß der gewählte Abschnitt „sprintId“. Ein neuer
@@ -33,6 +35,7 @@ const START: UiZustand = {
   teamId: null,
   bewerterId: null,
   rubrikId: null,
+  stichtagId: null,
 };
 
 function gelesen(): UiZustand {

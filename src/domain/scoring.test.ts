@@ -5,9 +5,12 @@ import {
   STANDARD_NOTENSCHLUESSEL,
   VORLAGE_RUBRIK_SPRINT,
   leererDatenbestand,
+  schuljahrVon,
   strukturKopie,
   testRubrik,
+  vorlageStichtage,
 } from './defaults';
+import { zeitraumVon } from './zuordnung';
 import {
   ABWEICHUNG_SCHWELLE,
   abschnittsErgebnis,
@@ -15,20 +18,28 @@ import {
   bewertungsSchluessel,
   datumDeutsch,
   ergebnisAusRubrik,
+  genuegendGrenze,
   gesamtErgebnis,
   kategorieErgebnis,
   note,
+  notenstandWeichtAb,
+  notenvorschlag,
   peerErgebnis,
   peerFrageFaellig,
+  peerKorrektur,
   peerWertInProzent,
   selbstEinschaetzung,
   selbstbildAbweichung,
   strangErgebnis,
+  strangUnterGrenze,
+  zeitfaktorWeichtAb,
+  zeitfaktoren,
 } from './scoring';
 import type {
   Abschnitt,
   Bewertung,
   Datenbestand,
+  Gesamtergebnis,
   Kriterium,
   Person,
   Rubrik,
@@ -196,8 +207,7 @@ describe('ergebnisAusRubrik (FA-23, FA-26)', () => {
 
   it('rechnet das dokumentierte Beispiel aus dem Solution-Design nach (NFA-02)', () => {
     // Team 33,5/45 = 74,44 %, Prozess 20/25 = 80 %, Individuell 21/30 = 70 %.
-    // Gewichte 45/20/35 → 74,0 %. Der Peer-Anteil trägt kein Kategoriegewicht
-    // mehr (ADR-007); als Korrekturfaktor kommt er erst mit FA-45.
+    // Gewichte 45/20/35 → 74,0 %. Peer 81,25 % → Korrektur +3,1 (FA-45).
     const b = leereBewertung();
     b.team = { t1: 8, t2: 7.5, t3: 5, t4: 4, t5: 5, t6: 4 };
     b.prozess = { p1: 4, p2: 3, p3: 4, p4: 5, p5: 4 };
@@ -209,8 +219,33 @@ describe('ergebnisAusRubrik (FA-23, FA-26)', () => {
     expect(ergebnis.prozess!.prozent).toBeCloseTo(80, 10);
     expect(ergebnis.individuell!.prozent).toBeCloseTo(70, 10);
     expect(ergebnis.peer!.prozent).toBeCloseTo(81.25, 10);
-    expect(ergebnis.prozent).toBeCloseTo(74.0, 1);
+    expect(ergebnis.prozentVorKorrektur).toBeCloseTo(74.0, 1);
+    expect(ergebnis.korrektur).toBeCloseTo(3.125, 3);
+    expect(ergebnis.prozent).toBeCloseTo(77.1, 1);
     expect(note(ergebnis.prozent, STANDARD_NOTENSCHLUESSEL)).toBe(3);
+  });
+
+  it('lässt das Ergebnis ohne Peer-Werte unverändert (FA-45 AK-3, Solution-Design 6.8)', () => {
+    const b = leereBewertung();
+    b.team = { t1: 8, t2: 7.5, t3: 5, t4: 4, t5: 5, t6: 4 };
+    b.prozess = { p1: 4, p2: 3, p3: 4, p4: 5, p5: 4 };
+    b.individuell = { p1: { punkte: { i1: 6, i2: 6, i3: 5, i4: 4 }, notiz: '' } };
+
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), true);
+    expect(ergebnis.korrektur).toBe(0);
+    expect(ergebnis.prozent).toBeCloseTo(74.0, 1);
+  });
+
+  it('zieht bei durchgängig schlechtester Peer-Bewertung die volle Deckelung ab (Solution-Design 6.8)', () => {
+    const b = leereBewertung();
+    b.team = { t1: 8, t2: 7.5, t3: 5, t4: 4, t5: 5, t6: 4 };
+    b.prozess = { p1: 4, p2: 3, p3: 4, p4: 5, p5: 4 };
+    b.individuell = { p1: { punkte: { i1: 6, i2: 6, i3: 5, i4: 4 }, notiz: '' } };
+    b.peer = { p2: { p1: { q1: 1, q2: 1, q3: 1, q4: 1 } } };
+
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), true);
+    expect(ergebnis.korrektur).toBeCloseTo(-5, 10);
+    expect(ergebnis.prozent).toBeCloseTo(69.0, 1);
   });
 
   it('rechnet fehlende Kategorien aus der Gewichtung heraus statt sie als 0 zu werten', () => {
@@ -224,7 +259,9 @@ describe('ergebnisAusRubrik (FA-23, FA-26)', () => {
       true,
     );
     expect(ergebnis.prozent).toBe(100);
-    expect(ergebnis.fehlend).toEqual(['Scrum-Prozess', 'Individueller Beitrag', 'Peer-Bewertung']);
+    // Peer steht seit FA-45 nicht mehr unter den gewichteten Kategorien und
+    // kann deshalb auch nicht „fehlen“.
+    expect(ergebnis.fehlend).toEqual(['Scrum-Prozess', 'Individueller Beitrag']);
   });
 
   it('nimmt Kategorien mit Gewicht 0 aus der Berechnung, ohne sie als fehlend zu melden (FA-07)', () => {
@@ -246,7 +283,7 @@ describe('ergebnisAusRubrik (FA-23, FA-26)', () => {
       true,
     );
     expect(ergebnis.prozent).toBeNull();
-    expect(ergebnis.fehlend).toHaveLength(4);
+    expect(ergebnis.fehlend).toHaveLength(3);
   });
 
   it('bewertet Personen desselben Teams individuell unterschiedlich', () => {
@@ -320,12 +357,25 @@ describe('strangErgebnis und gesamtErgebnis (FA-24, FA-59)', () => {
     return map;
   }
 
-  it('gewichtet Abschnitte mit ihrem Faktor', () => {
+  it('gewichtet Abschnitte mit dem Produkt aus Abschnitts- und Zeitfaktor (FA-24 AK-3, FA-54)', () => {
     const daten = bestand();
     daten.abschnitte[0].faktor = 0.5;
     const bewertungen = mitPunkten(daten, [
       { abschnittId: 's1', teamPunkte: 4 }, // 40 %
       { abschnittId: 's2', teamPunkte: 10 }, // 100 %
+    ]);
+    // Zwei Abschnitte → Zeitfaktoren 1 und 2. Gewichte 0,5·1 = 0,5 und 1·2 = 2.
+    // (0,5·40 + 2·100) / 2,5 = 88
+    expect(strangErgebnis(daten, person('p1'), 'praxis', bewertungen).prozent).toBeCloseTo(88, 10);
+  });
+
+  it('gewichtet ohne Zeitfaktor allein mit dem Abschnittsfaktor (FA-54 AK-6)', () => {
+    const daten = bestand();
+    daten.zeitfaktorZweiteHaelfte = 1;
+    daten.abschnitte[0].faktor = 0.5;
+    const bewertungen = mitPunkten(daten, [
+      { abschnittId: 's1', teamPunkte: 4 },
+      { abschnittId: 's2', teamPunkte: 10 },
     ]);
     // (0,5·40 + 1·100) / 1,5 = 80
     expect(strangErgebnis(daten, person('p1'), 'praxis', bewertungen).prozent).toBeCloseTo(80, 10);
@@ -601,5 +651,602 @@ describe('Abschluss und Nachfrage (FA-53)', () => {
     const { daten, abschnitt, bewertungen } = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
     abschnitt.art = 'test';
     expect(peerFrageFaellig(daten, abschnitt, bewertungen)).toBe(false);
+  });
+});
+
+describe('peerKorrektur (FA-45)', () => {
+  it('verschiebt bei 50 % gar nicht – das ist der neutrale Punkt (AK-2)', () => {
+    expect(peerKorrektur(50, 5)).toBe(0);
+  });
+
+  it('verschiebt bei 100 % um die volle Deckelung nach oben (AK-1)', () => {
+    expect(peerKorrektur(100, 5)).toBeCloseTo(5, 10);
+  });
+
+  it('verschiebt bei 0 % um die volle Deckelung nach unten (AK-1)', () => {
+    expect(peerKorrektur(0, 5)).toBeCloseTo(-5, 10);
+  });
+
+  it('verschiebt ohne Peer-Ergebnis nicht (AK-3)', () => {
+    expect(peerKorrektur(null, 5)).toBe(0);
+  });
+
+  it('hält die Deckelung auch bei einem Wert außerhalb der Skala ein (AK-1)', () => {
+    expect(peerKorrektur(500, 5)).toBe(5);
+    expect(peerKorrektur(-200, 5)).toBe(-5);
+  });
+
+  it('ist einstellbar (AK-4)', () => {
+    expect(peerKorrektur(100, 10)).toBeCloseTo(10, 10);
+    expect(peerKorrektur(100, 0)).toBe(0);
+  });
+
+  it('behandelt eine unsinnige Deckelung wie keine', () => {
+    expect(peerKorrektur(100, -5)).toBe(0);
+    expect(peerKorrektur(100, Number.NaN)).toBe(0);
+  });
+});
+
+describe('Peer-Korrektur im Abschnittsergebnis (FA-45)', () => {
+  const team = [person('p1'), person('p2')];
+
+  it('greift nicht, solange die Peer-Bewertung für den Abschnitt aus ist (FA-52)', () => {
+    const b = leereBewertung();
+    b.team = { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 };
+    b.peer = { p2: { p1: { q1: 5, q2: 5, q3: 5, q4: 5 } } };
+    const aus = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    expect(aus.korrektur).toBe(0);
+  });
+
+  it('verschiebt ein Ergebnis nie über 100 oder unter 0 Prozent', () => {
+    const b = leereBewertung();
+    b.team = { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 }; // 100 %
+    b.prozess = { p1: 5, p2: 5, p3: 5, p4: 5, p5: 5 };
+    b.individuell = { p1: { punkte: { i1: 10, i2: 8, i3: 6, i4: 6 }, notiz: '' } };
+    b.peer = { p2: { p1: { q1: 5, q2: 5, q3: 5, q4: 5 } } };
+    expect(ergebnisAusRubrik(b, person('p1'), team, rubrik(), true).prozent).toBe(100);
+  });
+
+  it('korrigiert nicht, wenn es gar kein Ergebnis gibt', () => {
+    const b = leereBewertung();
+    b.peer = { p2: { p1: { q1: 5, q2: 5, q3: 5, q4: 5 } } };
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), true);
+    expect(ergebnis.prozent).toBeNull();
+    expect(ergebnis.korrektur).toBe(0);
+  });
+
+  it('ignoriert ein Kategoriegewicht für Peer, damit nichts doppelt zählt (AK-1)', () => {
+    const b = leereBewertung();
+    b.team = { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 }; // 100 %
+    b.peer = { p2: { p1: { q1: 1, q2: 1, q3: 1, q4: 1 } } }; // 0 %
+    const mitGewicht = ergebnisAusRubrik(
+      b,
+      person('p1'),
+      team,
+      rubrik({ gewichte: { team: 50, prozess: 0, individuell: 0, peer: 50 } }),
+      true,
+    );
+    // Ohne die Regel ergäbe die Gewichtung 50 %; mit ihr bleiben 100 % minus
+    // der Deckelung.
+    expect(mitGewicht.prozentVorKorrektur).toBe(100);
+    expect(mitGewicht.prozent).toBeCloseTo(95, 10);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Zeitfaktor (FA-54) – die Fälle aus docs/testfaelle-notenfindung.md          */
+/* -------------------------------------------------------------------------- */
+
+describe('zeitfaktoren (FA-54 AK-1, AK-2)', () => {
+  it('gewichtet die zweite Hälfte doppelt', () => {
+    expect(zeitfaktoren(8)).toEqual([1, 1, 1, 1, 2, 2, 2, 2]);
+  });
+
+  it('rundet zugunsten der späteren Abschnitte auf (AK-2)', () => {
+    // Die Kontrolltabelle aus Kap. 3 des Testfalldokuments.
+    expect(zeitfaktoren(2)).toEqual([1, 2]);
+    expect(zeitfaktoren(3)).toEqual([1, 2, 2]);
+    expect(zeitfaktoren(4)).toEqual([1, 1, 2, 2]);
+    expect(zeitfaktoren(5)).toEqual([1, 1, 2, 2, 2]);
+    expect(zeitfaktoren(6)).toEqual([1, 1, 1, 2, 2, 2]);
+    expect(zeitfaktoren(7)).toEqual([1, 1, 1, 2, 2, 2, 2]);
+    expect(zeitfaktoren(9)).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 2]);
+  });
+
+  it('kommt mit einem einzelnen Abschnitt und mit keinem zurecht', () => {
+    expect(zeitfaktoren(1)).toEqual([2]);
+    expect(zeitfaktoren(0)).toEqual([]);
+  });
+
+  it('ist einstellbar und kennzeichnet die Abweichung von § 20 Abs. 1 LBVO (AK-6)', () => {
+    expect(zeitfaktoren(4, 3)).toEqual([1, 1, 3, 3]);
+    expect(zeitfaktoren(4, 1)).toEqual([1, 1, 1, 1]);
+    expect(zeitfaktorWeichtAb(1)).toBe(true);
+    expect(zeitfaktorWeichtAb(2)).toBe(false);
+  });
+});
+
+describe('Testfälle zur Notenfindung (FA-54, TF-A bis TF-I)', () => {
+  /** Rubrik mit einem einzigen Teamkriterium über 100 Punkte. */
+  const PROZENTRUBRIK: Rubrik = {
+    id: 'r-prozent',
+    name: 'Prozent',
+    team: [{ id: 'w', name: 'Wert', beschreibung: '', max: 100 }],
+    prozess: [],
+    individuell: [],
+    peer: [],
+    gewichte: { team: 100, prozess: 0, individuell: 0, peer: 0 },
+    selbstZaehlt: false,
+  };
+
+  /**
+   * Baut eine Klasse mit einer Person und je einem Sprint pro Wert; der Wert
+   * ist unmittelbar das Abschnittsergebnis in Prozent.
+   */
+  function verlauf(werte: number[], zeitfaktor = 2) {
+    const daten = leererDatenbestand();
+    daten.zeitfaktorZweiteHaelfte = zeitfaktor;
+    daten.rubriken.push(strukturKopie(PROZENTRUBRIK));
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Team Kepler' });
+    const p = person('p1');
+    daten.personen.push(p);
+
+    const bewertungen = new Map<string, Bewertung>();
+    werte.forEach((wert, i) => {
+      const id = `s${i + 1}`;
+      daten.abschnitte.push({
+        id,
+        klasseId: 'k1',
+        nummer: i + 1,
+        name: `Sprint ${i + 1}`,
+        art: 'sprint',
+        strang: 'praxis',
+        rubrikId: PROZENTRUBRIK.id,
+        von: '',
+        bis: '',
+        faktor: 1,
+        peerAktiv: false,
+      });
+      daten.zugehoerigkeiten.push({ abschnittId: id, personId: 'p1', teamId: 'team1' });
+      const bewertung: Bewertung = {
+        abschnittId: id,
+        teamId: 'team1',
+        team: { w: wert },
+        prozess: {},
+        individuell: {},
+        peer: {},
+        notiz: '',
+      };
+      daten.bewertungen.push(bewertung);
+      bewertungen.set(bewertungsSchluessel(id, 'team1'), bewertung);
+    });
+
+    return strangErgebnis(daten, p, 'praxis', bewertungen).prozent!;
+  }
+
+  const FAELLE: Array<[string, number[], number, number]> = [
+    ['TF-A Konstant gut', [85, 85, 85, 85, 85, 85, 85, 85], 85.0, 85.0],
+    ['TF-B Aufsteiger', [45, 50, 60, 68, 75, 82, 88, 90], 69.75, 74.4],
+    ['TF-C Absteiger', [90, 88, 82, 75, 68, 60, 50, 45], 69.75, 65.1],
+    ['TF-D Später Einbruch', [80, 82, 80, 83, 81, 40, 35, 30], 63.875, 58.1],
+    ['TF-E Spätzünder', [50, 48, 52, 50, 55, 75, 88, 92], 63.75, 68.3],
+    ['TF-F Ein Ausreißer früh', [30, 80, 82, 85, 83, 86, 84, 85], 76.875, 79.4],
+    ['TF-G Ein Ausreißer spät', [85, 84, 86, 83, 85, 82, 30, 84], 77.375, 75.0],
+    ['TF-H Schwankend', [80, 45, 85, 50, 78, 48, 82, 52], 65.0, 65.0],
+    ['TF-I Knapp durchgehend', [55, 54, 56, 55, 53, 56, 55, 54], 54.75, 54.7],
+  ];
+
+  for (const [name, werte, ohne, mit] of FAELLE) {
+    it(`${name} ergibt ${mit} % mit Zeitfaktor (FA-54)`, () => {
+      expect(verlauf(werte)).toBeCloseTo(mit, 1);
+    });
+
+    it(`${name} ergibt ohne Zeitfaktor ${ohne} % – die Rechnung nach § 20 Abs. 1 LBVO ist die andere`, () => {
+      expect(verlauf(werte, 1)).toBeCloseTo(ohne, 2);
+    });
+  }
+
+  it('unterscheidet spiegelbildliche Verläufe: TF-B ≠ TF-C (FA-54 AK-5)', () => {
+    const aufsteiger = verlauf([45, 50, 60, 68, 75, 82, 88, 90]);
+    const absteiger = verlauf([90, 88, 82, 75, 68, 60, 50, 45]);
+    // Ohne Zeitfaktor wären beide gleich – genau das ist der Beleg.
+    expect(verlauf([45, 50, 60, 68, 75, 82, 88, 90], 1)).toBeCloseTo(
+      verlauf([90, 88, 82, 75, 68, 60, 50, 45], 1),
+      10,
+    );
+    expect(aufsteiger - absteiger).toBeCloseTo(9.33, 1);
+  });
+
+  it('wechselt bei TF-E die Notenstufe, bei TF-D nicht', () => {
+    expect(note(verlauf([50, 48, 52, 50, 55, 75, 88, 92], 1), STANDARD_NOTENSCHLUESSEL)).toBe(4);
+    expect(note(verlauf([50, 48, 52, 50, 55, 75, 88, 92]), STANDARD_NOTENSCHLUESSEL)).toBe(3);
+    expect(note(verlauf([80, 82, 80, 83, 81, 40, 35, 30]), STANDARD_NOTENSCHLUESSEL)).toBe(4);
+  });
+
+  it('weist Abschnittsfaktor und Zeitfaktor getrennt aus (AK-4)', () => {
+    const daten = leererDatenbestand();
+    daten.rubriken.push(strukturKopie(PROZENTRUBRIK));
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.personen.push(person('p1', null));
+    for (let i = 1; i <= 4; i += 1) {
+      daten.abschnitte.push({
+        id: `s${i}`,
+        klasseId: 'k1',
+        nummer: i,
+        name: `Sprint ${i}`,
+        art: 'sprint',
+        strang: 'praxis',
+        rubrikId: PROZENTRUBRIK.id,
+        von: '',
+        bis: '',
+        faktor: i === 1 ? 0.5 : 1,
+        peerAktiv: false,
+      });
+    }
+    const ergebnis = strangErgebnis(daten, person('p1', null), 'praxis', new Map());
+    expect(ergebnis.abschnitte.map((e) => e.zeitfaktor)).toEqual([1, 1, 2, 2]);
+    expect(ergebnis.abschnitte.map((e) => e.abschnitt.faktor)).toEqual([0.5, 1, 1, 1]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Sperre bei negativem Strang (FA-61) – TF-J bis TF-M                         */
+/* -------------------------------------------------------------------------- */
+
+describe('Sperre bei negativem Strang (FA-61)', () => {
+  /** Ein Gesamtergebnis mit vorgegebenen Strangständen – ohne Umweg über Punkte. */
+  function stand(praxis: number | null, theorie: number | null): Gesamtergebnis {
+    const gewichtet =
+      praxis === null && theorie === null
+        ? null
+        : praxis === null
+          ? theorie
+          : theorie === null
+            ? praxis
+            : (75 * praxis + 25 * theorie) / 100;
+    return {
+      prozent: gewichtet,
+      praxis: { strang: 'praxis', prozent: praxis, abschnitte: [] },
+      theorie: { strang: 'theorie', prozent: theorie, abschnitte: [] },
+      alle: [],
+      auslassung: { ohneDatum: [] },
+      prozentBerechnet: gewichtet,
+      gesetzt: null,
+      notenstand: null,
+    };
+  }
+
+  it('genügt sich die Grenze aus dem Notenschlüssel zu holen', () => {
+    expect(genuegendGrenze(STANDARD_NOTENSCHLUESSEL)).toBe(51);
+    expect(genuegendGrenze([])).toBe(51);
+  });
+
+  it('TF-J: Theorie trägt nicht – 82 / 44 ergibt trotz 72,5 % gesamt ein Nicht genügend', () => {
+    const gesamt = stand(82, 44);
+    expect(gesamt.prozent).toBeCloseTo(72.5, 10);
+    const vorschlag = notenvorschlag(gesamt, STANDARD_NOTENSCHLUESSEL);
+    expect(vorschlag.ohneSperre).toBe(3);
+    expect(vorschlag.note).toBe(5);
+    expect(vorschlag.gesperrtDurch).toBe('theorie');
+  });
+
+  it('TF-K: Praxis trägt nicht – die Sperre wirkt in beide Richtungen (AK-4)', () => {
+    const gesamt = stand(48, 90);
+    expect(gesamt.prozent).toBeCloseTo(58.5, 10);
+    const vorschlag = notenvorschlag(gesamt, STANDARD_NOTENSCHLUESSEL);
+    expect(vorschlag.ohneSperre).toBe(4);
+    expect(vorschlag.note).toBe(5);
+    expect(vorschlag.gesperrtDurch).toBe('praxis');
+  });
+
+  it('TF-L: noch kein Test – ein fehlender Stand ist kein negativer', () => {
+    const gesamt = stand(82, null);
+    expect(gesamt.prozent).toBe(82);
+    const vorschlag = notenvorschlag(gesamt, STANDARD_NOTENSCHLUESSEL);
+    expect(vorschlag.note).toBe(2);
+    expect(vorschlag.gesperrtDurch).toBeNull();
+  });
+
+  it('TF-M: beide knapp positiv – keine Sperre, und die Grenze selbst gilt als erfüllt', () => {
+    const vorschlag = notenvorschlag(stand(52, 51), STANDARD_NOTENSCHLUESSEL);
+    expect(vorschlag.note).toBe(4);
+    expect(vorschlag.gesperrtDurch).toBeNull();
+    // Die andere Seite der Schwelle: 50,9 % ist nicht mehr positiv.
+    expect(notenvorschlag(stand(52, 50.9), STANDARD_NOTENSCHLUESSEL).gesperrtDurch).toBe('theorie');
+  });
+
+  it('verändert keinen gespeicherten Wert (AK-3, ADR-010)', () => {
+    const gesamt = stand(82, 44);
+    const vorher = JSON.parse(JSON.stringify(gesamt));
+    notenvorschlag(gesamt, STANDARD_NOTENSCHLUESSEL);
+    expect(gesamt).toEqual(vorher);
+  });
+
+  it('nennt bei zwei negativen Strängen die Praxis zuerst (AK-2)', () => {
+    expect(notenvorschlag(stand(40, 30), STANDARD_NOTENSCHLUESSEL).gesperrtDurch).toBe('praxis');
+  });
+
+  it('lässt sich abschalten (AK-6)', () => {
+    const vorschlag = notenvorschlag(stand(82, 44), STANDARD_NOTENSCHLUESSEL, false);
+    expect(vorschlag.note).toBe(3);
+    expect(vorschlag.gesperrtDurch).toBeNull();
+  });
+
+  it('liefert ohne jedes Ergebnis keinen Vorschlag', () => {
+    const vorschlag = notenvorschlag(stand(null, null), STANDARD_NOTENSCHLUESSEL);
+    expect(vorschlag.note).toBeNull();
+    expect(vorschlag.gesperrtDurch).toBeNull();
+  });
+
+  it('erkennt einen gefährdeten Strang für die Frühwarnung (AK-5)', () => {
+    expect(strangUnterGrenze(44, STANDARD_NOTENSCHLUESSEL)).toBe(true);
+    expect(strangUnterGrenze(51, STANDARD_NOTENSCHLUESSEL)).toBe(false);
+    expect(strangUnterGrenze(null, STANDARD_NOTENSCHLUESSEL)).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Stichtage (FA-48)                                                          */
+/* -------------------------------------------------------------------------- */
+
+describe('Auswertung zu einem Stichtag (FA-48)', () => {
+  const STICHTAGE = vorlageStichtage(2026);
+
+  /** Vier Sprints mit Enddaten über das Schuljahr verteilt. */
+  function bestandMitDaten() {
+    const daten = leererDatenbestand();
+    daten.stichtage = strukturKopie(STICHTAGE);
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Team Kepler' });
+    daten.personen.push(person('p1'));
+    const enden = ['2026-11-14', '2027-01-23', '2027-03-20', '2027-05-29'];
+    const bewertungen = new Map<string, Bewertung>();
+    enden.forEach((bis, i) => {
+      const id = `s${i + 1}`;
+      daten.abschnitte.push({
+        id,
+        klasseId: 'k1',
+        nummer: i + 1,
+        name: `Sprint ${i + 1}`,
+        art: 'sprint',
+        strang: 'praxis',
+        rubrikId: RUBRIK_SPRINT,
+        von: '',
+        bis,
+        faktor: 1,
+        peerAktiv: false,
+      });
+      daten.zugehoerigkeiten.push({ abschnittId: id, personId: 'p1', teamId: 'team1' });
+      const bewertung: Bewertung = {
+        abschnittId: id,
+        teamId: 'team1',
+        team: { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 },
+        prozess: {},
+        individuell: {},
+        peer: {},
+        notiz: '',
+      };
+      daten.bewertungen.push(bewertung);
+      bewertungen.set(bewertungsSchluessel(id, 'team1'), bewertung);
+    });
+    return { daten, bewertungen };
+  }
+
+  it('legt die drei vorgesehenen Stichtage an (AK-4)', () => {
+    expect(STICHTAGE.map((s) => s.name)).toEqual([
+      'Semesterzeugnis',
+      'Frühwarnung',
+      'Jahreszeugnis',
+    ]);
+    expect(STICHTAGE.map((s) => s.bis)).toEqual(['2027-01-31', '2027-04-30', '2027-06-10']);
+  });
+
+  it('leitet das Schuljahr aus dem Datum ab – der Jänner gehört zum Vorjahr', () => {
+    expect(schuljahrVon(new Date(2026, 8, 15))).toBe(2026);
+    expect(schuljahrVon(new Date(2027, 0, 15))).toBe(2026);
+  });
+
+  it('lässt einen Zeugnis-Stichtag beim vorherigen Zeugnis beginnen', () => {
+    const { daten } = bestandMitDaten();
+    expect(zeitraumVon(daten, 'stichtag-semester')).toEqual({ von: null, bis: '2027-01-31' });
+    expect(zeitraumVon(daten, 'stichtag-jahr')).toEqual({
+      von: '2027-01-31',
+      bis: '2027-06-10',
+    });
+  });
+
+  it('erzeugt für die Frühwarnung keinen eigenen Zeitraum, sondern wertet den laufenden aus (AK-5)', () => {
+    const { daten } = bestandMitDaten();
+    // Beginn wie beim Jahreszeugnis – nicht beim Semesterende plus eins.
+    expect(zeitraumVon(daten, 'stichtag-fruehwarnung')).toEqual({
+      von: '2027-01-31',
+      bis: '2027-04-30',
+    });
+  });
+
+  it('ohne Stichtag bleibt der Zeitraum offen', () => {
+    const { daten } = bestandMitDaten();
+    expect(zeitraumVon(daten, null)).toEqual({ von: null, bis: null });
+    expect(zeitraumVon(daten, 'gibtesnicht')).toEqual({ von: null, bis: null });
+  });
+
+  it('schränkt die Auswertung auf die bis dahin abgeschlossenen Abschnitte ein (AK-1)', () => {
+    const { daten, bewertungen } = bestandMitDaten();
+    const semester = gesamtErgebnis(daten, person('p1'), bewertungen, 'stichtag-semester');
+    expect(semester.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s1', 's2']);
+
+    const jahr = gesamtErgebnis(daten, person('p1'), bewertungen, 'stichtag-jahr');
+    expect(jahr.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s3', 's4']);
+
+    const fruehwarnung = gesamtErgebnis(daten, person('p1'), bewertungen, 'stichtag-fruehwarnung');
+    expect(fruehwarnung.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s3']);
+  });
+
+  it('lässt die Abschnitte nach dem Stichtag im Bestand (AK-2)', () => {
+    const { daten, bewertungen } = bestandMitDaten();
+    gesamtErgebnis(daten, person('p1'), bewertungen, 'stichtag-semester');
+    expect(daten.abschnitte).toHaveLength(4);
+    expect(daten.bewertungen).toHaveLength(4);
+  });
+
+  it('bestimmt den Zeitfaktor innerhalb des Zeitraums neu (FA-54 AK-3)', () => {
+    const { daten, bewertungen } = bestandMitDaten();
+    // Ohne Stichtag: vier Abschnitte → 1 1 2 2.
+    expect(
+      gesamtErgebnis(daten, person('p1'), bewertungen).praxis.abschnitte.map((e) => e.zeitfaktor),
+    ).toEqual([1, 1, 2, 2]);
+    // Im Semester nur zwei → 1 2. Der Zeitfaktor ist eine Aussage über die
+    // Lage im Zeitraum, nicht im Schuljahr.
+    expect(
+      gesamtErgebnis(daten, person('p1'), bewertungen, 'stichtag-semester').praxis.abschnitte.map(
+        (e) => e.zeitfaktor,
+      ),
+    ).toEqual([1, 2]);
+  });
+
+  it('lässt Abschnitte ohne Enddatum aus und meldet sie (FA-48)', () => {
+    const { daten, bewertungen } = bestandMitDaten();
+    daten.abschnitte[1].bis = '';
+    const semester = gesamtErgebnis(daten, person('p1'), bewertungen, 'stichtag-semester');
+    expect(semester.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s1']);
+    expect(semester.auslassung.ohneDatum.map((a) => a.id)).toEqual(['s2']);
+  });
+
+  it('meldet ohne Stichtag keine Auslassung – dann zählt alles', () => {
+    const { daten, bewertungen } = bestandMitDaten();
+    daten.abschnitte[1].bis = '';
+    const alles = gesamtErgebnis(daten, person('p1'), bewertungen);
+    expect(alles.praxis.abschnitte).toHaveLength(4);
+    expect(alles.auslassung.ohneDatum).toEqual([]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Gesetzte Werte in der Rechnung (FA-50, FA-49)                              */
+/* -------------------------------------------------------------------------- */
+
+describe('Gesetzte Werte in der Rechnung (FA-50)', () => {
+  const team = [person('p1'), person('p2')];
+
+  function bewertungMitGesetzt(gesetzt: Bewertung['gesetzt']): Bewertung {
+    const b = leereBewertung();
+    b.team = { t1: 8, t2: 7.5, t3: 5, t4: 4, t5: 5, t6: 4 }; // 74,44 %
+    b.prozess = { p1: 4, p2: 3, p3: 4, p4: 5, p5: 4 }; // 80 %
+    b.individuell = { p1: { punkte: { i1: 6, i2: 6, i3: 5, i4: 4 }, notiz: '' } }; // 70 %
+    b.gesetzt = gesetzt;
+    return b;
+  }
+
+  it('lässt ein gesetztes Kategorieergebnis für alles darüber gelten (AK-3)', () => {
+    // Die dritte Variante des Rechenbeispiels aus Solution-Design 6.8:
+    // Individuell auf 85 % gesetzt → (45·74,44 + 20·80 + 35·85)/100 = 79,25 %.
+    // Das Dokument nannte hier 79,0 %; der Fehler fiel bei diesem Test auf und
+    // ist am 11.09.2026 berichtigt worden.
+    const b = bewertungMitGesetzt({
+      kategorie: { individuell: { prozent: 85, begruendung: '', gesetztAm: '2027-01-20T10:00:00.000Z' } },
+    });
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    expect(ergebnis.individuell!.prozent).toBe(85);
+    expect(ergebnis.prozent).toBeCloseTo(79.25, 2);
+  });
+
+  it('behält den berechneten Wert daneben (AK-2, G9)', () => {
+    const b = bewertungMitGesetzt({
+      kategorie: { individuell: { prozent: 85, begruendung: '', gesetztAm: '2027-01-20T10:00:00.000Z' } },
+    });
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    expect(ergebnis.individuell!.prozentBerechnet).toBeCloseTo(70, 10);
+    expect(ergebnis.individuell!.gesetzt!.prozent).toBe(85);
+  });
+
+  it('setzt eine Kategorie auch dann, wenn darunter nichts erfasst ist (AK-1)', () => {
+    const b = leereBewertung();
+    b.gesetzt = {
+      kategorie: { team: { prozent: 60, begruendung: '', gesetztAm: '2027-01-20T10:00:00.000Z' } },
+    };
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    expect(ergebnis.team!.prozent).toBe(60);
+    expect(ergebnis.team!.prozentBerechnet).toBeNull();
+    expect(ergebnis.prozent).toBeCloseTo(60, 10);
+  });
+
+  it('lässt ein gesetztes Abschnittsergebnis die Kategorien überstimmen (AK-3)', () => {
+    const b = bewertungMitGesetzt({
+      abschnittsergebnis: { p1: { prozent: 90, begruendung: 'Krankheit', gesetztAm: '2027-01-20T10:00:00.000Z' } },
+    });
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    expect(ergebnis.prozent).toBe(90);
+    expect(ergebnis.prozentBerechnet).toBeCloseTo(74.0, 1);
+    expect(ergebnis.gesetzt!.begruendung).toBe('Krankheit');
+  });
+
+  it('gilt nur für die Person, für die er gesetzt wurde', () => {
+    const b = bewertungMitGesetzt({
+      abschnittsergebnis: { p1: { prozent: 90, begruendung: '', gesetztAm: '2027-01-20T10:00:00.000Z' } },
+    });
+    expect(ergebnisAusRubrik(b, person('p2'), team, rubrik(), false).gesetzt).toBeNull();
+  });
+
+  it('TF-G: ein gesetzter Wert löscht den gerechneten nicht (FA-50 AK-2)', () => {
+    // Aus docs/testfaelle-notenfindung.md Kap. 6: TF-G bekommt zwei Tests.
+    const b = leereBewertung();
+    b.team = { t1: 3 }; // niedrig gerechnet
+    b.gesetzt = {
+      abschnittsergebnis: { p1: { prozent: 84, begruendung: 'Einbruch war Krankheit', gesetztAm: '2027-01-20T10:00:00.000Z' } },
+    };
+    const ergebnis = ergebnisAusRubrik(b, person('p1'), team, rubrik(), false);
+    expect(ergebnis.prozent).toBe(84);
+    expect(ergebnis.prozentBerechnet).not.toBe(null);
+    expect(ergebnis.prozentBerechnet).toBeLessThan(84);
+  });
+});
+
+describe('Gesetzter Gesamtstand und Notenstand (FA-49, FA-50)', () => {
+  function bestandMitStand() {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.personen.push(person('p1', null));
+    return daten;
+  }
+
+  it('lässt einen gesetzten Gesamtstand gelten und behält den gerechneten', () => {
+    const daten = bestandMitStand();
+    daten.gesamtstand['gesamter-durchgang'] = {
+      p1: { prozent: 88, begruendung: '', gesetztAm: '2027-06-05T10:00:00.000Z' },
+    };
+    const ergebnis = gesamtErgebnis(daten, person('p1', null), new Map());
+    expect(ergebnis.prozent).toBe(88);
+    // Ohne Abschnitte gibt es nichts zu rechnen – der gesetzte Wert steht für sich.
+    expect(ergebnis.prozentBerechnet).toBeNull();
+  });
+
+  it('führt gesetzte Werte je Stichtag getrennt (FA-49 AK-5)', () => {
+    const daten = bestandMitStand();
+    daten.stichtage = vorlageStichtage(2026);
+    daten.gesamtstand['stichtag-semester'] = {
+      p1: { prozent: 62, begruendung: '', gesetztAm: '2027-01-31T10:00:00.000Z' },
+    };
+    expect(gesamtErgebnis(daten, person('p1', null), new Map(), 'stichtag-semester').prozent).toBe(62);
+    expect(gesamtErgebnis(daten, person('p1', null), new Map(), 'stichtag-jahr').prozent).toBeNull();
+  });
+
+  it('reicht den Notenstand des Stichtags durch (FA-49)', () => {
+    const daten = bestandMitStand();
+    daten.notenstaende['gesamter-durchgang'] = {
+      p1: { note: 2, begruendung: 'Verlauf steigend', gesetztAm: '2027-06-05T10:00:00.000Z' },
+    };
+    const ergebnis = gesamtErgebnis(daten, person('p1', null), new Map());
+    expect(ergebnis.notenstand!.note).toBe(2);
+  });
+
+  it('erkennt eine Abweichung zwischen Notenstand und Vorschlag (AK-3)', () => {
+    const vorschlag = { note: 3, gesperrtDurch: null, ohneSperre: 3 };
+    const stand = { note: 2 as const, begruendung: '', gesetztAm: '2027-06-05T10:00:00.000Z' };
+    expect(notenstandWeichtAb(stand, vorschlag)).toBe(true);
+    expect(notenstandWeichtAb({ ...stand, note: 3 }, vorschlag)).toBe(false);
+    expect(notenstandWeichtAb(null, vorschlag)).toBe(false);
+    // Ohne Vorschlag gibt es nichts, wovon abgewichen werden könnte.
+    expect(notenstandWeichtAb(stand, { note: null, gesperrtDurch: null, ohneSperre: null })).toBe(false);
   });
 });
