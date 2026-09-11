@@ -1,3 +1,8 @@
+/// <reference types="node" />
+// Diese Datei läuft auf Node, nicht im Browser – tsconfig.json führt in `types`
+// bewusst nur `vite/client`, damit Node-Globals nicht im Anwendungscode
+// auftauchen. Die Referenz holt sie genau hier und nur hier herein.
+
 import { defineConfig, devices } from '@playwright/test';
 
 /**

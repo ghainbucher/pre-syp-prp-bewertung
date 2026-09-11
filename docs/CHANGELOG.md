@@ -149,6 +149,16 @@ ausgeführt worden, weil in der Entwicklungsumgebung keine Paketquellen erreichb
 - Der Prüflauf ermittelte sein Wurzelverzeichnis über `new URL(…).pathname`. Unter Windows
   liefert das `/C:/…`, was `join()` zu `C:\C:\…` verkettet. Jetzt `fileURLToPath()`.
 
+**Aus dem ersten CI-Lauf am 11.09.2026:**
+
+- `playwright.config.ts` verwendet `process.env`, `tsconfig.json` führt in `types` aber nur
+  `vite/client` – Node-Globals sind also nicht Teil des Programms. **Lokal fiel das nicht
+  auf**, weil TypeScript `@types/node` aus einem `node_modules` im Benutzerverzeichnis
+  auflöste; auf dem Runner gibt es das nicht. Jetzt `@types/node` als ausdrückliche
+  Entwicklungsabhängigkeit und eine `/// <reference types="node" />` genau in der einen
+  Datei, die sie braucht – damit bleiben Node-Globals aus dem Anwendungscode heraus.
+
+
 **Aus dem ersten E2E-Lauf am 11.09.2026:**
 
 - **Datenverlust beim Schließen (FA-19, Risiko R-01).** Das Speichern war um 400 ms entprellt
