@@ -33,6 +33,10 @@ gh label create blockiert        --color 5319e7 --description "Wartet auf eine E
 Milestones sind **Releases**, nicht Themen – so zeigt GitHub den Fortschritt gleich mit an.
 
 ```bash
-gh api repos/:owner/:repo/milestones -f title='0.2.0' -f description='Rückmeldung an die Schüler, Auftraggeber, Sicherungserinnerung'
-gh api repos/:owner/:repo/milestones -f title='0.3.0' -f description='Rubrik weitergeben, Teamhistorie'
+gh api repos/:owner/:repo/milestones -f title='0.2.0' -f description='Erfassen: Datenmodell mit Abschnitten und Strängen, Rubrikausgabe, Sicherung. Bis Mitte Oktober'
+gh api repos/:owner/:repo/milestones -f title='0.3.0' -f description='Beurteilen: Zeitfaktor, gesetzte Werte, Notenstand, Sperre, Stichtag, Belegfassung. Bis Ende Jänner'
+gh api repos/:owner/:repo/milestones -f title='0.4.0' -f description='Ergänzen: Auftraggeber, Testzeitbudget, Ergebnisimport, Tastatur, Barrierefreiheit. Laufend'
 ```
+
+Die Zuordnung der Anforderungen zu diesen drei Releases steht im Anforderungsdokument,
+Kapitel 3.1.
