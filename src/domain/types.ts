@@ -15,6 +15,15 @@
 
 export type Id = string;
 
+/**
+ * Wann ein Kriterium beobachtet wird (FA-75).
+ *
+ * Bestimmt **nur den Ort der Erfassung**, niemals die Rechnung: Kategorie,
+ * Gewicht und Maximalpunkte bleiben unberührt (AK-2). Ohne Angabe gilt
+ * `review` – so verhalten sich alle bisherigen Bestände unverändert (AK-5).
+ */
+export type Erfassungszeitpunkt = 'planning' | 'daily' | 'review';
+
 /** Ein Bewertungskriterium mit erreichbarer Punktezahl. */
 export interface Kriterium {
   id: Id;
@@ -22,6 +31,8 @@ export interface Kriterium {
   beschreibung: string;
   /** Erreichbare Punkte. Bei Peer-Kriterien ohne Bedeutung (feste Skala 1–5). */
   max: number;
+  /** Wann es beobachtet wird (FA-75). Fehlt es, gilt `review`. */
+  zeitpunkt?: Erfassungszeitpunkt;
 }
 
 /** Die vier Kategorien einer Rubrik (FA-05). */

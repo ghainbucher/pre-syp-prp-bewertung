@@ -11,6 +11,7 @@ import {
   testRubrik,
   vorlageStichtage,
   vorlagenRubriken,
+  zeitpunktVon,
 } from './defaults';
 import { zeitraumVon } from './zuordnung';
 import { abschnitteMitAbweichung, kriterienWeichenAb } from './scoring';
@@ -1652,5 +1653,30 @@ describe('Vorlage für den Vorbereitungssprint (FA-69)', () => {
 
   it('wird mit ausgeliefert (AK-1)', () => {
     expect(vorlagenRubriken().map((r) => r.name)).toContain('Vorbereitungssprint');
+  });
+});
+
+describe('Erfassungszeitpunkt je Kriterium (FA-75)', () => {
+  it('gilt als „Review“, solange nichts eingetragen ist (AK-1)', () => {
+    expect(zeitpunktVon({ id: 'x', name: 'X', beschreibung: '', max: 5 })).toBe('review');
+  });
+
+  it('trägt in den Vorlagen Planning und Daily an der richtigen Stelle (AK-4)', () => {
+    for (const vorlage of [VORLAGE_RUBRIK_SPRINT, VORLAGE_RUBRIK_VORBEREITUNG]) {
+      const planning = vorlage.prozess.filter((k) => zeitpunktVon(k) === 'planning');
+      const daily = vorlage.prozess.filter((k) => zeitpunktVon(k) === 'daily');
+      expect(planning.map((k) => k.name)).toEqual(['Sprint Planning']);
+      expect(daily.map((k) => k.name)).toEqual(['Daily Standup']);
+      // Alles Übrige wird im Review erfasst.
+      expect(vorlage.team.every((k) => zeitpunktVon(k) === 'review')).toBe(true);
+      expect(vorlage.individuell.every((k) => zeitpunktVon(k) === 'review')).toBe(true);
+    }
+  });
+
+  it('ändert die Rechnung nicht (AK-2)', () => {
+    // Dieselben Punkte, einmal mit und einmal ohne Zeitpunkt: gleicher Wert.
+    const ohne = [{ id: 'a', name: 'A', beschreibung: '', max: 10 }];
+    const mit = [{ id: 'a', name: 'A', beschreibung: '', max: 10, zeitpunkt: 'daily' as const }];
+    expect(kategorieErgebnis({ a: 7 }, mit)?.prozent).toBe(kategorieErgebnis({ a: 7 }, ohne)?.prozent);
   });
 });

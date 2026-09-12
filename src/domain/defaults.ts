@@ -7,6 +7,8 @@
 
 import type {
   Datenbestand,
+  Erfassungszeitpunkt,
+  Kriterium,
   Notenstufe,
   Rubrik,
   Stichtag,
@@ -83,8 +85,8 @@ export const VORLAGE_RUBRIK_SPRINT: Rubrik = {
     { id: 't6', name: 'Sprint Review', beschreibung: 'Demo läuft, Ergebnisse werden nachvollziehbar präsentiert', max: 5 },
   ],
   prozess: [
-    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5 },
-    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5 },
+    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5, zeitpunkt: 'planning' },
+    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5, zeitpunkt: 'daily' },
     { id: 'p3', name: 'Backlog-Pflege', beschreibung: 'Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done', max: 5 },
     { id: 'p4', name: 'Board & Transparenz', beschreibung: 'Board aktuell, Burndown bzw. Velocity gepflegt', max: 5 },
     { id: 'p5', name: 'Retrospektive', beschreibung: 'Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt', max: 5 },
@@ -132,8 +134,8 @@ export const VORLAGE_RUBRIK_VORBEREITUNG: Rubrik = {
     { id: 't5', name: 'Versionsverwaltung', beschreibung: 'Repository eingerichtet, aussagekräftige Commits, Branch-Strategie vereinbart und eingehalten', max: 6 },
   ],
   prozess: [
-    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5 },
-    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5 },
+    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5, zeitpunkt: 'planning' },
+    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5, zeitpunkt: 'daily' },
     { id: 'p3', name: 'Backlog-Pflege', beschreibung: 'Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done', max: 5 },
     { id: 'p4', name: 'Board & Transparenz', beschreibung: 'Board aktuell, Burndown bzw. Velocity gepflegt', max: 5 },
     { id: 'p5', name: 'Retrospektive', beschreibung: 'Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt', max: 5 },
@@ -249,6 +251,21 @@ export function vorlageStichtage(startjahr: number): Stichtag[] {
  */
 export function schuljahrVon(datum = new Date()): number {
   return datum.getMonth() >= 8 ? datum.getFullYear() : datum.getFullYear() - 1;
+}
+
+/** Beschriftung der Erfassungszeitpunkte (FA-75). */
+export const ZEITPUNKT_BEZEICHNUNG: Record<Erfassungszeitpunkt, string> = {
+  planning: 'Sprintplanning',
+  daily: 'Daily',
+  review: 'Sprintreview',
+};
+
+/** Die drei Zeitpunkte in der Reihenfolge des Sprintablaufs. */
+export const ZEITPUNKTE: Erfassungszeitpunkt[] = ['planning', 'daily', 'review'];
+
+/** Der Zeitpunkt eines Kriteriums; ohne Angabe gilt `review` (FA-75 AK-1). */
+export function zeitpunktVon(kriterium: Kriterium): Erfassungszeitpunkt {
+  return kriterium.zeitpunkt ?? 'review';
 }
 
 /** Die mit der Anwendung ausgelieferten Rubriken. */

@@ -7,6 +7,7 @@ import {
   VORLAGE_RUBRIK_SPRINT,
   leererDatenbestand,
   strukturKopie,
+  zeitpunktVon,
 } from '../domain/defaults';
 import { ergebnisAusRubrik, gesamtErgebnis } from '../domain/scoring';
 import { planungVon } from '../domain/zuordnung';
@@ -402,5 +403,16 @@ describe('Migration auf Schemastand 3 (FA-68)', () => {
     const zweites = laden(speicher);
     expect(sicherungen(speicher)).toHaveLength(1);
     expect(zweites.daten.teamabschnitte).toHaveLength(2);
+  });
+});
+
+describe('Erfassungszeitpunkt bleibt additiv (FA-75 AK-5)', () => {
+  it('lässt ein Kriterium ohne Zeitpunkt unangetastet', () => {
+    const roh = strukturKopie(leererDatenbestand()) as unknown as Record<string, unknown>;
+    const rubriken = roh.rubriken as Array<{ prozess: Array<Record<string, unknown>> }>;
+    for (const kriterium of rubriken[0].prozess) delete kriterium.zeitpunkt;
+    const gelesen = migriere(roh);
+    expect(gelesen.rubriken[0].prozess.every((k) => k.zeitpunkt === undefined)).toBe(true);
+    expect(zeitpunktVon(gelesen.rubriken[0].prozess[0])).toBe('review');
   });
 });
