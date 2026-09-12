@@ -7,8 +7,18 @@
  * Stelle steht statt verstreut in den Ansichten.
  */
 
-import { VORLAGE_RUBRIK_SPRINT } from './defaults';
-import type { Abschnitt, Datenbestand, Id, Person, Rubrik, Team, Zeitraum } from './types';
+import { RUBRIK_VORBEREITUNG, VORLAGE_RUBRIK_SPRINT, strukturKopie } from './defaults';
+import type {
+  Abschnitt,
+  Datenbestand,
+  Herkunft,
+  Id,
+  Person,
+  Rubrik,
+  Team,
+  Teamabschnitt,
+  Zeitraum,
+} from './types';
 
 const nachName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, 'de');
 
@@ -20,7 +30,15 @@ const nachName = (a: { name: string }, b: { name: string }) => a.name.localeComp
  * Rubrik inzwischen anders aussieht. Der Fehler ist von außen unsichtbar und
  * fällt erst auf, wenn eine Belegfassung die falschen Kriterien zeigt.
  */
-export function rubrikVon(daten: Datenbestand, abschnitt: Abschnitt | undefined): Rubrik {
+export function rubrikFuer(
+  daten: Datenbestand,
+  abschnitt: Abschnitt | undefined,
+  teamId: Id | null,
+): Rubrik {
+  if (abschnitt && teamId) {
+    const planung = planungVon(daten, abschnitt.id, teamId);
+    if (planung?.rubrikKopie) return planung.rubrikKopie;
+  }
   if (abschnitt?.rubrikKopie) return abschnitt.rubrikKopie;
   const zugeordnet = abschnitt
     ? daten.rubriken.find((r) => r.id === abschnitt.rubrikId)
@@ -28,6 +46,85 @@ export function rubrikVon(daten: Datenbestand, abschnitt: Abschnitt | undefined)
   if (zugeordnet) return zugeordnet;
   const vorgabe = daten.rubriken.find((r) => r.id === daten.vorgabeRubrikId);
   return vorgabe ?? daten.rubriken[0] ?? VORLAGE_RUBRIK_SPRINT;
+}
+
+/**
+ * Die Rubrik eines Abschnitts ohne Bezug auf ein Team.
+ *
+ * Für Tests (die kein Team haben) und für Ausgaben, die den Abschnitt als
+ * Ganzes betreffen – etwa das Kriterienblatt vor dem Sprint.
+ */
+export function rubrikVon(daten: Datenbestand, abschnitt: Abschnitt | undefined): Rubrik {
+  return rubrikFuer(daten, abschnitt, null);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Planung je Team (FA-66, FA-67)                                             */
+/* -------------------------------------------------------------------------- */
+
+/** Die Planung eines Teams für einen Abschnitt, sofern angelegt. */
+export function planungVon(
+  daten: Datenbestand,
+  abschnittId: Id,
+  teamId: Id | null,
+): Teamabschnitt | undefined {
+  if (!teamId) return undefined;
+  return daten.teamabschnitte?.find(
+    (tp) => tp.abschnittId === abschnittId && tp.teamId === teamId,
+  );
+}
+
+/** Alle Planungen zu einem Abschnitt. */
+export function planungenIn(daten: Datenbestand, abschnittId: Id): Teamabschnitt[] {
+  return (daten.teamabschnitte ?? []).filter((tp) => tp.abschnittId === abschnittId);
+}
+
+/**
+ * Die Planung, aus der die Kriterien des nächsten Sprints stammen (FA-67 AK-7).
+ *
+ * „Voriger Sprint“ heißt: dieselbe Klasse, kein Test, kleinere Nummer, mit
+ * vorhandener Planung – davon die größte Nummer. Tests stehen nicht in der
+ * Kette: Sie haben ihre eigene Rubrik, deren Kriterien die Fragen sind.
+ */
+export function vorigePlanung(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  teamId: Id,
+): Teamabschnitt | undefined {
+  const fruehere = abschnitteVon(daten, abschnitt.klasseId)
+    .filter((a) => a.art !== 'test' && a.nummer < abschnitt.nummer)
+    .sort((a, b) => b.nummer - a.nummer);
+  for (const frueher of fruehere) {
+    const planung = planungVon(daten, frueher.id, teamId);
+    if (planung?.rubrikKopie) return planung;
+  }
+  return undefined;
+}
+
+/**
+ * Welche Kriterien beim Planen vorgeschlagen werden (FA-67 AK-7, AK-8).
+ *
+ * Fortgeschrieben wird der eigene Satz des Teams; erst wenn es keinen gibt,
+ * greift eine Vorlage. Die Rubrik ist damit Saatgut und nicht Maßstab.
+ */
+export function kriterienVorschlag(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  teamId: Id,
+): { rubrik: Rubrik; herkunft: Herkunft } {
+  const vorige = vorigePlanung(daten, abschnitt, teamId);
+  if (vorige?.rubrikKopie) {
+    return {
+      rubrik: strukturKopie(vorige.rubrikKopie),
+      herkunft: { art: 'uebernommen', ausAbschnittId: vorige.abschnittId },
+    };
+  }
+  // Kein voriger Sprint: die dem Abschnitt zugeordnete Rubrik, ersatzweise die
+  // Vorlage für den Vorbereitungssprint.
+  const zugeordnet = daten.rubriken.find((r) => r.id === abschnitt.rubrikId);
+  const vorbereitung = daten.rubriken.find((r) => r.id === RUBRIK_VORBEREITUNG);
+  const rubrik = zugeordnet ?? vorbereitung ?? rubrikVon(daten, abschnitt);
+  return { rubrik: strukturKopie(rubrik), herkunft: { art: 'vorlage', rubrikId: rubrik.id } };
 }
 
 /** Rubrik zu einer Kennung, unabhängig von einem Abschnitt. */
@@ -89,6 +186,26 @@ export function abschnitteVonStrang(
   return abschnitteVon(daten, klasseId).filter((a) => a.strang === strang);
 }
 
+/**
+ * Sind für dieses Team in diesem Abschnitt schon Punkte erfasst (FA-67 AK-4)?
+ *
+ * Danach sind die Kriterien nicht mehr frei änderbar. Steht hier und nicht in
+ * der Ansicht: Die Regel entscheidet über die Bewertung und gehört damit in
+ * die Domäne (NFA-06).
+ */
+export function punkteErfasst(daten: Datenbestand, abschnittId: Id, teamId: Id | null): boolean {
+  const bewertung = daten.bewertungen.find(
+    (b) => b.abschnittId === abschnittId && b.teamId === teamId,
+  );
+  if (!bewertung) return false;
+  if (Object.keys(bewertung.team).length > 0) return true;
+  if (Object.keys(bewertung.prozess).length > 0) return true;
+  if (Object.keys(bewertung.peer).length > 0) return true;
+  return Object.values(bewertung.individuell).some(
+    (e) => Object.keys(e.punkte).length > 0 || e.verstehen !== undefined,
+  );
+}
+
 /** Trägt dieser Abschnitt bereits erfasste Punkte? Entscheidet über FA-65. */
 export function hatBewertung(daten: Datenbestand, abschnittId: Id): boolean {
   return daten.bewertungen.some((b) => b.abschnittId === abschnittId);
@@ -129,12 +246,44 @@ export function zeitraumVon(daten: Datenbestand, stichtagId: Id | null): Zeitrau
  * in einem beliebigen Zeitraum zu landen (siehe `auslassungen`).
  */
 export function imZeitraum(abschnitt: Abschnitt, zeitraum: Zeitraum): boolean {
+  return endeImZeitraum(abschnitt.bis, zeitraum);
+}
+
+/** Dieselbe Prüfung für ein bereits aufgelöstes Enddatum. */
+export function endeImZeitraum(ende: string, zeitraum: Zeitraum): boolean {
   if (zeitraum.von === null && zeitraum.bis === null) return true;
-  const ende = abschnitt.bis.trim();
-  if (!ende) return false;
-  if (zeitraum.von !== null && ende <= zeitraum.von) return false;
-  if (zeitraum.bis !== null && ende > zeitraum.bis) return false;
+  const wert = ende.trim();
+  if (!wert) return false;
+  if (zeitraum.von !== null && wert <= zeitraum.von) return false;
+  if (zeitraum.bis !== null && wert > zeitraum.bis) return false;
   return true;
+}
+
+/**
+ * Wann endete dieser Abschnitt für diese Person (FA-48 AK-6, Schemastand 3)?
+ *
+ * Für einen Test das Datum des Abschnitts – er findet für alle zugleich statt.
+ * Sonst das Ende der Planung des Teams, in dem die Person **in diesem
+ * Abschnitt** war (FA-58). Liegt keine Planung vor, gilt der Rahmen des
+ * Abschnitts (FA-66 AK-3): Ein noch nicht geplanter Sprint soll nicht aus jeder
+ * Stichtagsauswertung fallen, nur weil die Planung fehlt.
+ */
+export function endeFuer(daten: Datenbestand, abschnitt: Abschnitt, personId: Id): string {
+  if (abschnitt.art === 'test') return abschnitt.bis;
+  const teamId = teamIn(daten, abschnitt.id, personId);
+  const planung = planungVon(daten, abschnitt.id, teamId);
+  const ende = planung?.bis?.trim();
+  return ende ? ende : abschnitt.bis;
+}
+
+/** Liegt der Abschnitt für diese Person in diesem Zeitraum (FA-48 AK-6a)? */
+export function imZeitraumFuer(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  personId: Id,
+  zeitraum: Zeitraum,
+): boolean {
+  return endeImZeitraum(endeFuer(daten, abschnitt, personId), zeitraum);
 }
 
 /** Abschnitte einer Klasse, eingeschränkt auf einen Zeitraum (FA-48 AK-1, AK-2). */
@@ -143,7 +292,14 @@ export function abschnitteImZeitraum(
   klasseId: Id | null,
   zeitraum: Zeitraum,
 ): Abschnitt[] {
-  return abschnitteVon(daten, klasseId).filter((a) => imZeitraum(a, zeitraum));
+  return abschnitteVon(daten, klasseId).filter((a) => {
+    if (a.art === 'test') return imZeitraum(a, zeitraum);
+    const planungen = planungenIn(daten, a.id);
+    // Ein Sprint gehört in die Übersicht, sobald er für **irgendein** Team in
+    // den Zeitraum fällt; wen er betrifft, entscheidet dann `imZeitraumFuer`.
+    if (planungen.length === 0) return imZeitraum(a, zeitraum);
+    return planungen.some((tp) => endeImZeitraum(tp.bis.trim() || a.bis, zeitraum));
+  });
 }
 
 /**
@@ -155,11 +311,13 @@ export function abschnitteImZeitraum(
  */
 export function auslassungen(
   daten: Datenbestand,
-  klasseId: Id | null,
+  person: Person,
   zeitraum: Zeitraum,
 ): Abschnitt[] {
   if (zeitraum.von === null && zeitraum.bis === null) return [];
-  return abschnitteVon(daten, klasseId).filter((a) => !a.bis.trim());
+  return abschnitteVon(daten, person.klasseId).filter(
+    (a) => !endeFuer(daten, a, person.id).trim(),
+  );
 }
 
 /**

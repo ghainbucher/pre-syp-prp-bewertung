@@ -6,6 +6,64 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- **Schemastand 3: Der Sprint gehört dem Team.** Bisher war ein Abschnitt ein gemeinsames
+  Zeitfenster der Klasse. Der Auftraggeber hat am 12.09.2026 festgehalten, dass Dauer und Ziel
+  eines Sprints je Team beim Planning entstehen – damit fällt diese Annahme. Der Abschnitt
+  behält Nummer, Reihenfolge, Art, Strang und Faktor; alles Zeitliche und Inhaltliche liegt
+  beim Team (FA-66 bis FA-69)
+- **FA-66 Sprintplanung je Team.** Ziel, Beginn und Ende je Abschnitt und Team, anlegbar
+  **bevor** ein einziger Punkt erfasst ist. Der Zeitraum am Abschnitt ist nur noch ein Rahmen
+  (FA-04 AK-2); ohne Planung gilt er weiter, damit ein ungeplanter Sprint nicht aus jeder
+  Stichtagsauswertung fällt. Das Ziel erscheint in Belegfassung und Rückmeldung: Es ist keine
+  Bewertung, sondern ihr Gegenstand – ohne es steht in der Aufzeichnung ein Prozentwert ohne
+  Bezug. Ein Test wird nicht geplant; dort gilt der Zeitpunkt für alle
+- **Die Stichtagszuordnung entscheidet sich am Teamende** (FA-48 AK-6a). Endet Sprint 3 bei
+  einem Team am 28.01. und beim anderen am 03.02., zählt er für das eine ins Semesterzeugnis
+  und für das andere nicht. Das ist die Folge unterschiedlicher Enddaten und keine
+  Ungenauigkeit – die Auswertung macht es erkennbar, weil danach gefragt werden wird
+- **FA-67 Kriterien je Team.** Beim Planen lassen sich einzelne Kriterien ergänzen oder
+  streichen. Ein gestrichenes Kriterium ist nicht dasselbe wie ein unbewertetes: Es zählt in
+  seiner Kategorie gar nicht mit, während ein unbewertetes aus der Gewichtung fällt und als
+  offen gemeldet wird. Nach dem ersten Punkt stehen die Kriterien fest
+- **Fortgeschrieben wird der Satz des vorigen Sprints**, nicht die Rubrik (AK-7). Damit ist
+  eine Rubrik nur noch **Saatgut**: Sie belegt die erste Planung vor, danach trägt die Kette.
+  Die Rubrikansicht ist damit nicht mehr der Ort, an dem die geltenden Kriterien stehen –
+  sie sagt das jetzt auch (FA-55 AK-7)
+- Der Übergang vom Vorbereitungssprint zum zweiten tauscht sechs Kriterien auf einmal.
+  Deshalb gibt es neben dem Übernehmen ein **Neubeginnen aus einer Vorlage** (AK-10); sie
+  einzeln zu streichen und einzeln neu anzulegen wäre der falsche Weg für einen Vorgang, der
+  jedes Jahr ansteht
+- **Wo Teams verglichen werden, wird die Abweichung ausgewiesen** (AK-6): Auswertung,
+  Notenverteilung und CSV-Export nennen die Abschnitte, in denen nach verschiedenen Kriterien
+  beurteilt wurde. Verglichen wird dabei der rechnende Teil – eine andere Beschreibung
+  desselben Kriteriums ändert keinen Prozentwert und ist keine Abweichung
+- **FA-65 Einfrieren wandert** vom Abschnitt auf das Team und vom ersten Punkteintrag auf das
+  Festhalten der Planung. Das ist zugleich die pädagogisch richtige Reihenfolge: Die Kriterien
+  stehen fest, bevor gearbeitet wird, und nicht erst, wenn beurteilt wird. Für einen Test
+  bleibt die Kopie am Abschnitt – dort gibt es kein Team
+- **FA-47 Angleichen wirkt je Team** und rührt nur an, was aus der Rubrik stammt. Ein
+  fortgeschriebener oder geänderter Satz ist eine Entscheidung des Teams und wird nicht
+  eingeebnet. Die Anforderung verliert damit an Bedeutung: Der übliche Weg einer
+  Kriterienänderung ist ab jetzt der nächste Sprint, nicht das Korrigieren des vorigen
+- **FA-69 Vorlage „Vorbereitungssprint“.** Sechs Ergebnisse mit zusammen 50 Punkten –
+  Fachliches Konzept, Anforderungsspezifikation, Solution-Design, CI/CD, Stakeholderanalyse,
+  Versionsverwaltung –, vom Auftraggeber am 12.09.2026 festgelegt. Prozess, individueller
+  Beitrag und Peer sind **wörtlich** die der Sprint-Rubrik: Sie werden in den zweiten Sprint
+  mitgenommen, und eine abweichende Benennung machte den Verlauf über das Jahr unlesbar.
+  Gewichtung 50/15/35, weil der Prozess im ersten Sprint erst entsteht
+
+### Hinzugefügt
+
+- **FA-68 Migration auf Schemastand 3.** Aus jeder Paarung von Abschnitt und Team mit
+  Bewertung oder Zugehörigkeit entsteht eine Planung mit dem Zeitraum des Abschnitts und
+  leerem Ziel; eine eingefrorene Rubrik wird samt Zeitpunkt an jedes Team übernommen. Der
+  bisherige Stand wird vorher gesichert. **Ein migrierter Bestand ergibt dieselben
+  Prozentwerte, Notenvorschläge und Sperren wie vorher** – das ist nicht Nebeneffekt, sondern
+  Bedingung: Eine Umstellung, die Noten verschiebt, wäre eine stille Neubewertung. Geprüft am
+  Probebestand aus dem Testlauf, zwölf Personen über acht Abschnitte, alle Werte gleich
+
 ### Behoben
 
 - **Der Deploy-Workflow schob auch für einen Tag nach GitHub Pages** und scheiterte dort an der

@@ -211,3 +211,41 @@ test('überträgt keine Daten an einen Server (NFA-03, DS-02)', async ({ page })
 
   expect(fremdeAufrufe).toEqual([]);
 });
+
+test('plant den Sprint je Team, bevor bewertet wird (FA-66, FA-67)', async ({ page }) => {
+  await grunddatenAnlegen(page);
+  await reiter(page, 'Bewerten').click();
+
+  // Vor dem Planen steht die Aufforderung, nicht die Punktemaske allein.
+  const planen = page
+    .locator('section.karte')
+    .filter({ has: page.getByRole('heading', { name: 'Sprint planen' }) });
+  await expect(planen).toBeVisible();
+  await planen.getByRole('button', { name: 'Planung festhalten' }).click();
+
+  const planung = page
+    .locator('section.karte')
+    .filter({ has: page.getByRole('heading', { name: 'Sprintplanung' }) });
+  await planung.getByLabel('Sprint-Ziel von Team Kepler').fill('Buchungsmodul mit Storno');
+  await planung.getByLabel('Ende von Team Kepler').fill('2027-01-28');
+
+  // Das Ziel überlebt das Neuladen – es liegt im Datenbestand, nicht im Zustand.
+  await page.reload();
+  await reiter(page, 'Bewerten').click();
+  await expect(page.getByLabel('Sprint-Ziel von Team Kepler')).toHaveValue(
+    'Buchungsmodul mit Storno',
+  );
+
+  // Ein gestrichenes Kriterium verschwindet aus der Punktemaske dieses Teams.
+  await page
+    .getByRole('button', { name: 'Sprint Review für dieses Team streichen' })
+    .click();
+  await expect(page.getByLabel('Sprint Review', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Funktionalität', { exact: true })).toBeVisible();
+
+  // Nach dem ersten Punkt stehen die Kriterien fest (FA-67 AK-4).
+  await page.getByLabel('Funktionalität', { exact: true }).fill('10');
+  await expect(
+    page.getByRole('button', { name: 'Funktionalität für dieses Team streichen' }),
+  ).toHaveCount(0);
+});

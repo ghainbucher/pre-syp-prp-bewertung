@@ -91,7 +91,14 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
     0,
   );
   // Eine Rubrik, nach der schon bewertet wurde, bleibt erhalten (FA-55 AK-3).
-  const inVerwendung = daten.abschnitte.some((a) => a.rubrikId === rubrik.id && a.rubrikKopie);
+  const abschnitteDerRubrik = new Set(
+    daten.abschnitte.filter((a) => a.rubrikId === rubrik.id).map((a) => a.id),
+  );
+  const inVerwendung =
+    daten.abschnitte.some((a) => a.rubrikId === rubrik.id && a.rubrikKopie) ||
+    (daten.teamabschnitte ?? []).some(
+      (tp) => tp.rubrikKopie && abschnitteDerRubrik.has(tp.abschnittId),
+    );
 
   function rubrikAnlegen() {
     const id = neueId('r');
@@ -108,9 +115,10 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
         <div>
           <h2>Rubrik &amp; Notenschlüssel</h2>
           <p>
-            Kriterien, Punkte und Gewichtung gehören zur Rubrik; jedem Abschnitt ist eine zugeordnet
-            (FA-55). Sobald in einem Abschnitt der erste Punkt erfasst ist, rechnet er mit einer
-            eingefrorenen Kopie – Änderungen hier wirken dann nur noch auf neue Abschnitte (FA-65).
+            Eine Rubrik ist <b>Saatgut</b>, kein Maßstab (FA-55 AK-7): Sie belegt die erste Planung
+            eines Teams vor. Danach schreibt jedes Team seine eigenen Kriterien fort, und wonach ein
+            Team in einem Sprint beurteilt wird, steht in dessen Planung – nicht hier. Änderungen
+            wirken nur auf noch nicht geplante Sprints.
           </p>
         </div>
         <span className="dehnen" />
@@ -176,7 +184,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
           {vorschau.length > 0 ? (
             <Karte
               titel="Auf bewertete Abschnitte übertragen"
-              hinweis={`${vorschau.length} ${vorschau.length === 1 ? 'Abschnitt' : 'Abschnitte'} betroffen`}
+              hinweis={`${vorschau.length} ${vorschau.length === 1 ? 'Eintrag' : 'Einträge'} betroffen · fortgeschriebene Kriterien bleiben unberührt`}
               buendig
             >
               <div className="tabellenrahmen">
@@ -193,9 +201,10 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                     {vorschau.flatMap((eintrag) =>
                       eintrag.folgen.length === 0
                         ? [
-                            <tr key={eintrag.abschnitt.id}>
+                            <tr key={`${eintrag.abschnitt.id}-${eintrag.teamId ?? '-'}`}>
                               <td>
                                 <b>{eintrag.abschnitt.name}</b>
+                                {eintrag.teamname ? <> · {eintrag.teamname}</> : null}
                               </td>
                               <td colSpan={3} className="anmerkung">
                                 keine erfassten Ergebnisse
@@ -208,8 +217,17 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                               folge.nachher !== null &&
                               Math.abs(folge.vorher - folge.nachher) <= 0.0001;
                             return (
-                              <tr key={`${eintrag.abschnitt.id}-${folge.person.id}`}>
-                                <td>{i === 0 ? <b>{eintrag.abschnitt.name}</b> : null}</td>
+                              <tr
+                                key={`${eintrag.abschnitt.id}-${eintrag.teamId ?? '-'}-${folge.person.id}`}
+                              >
+                                <td>
+                                  {i === 0 ? (
+                                    <>
+                                      <b>{eintrag.abschnitt.name}</b>
+                                      {eintrag.teamname ? <> · {eintrag.teamname}</> : null}
+                                    </>
+                                  ) : null}
+                                </td>
                                 <td>{folge.person.name}</td>
                                 <td className="zahl">
                                   <Prozent wert={folge.vorher} stellen={1} />

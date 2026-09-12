@@ -4,13 +4,16 @@ import {
   RUBRIK_SPRINT,
   STANDARD_NOTENSCHLUESSEL,
   VORLAGE_RUBRIK_SPRINT,
+  VORLAGE_RUBRIK_VORBEREITUNG,
   leererDatenbestand,
   schuljahrVon,
   strukturKopie,
   testRubrik,
   vorlageStichtage,
+  vorlagenRubriken,
 } from './defaults';
 import { zeitraumVon } from './zuordnung';
+import { abschnitteMitAbweichung, kriterienWeichenAb } from './scoring';
 import {
   ABWEICHUNG_SCHWELLE,
   abschnittsErgebnis,
@@ -1511,5 +1514,136 @@ describe('Rubrik angleichen (FA-47)', () => {
     const vorher = JSON.stringify(daten);
     angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen);
     expect(JSON.stringify(daten)).toBe(vorher);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Zeitraum und Kriterien je Team (FA-66, FA-67, FA-69)                        */
+/* -------------------------------------------------------------------------- */
+
+describe('Stichtagszuordnung über das Teamende (FA-48 AK-6a, FA-66)', () => {
+  /** Ein Sprint, zwei Teams, verschiedene Enddaten um den Stichtag herum. */
+  function zweiTeams() {
+    const daten = leererDatenbestand();
+    daten.stichtage = strukturKopie(vorlageStichtage(2026));
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Kepler' });
+    daten.teams.push({ id: 'team2', klasseId: 'k1', name: 'Doppler' });
+    daten.personen.push(person('p1', 'team1'), person('p2', 'team2'));
+    daten.abschnitte.push({
+      id: 's1',
+      klasseId: 'k1',
+      nummer: 1,
+      name: 'Sprint 1',
+      art: 'sprint',
+      strang: 'praxis',
+      rubrikId: RUBRIK_SPRINT,
+      von: '2027-01-07',
+      bis: '2027-01-28',
+      faktor: 1,
+      peerAktiv: false,
+    });
+    daten.zugehoerigkeiten.push(
+      { abschnittId: 's1', personId: 'p1', teamId: 'team1' },
+      { abschnittId: 's1', personId: 'p2', teamId: 'team2' },
+    );
+    // Kepler ist vor dem Semesterzeugnis fertig, Doppler danach.
+    daten.teamabschnitte.push(
+      { abschnittId: 's1', teamId: 'team1', ziel: 'Buchung', von: '2027-01-07', bis: '2027-01-28' },
+      { abschnittId: 's1', teamId: 'team2', ziel: 'Storno', von: '2027-01-07', bis: '2027-02-03' },
+    );
+    const bewertungen = new Map<string, Bewertung>();
+    for (const teamId of ['team1', 'team2']) {
+      const bewertung: Bewertung = {
+        abschnittId: 's1',
+        teamId,
+        team: { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 },
+        prozess: {},
+        individuell: {},
+        peer: {},
+        notiz: '',
+      };
+      daten.bewertungen.push(bewertung);
+      bewertungen.set(bewertungsSchluessel('s1', teamId), bewertung);
+    }
+    return { daten, bewertungen };
+  }
+
+  it('zählt denselben Sprint für ein Team ins Semester und für das andere nicht', () => {
+    const { daten, bewertungen } = zweiTeams();
+    const kepler = gesamtErgebnis(daten, daten.personen[0], bewertungen, 'stichtag-semester');
+    const doppler = gesamtErgebnis(daten, daten.personen[1], bewertungen, 'stichtag-semester');
+    expect(kepler.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s1']);
+    expect(doppler.praxis.abschnitte).toEqual([]);
+  });
+
+  it('nimmt ohne Planung den Rahmen des Abschnitts (FA-66 AK-3)', () => {
+    const { daten, bewertungen } = zweiTeams();
+    daten.teamabschnitte = [];
+    const doppler = gesamtErgebnis(daten, daten.personen[1], bewertungen, 'stichtag-semester');
+    expect(doppler.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s1']);
+  });
+
+  it('meldet ein Team ohne Enddatum als Auslassung (FA-66 AK-4)', () => {
+    const { daten, bewertungen } = zweiTeams();
+    daten.abschnitte[0].bis = '';
+    daten.teamabschnitte[1].bis = '';
+    const doppler = gesamtErgebnis(daten, daten.personen[1], bewertungen, 'stichtag-semester');
+    expect(doppler.auslassung.ohneDatum.map((a) => a.id)).toEqual(['s1']);
+    // Für das andere Team ist nichts ausgelassen.
+    const kepler = gesamtErgebnis(daten, daten.personen[0], bewertungen, 'stichtag-semester');
+    expect(kepler.auslassung.ohneDatum).toEqual([]);
+  });
+
+  it('weist abweichende Kriterien aus, wo Teams verglichen werden (FA-67 AK-6)', () => {
+    const { daten } = zweiTeams();
+    expect(kriterienWeichenAb(daten, daten.abschnitte[0])).toBe(false);
+
+    const eigene = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+    eigene.team = eigene.team.filter((k) => k.id !== 't3');
+    daten.teamabschnitte[1].rubrikKopie = eigene;
+    expect(kriterienWeichenAb(daten, daten.abschnitte[0])).toBe(true);
+    expect(abschnitteMitAbweichung(daten, daten.abschnitte).map((a) => a.id)).toEqual(['s1']);
+  });
+
+  it('nennt eine andere Beschreibung keine Abweichung (FA-67 AK-6)', () => {
+    const { daten } = zweiTeams();
+    const eigene = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+    eigene.team[0].beschreibung = 'anders formuliert';
+    daten.teamabschnitte[1].rubrikKopie = eigene;
+    expect(kriterienWeichenAb(daten, daten.abschnitte[0])).toBe(false);
+  });
+});
+
+describe('Vorlage für den Vorbereitungssprint (FA-69)', () => {
+  it('trägt die sechs vereinbarten Ergebnisse mit zusammen 50 Punkten (AK-4)', () => {
+    expect(VORLAGE_RUBRIK_VORBEREITUNG.team.map((k) => k.name)).toEqual([
+      'Fachliches Konzept',
+      'Anforderungsspezifikation',
+      'Solution-Design',
+      'CI/CD',
+      'Stakeholderanalyse',
+      'Versionsverwaltung',
+    ]);
+    expect(VORLAGE_RUBRIK_VORBEREITUNG.team.reduce((s, k) => s + k.max, 0)).toBe(50);
+  });
+
+  it('übernimmt Prozess, individuellen Beitrag und Peer wörtlich aus der Sprint-Rubrik (AK-5)', () => {
+    for (const kategorie of ['prozess', 'individuell', 'peer'] as const) {
+      expect(VORLAGE_RUBRIK_VORBEREITUNG[kategorie]).toEqual(VORLAGE_RUBRIK_SPRINT[kategorie]);
+    }
+  });
+
+  it('gewichtet den Prozess niedriger, weil er erst entsteht (AK-6)', () => {
+    expect(VORLAGE_RUBRIK_VORBEREITUNG.gewichte).toEqual({
+      team: 50,
+      prozess: 15,
+      individuell: 35,
+      peer: 0,
+    });
+  });
+
+  it('wird mit ausgeliefert (AK-1)', () => {
+    expect(vorlagenRubriken().map((r) => r.name)).toContain('Vorbereitungssprint');
   });
 });

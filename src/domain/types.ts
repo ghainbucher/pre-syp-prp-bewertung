@@ -7,6 +7,10 @@
  * Schemastand 2 (FA-55 bis FA-60, FA-65): Der **Abschnitt** trägt das Modell,
  * nicht mehr der Sprint. Ein Sprint ist ein Abschnitt, die
  * Diplomarbeitsvorbereitung ist einer, ein Test ist einer.
+ *
+ * Schemastand 3 (FA-66 bis FA-69): Der Abschnitt ist nur noch der Rahmen der
+ * Klasse – Nummer, Art, Strang, Faktor. Beginn, Ende, Ziel und die geltenden
+ * Kriterien liegen beim **Team** (`Teamabschnitt`).
  */
 
 export type Id = string;
@@ -100,6 +104,48 @@ export interface Zugehoerigkeit {
 }
 
 /**
+ * Woher die Kriterien einer Planung stammen (FA-67 AK-9).
+ *
+ * Ohne diese Angabe lässt sich später nicht mehr sagen, ob ein abweichendes
+ * Kriterium eine Entscheidung war oder aus einer Vorlage stammt.
+ */
+export type Herkunft =
+  | { art: 'vorlage'; rubrikId: Id }
+  | { art: 'uebernommen'; ausAbschnittId: Id }
+  | { art: 'geaendert'; ausAbschnittId: Id | null };
+
+/**
+ * Die Planung eines Teams für einen Abschnitt (FA-66, FA-67).
+ *
+ * Eigene Größe und nicht ein paar Felder in `Bewertung`: Die Planung entsteht
+ * am Sprintbeginn, also bevor es eine Bewertung gibt. Eine leere Bewertung nur
+ * als Träger eines Datums anzulegen liefe der Aufräumregel zuwider, die leere
+ * Bewertungen entfernt – die Planung wäre beim nächsten Speichern weg.
+ */
+export interface Teamabschnitt {
+  abschnittId: Id;
+  teamId: Id;
+  /** Was sich das Team vornimmt (FA-66 AK-1). */
+  ziel: string;
+  /** Beginn; leer = nicht festgelegt, dann gilt der Rahmen des Abschnitts. */
+  von: string;
+  /** Ende; leer = offen. Maßgeblich für die Stichtagszuordnung (FA-48 AK-6). */
+  bis: string;
+  /** Zeitpunkt, zu dem die Planung festgehalten wurde. */
+  geplantAm?: string;
+  /**
+   * Die für dieses Team geltenden Kriterien (FA-65 AK-1, FA-67 AK-1).
+   *
+   * Sobald sie existiert, ist **sie** maßgeblich – nie mehr die Rubrik.
+   */
+  rubrikKopie?: Rubrik;
+  eingefrorenAm?: string;
+  /** Zeitpunkt des letzten Angleichens (FA-47 AK-6). */
+  angeglichenAm?: string;
+  herkunft?: Herkunft;
+}
+
+/**
  * Ein Beurteilungsabschnitt: Sprint, Diplomarbeitsvorbereitung oder Test.
  *
  * Alle Arten verhalten sich in Erfassung und Rechnung gleich (FA-56 AK-2).
@@ -129,9 +175,16 @@ export interface Abschnitt {
    * wurden.
    */
   angeglichenAm?: string;
+  /**
+   * Rahmen der Klasse, keine Festlegung (FA-04 AK-2).
+   *
+   * Ab Schemastand 3 ist für einen Sprint der Zeitraum des **Teams**
+   * maßgeblich; dieser hier gilt als Rückfall, solange keine Planung vorliegt,
+   * und für Tests, die kein Team haben.
+   */
   von: string;
   bis: string;
-  /** Eigenart des Abschnitts: Vorgabe 1, Lernsprint 0,5 (FA-04, FA-24). */
+  /** Eigenart des Abschnitts: Vorgabe 1, Lernsprint 0,5 (FA-04, FA-24). Gilt für alle Teams. */
   faktor: number;
   /** Findet in diesem Abschnitt eine Peer-Bewertung statt (FA-52)? */
   peerAktiv: boolean;
@@ -333,6 +386,8 @@ export interface Datenbestand {
   teams: Team[];
   personen: Person[];
   abschnitte: Abschnitt[];
+  /** Planung je Team und Abschnitt (FA-66, Schemastand 3). */
+  teamabschnitte: Teamabschnitt[];
   zugehoerigkeiten: Zugehoerigkeit[];
   bewertungen: Bewertung[];
   /**

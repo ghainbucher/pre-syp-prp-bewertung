@@ -7,7 +7,12 @@
  * Umlaute richtig erkannt werden.
  */
 
-import { formatProzent, gesamtErgebnis, notenvorschlag } from '../domain/scoring';
+import {
+  abschnitteMitAbweichung,
+  formatProzent,
+  gesamtErgebnis,
+  notenvorschlag,
+} from '../domain/scoring';
 import { teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Bewertung, Datenbestand, Person, Team } from '../domain/types';
 
@@ -43,6 +48,10 @@ export interface UebersichtEingabe {
  */
 export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string | number | null>> {
   const { daten, personen, teams, abschnitte, bewertungen, stichtagId = null } = eingabe;
+  // FA-67 AK-6: Wurden Teams nach verschiedenen Kriterien beurteilt, vergleicht
+  // diese Tabelle ungleiche Maßstäbe. Das gehört dazugeschrieben – die Spalte
+  // erscheint nur, wenn es tatsächlich abweicht.
+  const abweichende = abschnitteMitAbweichung(daten, abschnitte);
   const kopf: Array<string> = [
     'Name',
     'Team',
@@ -53,6 +62,7 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
     'Notenvorschlag',
     'Sperre',
     'Notenstand',
+    ...(abweichende.length > 0 ? ['Abweichende Kriterien'] : []),
   ];
 
   const zeilen: Array<Array<string | number | null>> = [kopf];
@@ -83,6 +93,7 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
           : '',
       // FA-49: die eingetragene Note – die einzige Ziffer, die nicht gerechnet ist.
       ergebnis.notenstand?.note ?? '',
+      ...(abweichende.length > 0 ? [abweichende.map((a) => a.name).join(', ')] : []),
     ]);
   }
 

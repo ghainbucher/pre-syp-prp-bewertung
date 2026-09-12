@@ -4,14 +4,14 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung – Bewertung von Schüler-Softwareprojekten in Sprints |
 | **Dokument** | Solution-Design / Technisches Konzept |
-| **Version** | 0.14 |
-| **Datum** | 2026-09-11 |
+| **Version** | 0.15 |
+| **Datum** | 2026-09-12 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
 | **Gültig für Softwarestand** | 0.3.0 |
-| **Zuletzt geprüft** | 2026-09-11 |
+| **Zuletzt geprüft** | 2026-09-12 |
 | **Nächste Prüfung** | Ende Sprint 1 |
-| **Bezug** | [Anforderungen](anforderungen.md) v0.21 · [Fachkonzept](fachkonzept-unterricht.md) v0.19 · [Risiken](risiken.md) |
+| **Bezug** | [Anforderungen](anforderungen.md) v0.22 · [Fachkonzept](fachkonzept-unterricht.md) v0.19 · [Risiken](risiken.md) |
 | **Rahmenbedingung** | RB-02 |
 
 ---
@@ -20,6 +20,7 @@
 
 | Version | Datum | Autor | Änderung | Status |
 |---|---|---|---|---|
+| 0.15 | 2026-09-12 | G. Hainbucher | Schemastand 3 (Kap. 5.0a): Planung je Team mit Ziel, Zeitraum und eigener Kriterienkopie; Auflösungsregeln für Kriterien und Zeitraum; Fortschreibung aus dem vorigen Sprint; Migration 2 auf 3 | Entwurf |
 | 0.14 | 2026-09-11 | G. Hainbucher | Release 0.3.0: Kap. 6.4a Verstehensnachweis im individuellen Beitrag (FA-40), Kap. 6.6a Tendenz (FA-51); Modulliste um `export/belegfassung.ts` und `export/rueckmeldung.ts` ergänzt; Rechenbeispiel in 6.8 berichtigt | Entwurf |
 | 0.13 | 2026-09-11 | G. Hainbucher | Umsetzung nachgezogen: Modulliste um `domain/zuordnung.ts`, `store/sicherung.ts`, `store/ordner.ts` und `export/rubrikblatt.ts` ergänzt; Kap. 5.0 berichtigt (Notenschlüssel im Bestand, `Person.teamId` bleibt als Vorbelegung, `sperreAktiv` erst mit FA-61, `peerEntscheidungen` additiv); Kap. 7.2 zur Berechtigung und zum Schreibtakt berichtigt | Entwurf |
 | 0.1 | 2026-09-09 | G. Hainbucher | Ersterstellung: Architektur, Datenmodell, Berechnungslogik, Teststrategie, CI/CD | Entwurf |
@@ -323,6 +324,83 @@ Schlägt ein Schritt fehl, wird nichts geschrieben und die Anwendung meldet den 
 leer zu starten (AK-5, NFA-09). Ein Bestand nach Schemastand 2 lässt sich **nicht** zurück
 auf 1 überführen – eine zweite Rubrik hat dort keinen Platz. Deshalb ist die Sicherung aus
 Schritt 1 kein Formalakt.
+
+### 5.0a Schemastand 3: Der Sprint gehört dem Team (FA-66 bis FA-69)
+
+Schemastand 2 nahm an, ein Abschnitt sei ein **gemeinsames Zeitfenster der Klasse**. Diese
+Annahme ist am 12.09.2026 gefallen: Dauer und Ziel eines Sprints entstehen je Team beim
+Planning, und dabei kommen Kriterien dazu oder fallen weg. Der Abschnitt behält Nummer,
+Reihenfolge, Art, Strang und Faktor – alles Zeitliche und Inhaltliche wandert an das Team.
+
+```ts
+type Datenbestand = {
+  schemaVersion: 3;
+  teamabschnitte: Teamabschnitt[];   // FA-66, FA-67 – neu
+  // alles Übrige unverändert gegenüber Schemastand 2
+};
+
+type Teamabschnitt = {            // die Planung eines Teams für einen Abschnitt
+  abschnittId: Id;
+  teamId: Id;
+  ziel: string;                   // FA-66 AK-1 – was sich das Team vornimmt
+  von: string;                    // '' = noch nicht festgelegt
+  bis: string;                    // '' = offen; dann keine Stichtagszuordnung (AK-4)
+  geplantAm?: string;             // ISO – wann die Planung festgehalten wurde
+  rubrikKopie?: Rubrik;           // FA-65 AK-1 – die für dieses Team geltenden Kriterien
+  eingefrorenAm?: string;
+  angeglichenAm?: string;         // FA-47 AK-6
+  herkunft?: Herkunft;            // FA-67 AK-9
+};
+
+type Herkunft =
+  | { art: 'vorlage'; rubrikId: Id }
+  | { art: 'uebernommen'; ausAbschnittId: Id }
+  | { art: 'geaendert'; ausAbschnittId: Id | null };
+```
+
+**Warum eine eigene Größe und nicht ein paar Felder in `Bewertung`.** Die Planung entsteht am
+Sprint**beginn**, also bevor es eine Bewertung gibt. Eine leere Bewertung nur als Träger eines
+Datums anzulegen, liefe der Aufräumregel zuwider, die leere Bewertungen entfernt – und beim
+nächsten Speichern wäre die Planung weg. Zwei Größen mit verschiedener Lebensdauer gehören
+nicht in dieselbe Struktur.
+
+**Zwei Auflösungsregeln**, die ab hier überall gelten und nirgends umgangen werden dürfen:
+
+| Frage | Regel |
+|---|---|
+| Welche Kriterien gelten? | `teamabschnitt.rubrikKopie` → `abschnitt.rubrikKopie` (Tests und Altbestand) → `rubriken[abschnitt.rubrikId]` → Vorgabe |
+| Wann endete der Abschnitt für diese Person? | Test: `abschnitt.bis`. Sonst: `teamabschnitt.bis` des Teams, in dem die Person **in diesem Abschnitt** war (FA-58). Fehlt beides, ist keine Zuordnung möglich |
+
+Die erste Regel steht in `zuordnung.rubrikFuer(daten, abschnitt, teamId)`, die zweite in
+`zuordnung.endeFuer(daten, abschnitt, personId)`. Dass sie an genau einer Stelle stehen, ist
+kein Stil, sondern Notwendigkeit: Eine Verletzung ist von außen unsichtbar und fällt erst
+auf, wenn im Juni eine Belegfassung die falschen Kriterien zeigt oder ein Sprint im falschen
+Semester landet.
+
+**Fortschreibung (FA-67 AK-7).** Beim Anlegen einer Planung werden die Kriterien des vorigen
+Sprints desselben Teams vorbelegt. „Voriger Sprint“ heißt: derselbe Abschnittstyp außer Test,
+dieselbe Klasse, kleinere Nummer, mit vorhandener Planung – davon die größte Nummer. Gibt es
+keinen, gilt die Vorlage „Vorbereitungssprint“ (FA-69). Die Rubrik ist damit **Saatgut**: Sie
+belegt die erste Planung vor, danach trägt die Kette.
+
+Das hat eine Folge, die in der Oberfläche sichtbar gemacht werden muss: Die Rubrikansicht ist
+nicht mehr der Ort, an dem die geltenden Kriterien stehen. Sie zeigt, womit ein Team
+**beginnt**, nicht wonach es beurteilt wird.
+
+**Migration 2 → 3** (FA-68):
+
+| Schritt | Regel |
+|---|---|
+| 1 | Der bisherige Bestand wird unverändert gesichert, **bevor** etwas verändert wird (AK-4) |
+| 2 | Für jede Paarung aus Abschnitt und Team, die eine Bewertung oder eine Zugehörigkeit hat, entsteht ein `Teamabschnitt` mit `von`/`bis` des Abschnitts und leerem `ziel` |
+| 3 | Trägt der Abschnitt eine `rubrikKopie`, wird sie samt `eingefrorenAm` an jedes Team übernommen; die Kopie am Abschnitt bleibt für Tests und als Rückfalllinie stehen |
+| 4 | Tests bekommen keinen `Teamabschnitt`: Sie haben kein Team (FA-60 AK-3) |
+| 5 | `schemaVersion` wird auf 3 gesetzt – als letzter Schritt |
+
+Nach der Migration ergibt der Bestand **dieselben Prozentwerte, Notenvorschläge und Sperren
+wie vorher** (AK-5). Das ist kein erwarteter Nebeneffekt, sondern die Bedingung: Eine
+Umstellung, die Noten verschiebt, wäre eine stille Neubewertung. Der Probebestand aus dem
+Testlauf ist der Prüfstein und liegt als Test bei.
 
 ### 5.1 Gesetzte Werte und Notenstand (FA-49, FA-50, G8, G9)
 

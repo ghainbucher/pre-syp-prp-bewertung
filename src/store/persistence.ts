@@ -27,6 +27,7 @@ import type {
   PeerEntscheidung,
   Rubrik,
   Stichtag,
+  Teamabschnitt,
   Zugehoerigkeit,
 } from '../domain/types';
 
@@ -156,10 +157,65 @@ function vonStand1(roh: RoherBestand): Datenbestand {
     teams: (roh.teams ?? []) as Datenbestand['teams'],
     personen: personen as Datenbestand['personen'],
     abschnitte,
+    teamabschnitte: [],
     zugehoerigkeiten,
     bewertungen,
     peerEntscheidungen: [],
   };
+}
+
+/**
+ * Hebt einen Bestand nach Schemastand 2 auf Stand 3 (FA-68).
+ *
+ * Aus jeder Paarung von Abschnitt und Team, die eine Bewertung oder eine
+ * Zugehörigkeit hat, wird eine Planung. Sie übernimmt den Zeitraum des
+ * Abschnitts und dessen eingefrorene Rubrik – damit rechnet der Bestand danach
+ * **genau gleich weiter** (AK-5). Ein Ziel gibt es nicht; es ist nicht
+ * erfindbar und bleibt leer.
+ */
+function vonStand2(daten: Datenbestand): Datenbestand {
+  const vorhanden = new Set(
+    (daten.teamabschnitte ?? []).map((tp) => `${tp.abschnittId}__${tp.teamId}`),
+  );
+  const teamabschnitte: Teamabschnitt[] = [...(daten.teamabschnitte ?? [])];
+
+  for (const abschnitt of daten.abschnitte) {
+    // Ein Test hat kein Team (FA-60 AK-3) und damit keine Planung.
+    if (abschnitt.art === 'test') continue;
+
+    const teams = new Set<string>();
+    for (const z of daten.zugehoerigkeiten) {
+      if (z.abschnittId === abschnitt.id && z.teamId) teams.add(z.teamId);
+    }
+    for (const b of daten.bewertungen) {
+      if (b.abschnittId === abschnitt.id && b.teamId) teams.add(b.teamId);
+    }
+    // Ohne Zugehörigkeiten greift die Vorbelegung an der Person (FA-58).
+    if (teams.size === 0) {
+      for (const person of daten.personen) {
+        if (person.klasseId === abschnitt.klasseId && person.teamId) teams.add(person.teamId);
+      }
+    }
+
+    for (const teamId of teams) {
+      if (vorhanden.has(`${abschnitt.id}__${teamId}`)) continue;
+      const planung: Teamabschnitt = {
+        abschnittId: abschnitt.id,
+        teamId,
+        ziel: '',
+        von: abschnitt.von,
+        bis: abschnitt.bis,
+      };
+      if (abschnitt.rubrikKopie) {
+        planung.rubrikKopie = strukturKopie(abschnitt.rubrikKopie);
+        if (abschnitt.eingefrorenAm) planung.eingefrorenAm = abschnitt.eingefrorenAm;
+        planung.herkunft = { art: 'vorlage', rubrikId: abschnitt.rubrikId };
+      }
+      teamabschnitte.push(planung);
+    }
+  }
+
+  return { ...daten, schemaVersion: SCHEMA_VERSION, teamabschnitte };
 }
 
 /** Füllt fehlende Felder eines Bestands nach Schemastand 2 auf. */
@@ -220,6 +276,12 @@ function vervollstaendigen(roh: RoherBestand): Datenbestand {
     teams: (roh.teams ?? []) as Datenbestand['teams'],
     personen: (roh.personen ?? []) as Datenbestand['personen'],
     abschnitte,
+    teamabschnitte: ((roh.teamabschnitte ?? []) as Teamabschnitt[]).map((tp) => ({
+      ...tp,
+      ziel: tp.ziel ?? '',
+      von: tp.von ?? '',
+      bis: tp.bis ?? '',
+    })),
     zugehoerigkeiten: (roh.zugehoerigkeiten ?? []) as Zugehoerigkeit[],
     bewertungen,
     peerEntscheidungen: (roh.peerEntscheidungen ?? []) as PeerEntscheidung[],
@@ -236,7 +298,8 @@ export function migriere(roh: unknown): Datenbestand {
   if (!istDatenbestand(roh)) return leererDatenbestand();
   const kopie = strukturKopie(roh) as RoherBestand;
   const stand = typeof kopie.schemaVersion === 'number' ? kopie.schemaVersion : 1;
-  return stand < 2 ? vonStand1(kopie) : vervollstaendigen(kopie);
+  const aufStand2 = stand < 2 ? vonStand1(kopie) : vervollstaendigen(kopie);
+  return stand < 3 ? vonStand2(aufStand2) : aufStand2;
 }
 
 /** Liest den Bestand aus dem übergebenen Speicher (Vorgabe: localStorage). */

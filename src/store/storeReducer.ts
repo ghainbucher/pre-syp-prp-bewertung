@@ -20,7 +20,13 @@ import {
   vorlageStichtage,
 } from '../domain/defaults';
 import { bewertungsSchluessel } from '../domain/scoring';
-import { rubrikVon, teamIn } from '../domain/zuordnung';
+import {
+  kriterienVorschlag,
+  planungVon,
+  punkteErfasst,
+  rubrikVon,
+  teamIn,
+} from '../domain/zuordnung';
 import type {
   Abschnitt,
   Bewertung,
@@ -33,6 +39,7 @@ import type {
   Rubrik,
   Stichtag,
   Strang,
+  Teamabschnitt,
   Verstehensstufe,
 } from '../domain/types';
 
@@ -54,6 +61,45 @@ export type Aktion =
   | { art: 'abschnitt/aendern'; id: Id; aenderung: Partial<Omit<Abschnitt, 'id' | 'klasseId'>> }
   | { art: 'abschnitt/loeschen'; id: Id }
   | { art: 'abschnitt/angleichen'; rubrikId: Id }
+  | {
+      /** Planung eines Teams anlegen oder festhalten (FA-66). */
+      art: 'planung/festhalten';
+      abschnittId: Id;
+      teamId: Id;
+      ziel?: string;
+      von?: string;
+      bis?: string;
+    }
+  | {
+      art: 'planung/aendern';
+      abschnittId: Id;
+      teamId: Id;
+      aenderung: Partial<Pick<Teamabschnitt, 'ziel' | 'von' | 'bis'>>;
+    }
+  | {
+      art: 'planung/kriteriumHinzufuegen';
+      abschnittId: Id;
+      teamId: Id;
+      kategorie: KategorieSchluessel;
+      kriterium: Kriterium;
+    }
+  | {
+      art: 'planung/kriteriumAendern';
+      abschnittId: Id;
+      teamId: Id;
+      kategorie: KategorieSchluessel;
+      index: number;
+      aenderung: Partial<Kriterium>;
+    }
+  | {
+      art: 'planung/kriteriumLoeschen';
+      abschnittId: Id;
+      teamId: Id;
+      kategorie: KategorieSchluessel;
+      index: number;
+    }
+  | { art: 'planung/ausVorlage'; abschnittId: Id; teamId: Id; rubrikId: Id }
+  | { art: 'planung/loeschen'; abschnittId: Id; teamId: Id }
   | {
       art: 'bewertung/punkte';
       abschnittId: Id;
@@ -174,17 +220,88 @@ function bewertungHolen(daten: Datenbestand, abschnittId: Id, teamId: Id | null)
 }
 
 /**
- * Friert die Rubrik eines Abschnitts ein (FA-65).
+ * Holt die Planung eines Teams oder legt sie an (FA-66).
  *
- * Aufgerufen beim ersten gesetzten Punktewert. Ab diesem Moment gilt für
- * diesen Abschnitt die Kopie – spätere Änderungen an der Rubrik wirken nur
- * noch auf Abschnitte, die noch keine Kopie tragen.
+ * Ohne Angaben übernimmt sie den Rahmen des Abschnitts – das ist besser als
+ * ein leeres Datum, weil ein ungeplanter Sprint sonst aus jeder
+ * Stichtagsauswertung fiele (FA-66 AK-3).
  */
-function einfrierenFallsNoetig(daten: Datenbestand, abschnittId: Id): void {
+function planungHolen(daten: Datenbestand, abschnittId: Id, teamId: Id): Teamabschnitt {
+  daten.teamabschnitte ??= [];
+  const vorhanden = daten.teamabschnitte.find(
+    (tp) => tp.abschnittId === abschnittId && tp.teamId === teamId,
+  );
+  if (vorhanden) return vorhanden;
   const abschnitt = daten.abschnitte.find((a) => a.id === abschnittId);
-  if (!abschnitt || abschnitt.rubrikKopie) return;
-  abschnitt.rubrikKopie = strukturKopie(rubrikVon(daten, abschnitt));
-  abschnitt.eingefrorenAm = new Date().toISOString();
+  const neu: Teamabschnitt = {
+    abschnittId,
+    teamId,
+    ziel: '',
+    von: abschnitt?.von ?? '',
+    bis: abschnitt?.bis ?? '',
+  };
+  daten.teamabschnitte.push(neu);
+  return neu;
+}
+
+/**
+ * Friert die geltenden Kriterien ein (FA-65, FA-67 AK-1).
+ *
+ * Ab Schemastand 3 geschieht das je **Team**: Seit FA-67 können sich die
+ * Kriterien von Team zu Team unterscheiden, und eine Kopie am Abschnitt könnte
+ * diesen Unterschied nicht tragen. Vorbelegt wird mit dem Satz des vorigen
+ * Sprints desselben Teams (FA-67 AK-7), nicht mit der Rubrik.
+ *
+ * Für einen Test bleibt die Kopie am Abschnitt: Dort gibt es kein Team.
+ */
+function einfrierenFallsNoetig(daten: Datenbestand, abschnittId: Id, teamId: Id | null): void {
+  const abschnitt = daten.abschnitte.find((a) => a.id === abschnittId);
+  if (!abschnitt) return;
+
+  if (teamId === null || abschnitt.art === 'test') {
+    if (abschnitt.rubrikKopie) return;
+    abschnitt.rubrikKopie = strukturKopie(rubrikVon(daten, abschnitt));
+    abschnitt.eingefrorenAm = new Date().toISOString();
+    return;
+  }
+
+  const planung = planungHolen(daten, abschnittId, teamId);
+  if (planung.rubrikKopie) return;
+  const vorschlag = kriterienVorschlag(daten, abschnitt, teamId);
+  planung.rubrikKopie = vorschlag.rubrik;
+  planung.herkunft = vorschlag.herkunft;
+  planung.eingefrorenAm = new Date().toISOString();
+}
+
+/** Die Kriterienliste einer Planung, sofern sie geändert werden darf. */
+function kriterienZumAendern(
+  daten: Datenbestand,
+  abschnittId: Id,
+  teamId: Id,
+  kategorie: KategorieSchluessel,
+): Kriterium[] | null {
+  if (punkteErfasst(daten, abschnittId, teamId)) return null;
+  const planung = planungHolen(daten, abschnittId, teamId);
+  if (!planung.rubrikKopie) {
+    const abschnitt = daten.abschnitte.find((a) => a.id === abschnittId);
+    if (!abschnitt) return null;
+    const vorschlag = kriterienVorschlag(daten, abschnitt, teamId);
+    planung.rubrikKopie = vorschlag.rubrik;
+    planung.herkunft = vorschlag.herkunft;
+  }
+  return planung.rubrikKopie[kategorie];
+}
+
+/** Hält fest, dass der Satz in diesem Abschnitt geändert wurde (FA-67 AK-9). */
+function alsGeaendertVermerken(planung: Teamabschnitt): void {
+  const bisher = planung.herkunft;
+  const quelle =
+    bisher?.art === 'uebernommen'
+      ? bisher.ausAbschnittId
+      : bisher?.art === 'geaendert'
+        ? bisher.ausAbschnittId
+        : null;
+  planung.herkunft = { art: 'geaendert', ausAbschnittId: quelle };
 }
 
 /** Baut einen gesetzten Wert; die Begründung ist freiwillig (FA-50 AK-5). */
@@ -304,6 +421,9 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter(
         (z) => !abschnittIds.includes(z.abschnittId),
       );
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter(
+        (tp) => !abschnittIds.includes(tp.abschnittId),
+      );
       daten.bewertungen = daten.bewertungen.filter((b) => !abschnittIds.includes(b.abschnittId));
       daten.peerEntscheidungen = daten.peerEntscheidungen.filter(
         (e) => !abschnittIds.includes(e.abschnittId),
@@ -331,6 +451,8 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         z.teamId === aktion.id ? { ...z, teamId: null } : z,
       );
       daten.bewertungen = daten.bewertungen.filter((b) => b.teamId !== aktion.id);
+      // Die Planung gehört dem Team; ohne Team hat sie keinen Träger mehr.
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter((tp) => tp.teamId !== aktion.id);
       break;
 
     case 'person/anlegen':
@@ -420,6 +542,89 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         abschnitt.rubrikKopie = strukturKopie(aktuell);
         abschnitt.angeglichenAm = jetzt;
       }
+      // FA-47 AK-6: Angeglichen wird nur, was aus dieser Rubrik stammt. Ein
+      // fortgeschriebener oder geänderter Satz ist eine Entscheidung des Teams
+      // und wird nicht eingeebnet.
+      for (const planung of daten.teamabschnitte ?? []) {
+        if (planung.herkunft?.art !== 'vorlage') continue;
+        if (planung.herkunft.rubrikId !== aktion.rubrikId || !planung.rubrikKopie) continue;
+        planung.rubrikKopie = strukturKopie(aktuell);
+        planung.angeglichenAm = jetzt;
+      }
+      break;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Sprintplanung je Team (FA-66, FA-67)                                */
+    /* ------------------------------------------------------------------ */
+    case 'planung/festhalten': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.abschnittId);
+      // Ein Test wird nicht geplant: Zeitpunkt und Fragen gelten für alle
+      // (FA-66 AK-6).
+      if (!abschnitt || abschnitt.art === 'test') break;
+      const planung = planungHolen(daten, aktion.abschnittId, aktion.teamId);
+      if (aktion.ziel !== undefined) planung.ziel = aktion.ziel;
+      if (aktion.von !== undefined) planung.von = aktion.von;
+      if (aktion.bis !== undefined) planung.bis = aktion.bis;
+      planung.geplantAm = new Date().toISOString();
+      // FA-65 AK-1a: Mit dem Festhalten stehen die Kriterien fest – nicht erst
+      // mit dem ersten Punkt. Das ist auch die pädagogisch richtige Reihenfolge.
+      einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
+      break;
+    }
+
+    case 'planung/aendern': {
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung) break;
+      if (aktion.aenderung.ziel !== undefined) planung.ziel = aktion.aenderung.ziel;
+      if (aktion.aenderung.von !== undefined) planung.von = aktion.aenderung.von;
+      if (aktion.aenderung.bis !== undefined) planung.bis = aktion.aenderung.bis;
+      break;
+    }
+
+    case 'planung/kriteriumHinzufuegen': {
+      const liste = kriterienZumAendern(daten, aktion.abschnittId, aktion.teamId, aktion.kategorie);
+      if (!liste) break;
+      liste.push(strukturKopie(aktion.kriterium));
+      alsGeaendertVermerken(planungHolen(daten, aktion.abschnittId, aktion.teamId));
+      break;
+    }
+
+    case 'planung/kriteriumAendern': {
+      const liste = kriterienZumAendern(daten, aktion.abschnittId, aktion.teamId, aktion.kategorie);
+      const kriterium = liste?.[aktion.index];
+      if (!kriterium) break;
+      Object.assign(kriterium, aktion.aenderung);
+      alsGeaendertVermerken(planungHolen(daten, aktion.abschnittId, aktion.teamId));
+      break;
+    }
+
+    case 'planung/kriteriumLoeschen': {
+      const liste = kriterienZumAendern(daten, aktion.abschnittId, aktion.teamId, aktion.kategorie);
+      if (!liste || aktion.index < 0 || aktion.index >= liste.length) break;
+      liste.splice(aktion.index, 1);
+      alsGeaendertVermerken(planungHolen(daten, aktion.abschnittId, aktion.teamId));
+      break;
+    }
+
+    // FA-67 AK-10: Der Übergang vom Vorbereitungssprint zum zweiten tauscht
+    // sechs Kriterien auf einmal – einzeln wäre das der falsche Weg.
+    case 'planung/ausVorlage': {
+      if (punkteErfasst(daten, aktion.abschnittId, aktion.teamId)) break;
+      const vorlage = rubrikSuchen(daten, aktion.rubrikId);
+      if (!vorlage) break;
+      const planung = planungHolen(daten, aktion.abschnittId, aktion.teamId);
+      planung.rubrikKopie = strukturKopie(vorlage);
+      planung.herkunft = { art: 'vorlage', rubrikId: aktion.rubrikId };
+      planung.eingefrorenAm ??= new Date().toISOString();
+      break;
+    }
+
+    case 'planung/loeschen': {
+      if (punkteErfasst(daten, aktion.abschnittId, aktion.teamId)) break;
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter(
+        (tp) => !(tp.abschnittId === aktion.abschnittId && tp.teamId === aktion.teamId),
+      );
       break;
     }
 
@@ -427,6 +632,9 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       const abschnitt = daten.abschnitte.find((a) => a.id === aktion.id);
       daten.abschnitte = daten.abschnitte.filter((a) => a.id !== aktion.id);
       daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter((z) => z.abschnittId !== aktion.id);
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter(
+        (tp) => tp.abschnittId !== aktion.id,
+      );
       daten.bewertungen = daten.bewertungen.filter((b) => b.abschnittId !== aktion.id);
       daten.peerEntscheidungen = daten.peerEntscheidungen.filter(
         (e) => e.abschnittId !== aktion.id,
@@ -445,7 +653,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     /* Bewertung (FA-12 bis FA-16, FA-65)                                  */
     /* ------------------------------------------------------------------ */
     case 'bewertung/punkte': {
-      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       punktSetzen(bewertung[aktion.kategorie], aktion.kriteriumId, aktion.wert);
       leereBewertungenEntfernen(daten);
@@ -453,7 +661,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'bewertung/individuell': {
-      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
       punktSetzen(eintrag.punkte, aktion.kriteriumId, aktion.wert);
@@ -482,7 +690,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         };
         // Der Nachweis fließt in die Rechnung ein – also gilt hier dieselbe
         // Regel wie beim ersten Punkt: Die Rubrik wird eingefroren (FA-65).
-        einfrierenFallsNoetig(daten, aktion.abschnittId);
+        einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       }
       leereBewertungenEntfernen(daten);
       break;
@@ -518,7 +726,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'bewertung/peer': {
-      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const zeile = (bewertung.peer[aktion.bewerterId] ??= {});
       const urteil = (zeile[aktion.bewerteterId] ??= {});
@@ -604,9 +812,16 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
 
     case 'rubrik/loeschen': {
       // FA-55 AK-3: Eine Rubrik, nach der bereits bewertet wurde, bleibt.
-      const inVerwendung = daten.abschnitte.some(
-        (a) => a.rubrikId === aktion.rubrikId && a.rubrikKopie,
+      // Seit Schemastand 3 liegt die Kopie beim Team; eine Rubrik ist also auch
+      // dann in Verwendung, wenn nur eine Planung sie festgehalten hat.
+      const abschnitteDerRubrik = new Set(
+        daten.abschnitte.filter((a) => a.rubrikId === aktion.rubrikId).map((a) => a.id),
       );
+      const inVerwendung =
+        daten.abschnitte.some((a) => a.rubrikId === aktion.rubrikId && a.rubrikKopie) ||
+        (daten.teamabschnitte ?? []).some(
+          (tp) => tp.rubrikKopie && abschnitteDerRubrik.has(tp.abschnittId),
+        );
       if (!inVerwendung && aktion.rubrikId !== daten.vorgabeRubrikId) {
         daten.rubriken = daten.rubriken.filter((r) => r.id !== aktion.rubrikId);
         for (const abschnitt of daten.abschnitte) {

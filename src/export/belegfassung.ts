@@ -16,7 +16,7 @@
  */
 
 import { formatProzent, notenvorschlag, notenstandWeichtAb } from '../domain/scoring';
-import { rubrikVon, teamIn } from '../domain/zuordnung';
+import { planungVon, rubrikFuer, teamIn } from '../domain/zuordnung';
 import type {
   Datenbestand,
   Gesamtergebnis,
@@ -108,25 +108,37 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
 
   const abschnitte = ergebnis.alle
     .map(({ abschnitt, ergebnis: e, zeitfaktor }) => {
-      const rubrik = rubrikVon(daten, abschnitt);
       const teamId = abschnitt.art === 'test' ? null : teamIn(daten, abschnitt.id, person.id);
+      const rubrik = rubrikFuer(daten, abschnitt, teamId);
+      const planung = planungVon(daten, abschnitt.id, teamId);
       const teamname = daten.teams.find((t) => t.id === teamId)?.name ?? null;
       const bewertung = daten.bewertungen.find(
         (b) => b.abschnittId === abschnitt.id && b.teamId === teamId,
       );
 
-      // AK-6: Rubrik und Team je Abschnitt. Nach dem Einfrieren gilt die Kopie.
+      // AK-6: Rubrik und Team je Abschnitt. Nach dem Einfrieren gilt die Kopie –
+      // seit Schemastand 3 die des Teams (FA-67 AK-5).
+      const eingefroren = planung?.rubrikKopie ? planung : abschnitt.rubrikKopie ? abschnitt : null;
+      const angeglichenAm = eingefroren?.angeglichenAm;
+      const zeitraum =
+        abschnitt.art === 'test'
+          ? abschnitt.bis
+          : (planung?.bis?.trim() ?? '') || abschnitt.bis;
       const kopfzeilen = [
         `Rubrik „${rubrik.name}“${
-          abschnitt.rubrikKopie
-            ? abschnitt.angeglichenAm
-              ? ` (beim ersten Eintrag festgehalten, am ${datumDeutsch(new Date(abschnitt.angeglichenAm))} an die geänderte Rubrik angeglichen)`
+          eingefroren
+            ? angeglichenAm
+              ? ` (festgehalten, am ${datumDeutsch(new Date(angeglichenAm))} an die geänderte Rubrik angeglichen)`
               : ' (beim ersten Eintrag festgehalten)'
             : ''
         }`,
         abschnitt.art === 'test' ? 'Test – ohne Team' : teamname ? `Team ${teamname}` : 'ohne Team',
+        // FA-66 AK-5: Das Ziel ist der Gegenstand der Bewertung. Ohne es steht
+        // in der Aufzeichnung ein Prozentwert ohne Bezug.
+        planung?.ziel?.trim() ? `Ziel: ${planung.ziel.trim()}` : null,
+        zeitraum ? `bis ${datumDeutsch(new Date(`${zeitraum}T00:00:00`))}` : null,
         `Gewicht ${abschnitt.faktor} × Zeitfaktor ${zeitfaktor}`,
-      ];
+      ].filter((z): z is string => z !== null);
 
       const bloecke = KATEGORIEN.map((k) => {
         const punkte =

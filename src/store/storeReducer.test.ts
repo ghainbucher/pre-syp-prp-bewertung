@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { RUBRIK_SPRINT, leererDatenbestand, testRubrik } from '../domain/defaults';
-import { rubrikVon, rueckmeldungOffen, teamIn } from '../domain/zuordnung';
+import { planungVon, rubrikFuer, rueckmeldungOffen, teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Datenbestand } from '../domain/types';
 import { bewertungsIndex, storeReducer, type Aktion } from './storeReducer';
 
@@ -161,8 +161,8 @@ describe('Tests als Abschnittsart (FA-60)', () => {
   });
 });
 
-describe('Rubrik einfrieren (FA-65)', () => {
-  it('friert die Rubrik beim ersten Punktewert ein', () => {
+describe('Kriterien einfrieren (FA-65)', () => {
+  it('friert die Kriterien beim ersten Punktewert je Team ein', () => {
     const daten = anwenden(grundbestand(), {
       art: 'bewertung/punkte',
       abschnittId: 's1',
@@ -171,9 +171,11 @@ describe('Rubrik einfrieren (FA-65)', () => {
       kriteriumId: 't1',
       wert: 7,
     });
-    const eingefroren = daten.abschnitte[0];
-    expect(eingefroren.rubrikKopie).toBeDefined();
-    expect(eingefroren.eingefrorenAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // Ab Schemastand 3 hängt die Kopie am Team, nicht am Abschnitt (FA-65 AK-1).
+    const planung = planungVon(daten, 's1', 'team1');
+    expect(planung?.rubrikKopie).toBeDefined();
+    expect(planung?.eingefrorenAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(daten.abschnitte[0].rubrikKopie).toBeUndefined();
   });
 
   it('friert nicht ein, solange nur geleert wird', () => {
@@ -185,7 +187,7 @@ describe('Rubrik einfrieren (FA-65)', () => {
       kriteriumId: 't1',
       wert: null,
     });
-    expect(daten.abschnitte[0].rubrikKopie).toBeUndefined();
+    expect(planungVon(daten, 's1', 'team1')).toBeUndefined();
   });
 
   it('rechnet danach mit der Kopie, nicht mit der geänderten Rubrik (AK-2)', () => {
@@ -194,7 +196,7 @@ describe('Rubrik einfrieren (FA-65)', () => {
       { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 7 },
       { art: 'rubrik/gewicht', rubrikId: RUBRIK_SPRINT, kategorie: 'team', wert: 5 },
     );
-    expect(rubrikVon(daten, daten.abschnitte[0]).gewichte.team).toBe(45);
+    expect(rubrikFuer(daten, daten.abschnitte[0], 'team1').gewichte.team).toBe(45);
     expect(daten.rubriken.find((r) => r.id === RUBRIK_SPRINT)!.gewichte.team).toBe(5);
   });
 
@@ -215,7 +217,24 @@ describe('Rubrik einfrieren (FA-65)', () => {
       kriteriumId: 't2',
       wert: 6,
     });
-    expect(zweite.abschnitte[0].eingefrorenAm).toBe(erste.abschnitte[0].eingefrorenAm);
+    expect(planungVon(zweite, 's1', 'team1')?.eingefrorenAm).toBe(
+      planungVon(erste, 's1', 'team1')?.eingefrorenAm,
+    );
+  });
+
+  it('friert bei einem Test weiterhin am Abschnitt ein – dort gibt es kein Team (AK-7)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      {
+        art: 'abschnitt/anlegen',
+        abschnitt: abschnitt({ id: 'x9', nummer: 3, name: 'Test 9', art: 'test', strang: 'theorie', rubrikId: 'rubrik-test-9' }),
+        rubrik: testRubrik('rubrik-test-9', 'Test 9'),
+      },
+      { art: 'bewertung/individuell', abschnittId: 'x9', teamId: null, personId: 'p1', kriteriumId: 'f1', wert: 2 },
+    );
+    const test = daten.abschnitte.find((a) => a.id === 'x9')!;
+    expect(test.rubrikKopie).toBeDefined();
+    expect(daten.teamabschnitte.some((tp) => tp.abschnittId === 'x9')).toBe(false);
   });
 });
 
@@ -776,8 +795,9 @@ describe('Verstehensnachweis und Reflexion (FA-40, FA-41)', () => {
     const nachweis = daten.bewertungen[0].individuell.p1.verstehen!;
     expect(nachweis.stufe).toBe('ueberwiegend');
     expect(nachweis.notiz).toContain('Transaktion');
-    // Er geht in die Rechnung ein, also gilt ab jetzt die eingefrorene Rubrik.
-    expect(daten.abschnitte[0].rubrikKopie).toBeDefined();
+    // Er geht in die Rechnung ein, also gelten ab jetzt die eingefrorenen
+    // Kriterien – seit Schemastand 3 die des Teams.
+    expect(planungVon(daten, 's1', 'team1')?.rubrikKopie).toBeDefined();
   });
 
   it('behält die Notiz, wenn nur die Stufe geändert wird', () => {
@@ -844,10 +864,11 @@ describe('Rubrik angleichen (FA-47)', () => {
       { art: 'rubrik/kriteriumAendern', rubrikId: RUBRIK_SPRINT, kategorie: 'team', index: 0, aenderung: { name: 'Funktionsumfang' } },
       { art: 'abschnitt/angleichen', rubrikId: RUBRIK_SPRINT },
     );
-    expect(daten.abschnitte[0].rubrikKopie!.team[0].name).toBe('Funktionsumfang');
-    expect(daten.abschnitte[0].angeglichenAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    const planung = planungVon(daten, 's1', 'team1')!;
+    expect(planung.rubrikKopie!.team[0].name).toBe('Funktionsumfang');
+    expect(planung.angeglichenAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     // Der Zeitpunkt des Einfrierens bleibt daneben stehen.
-    expect(daten.abschnitte[0].eingefrorenAm).toBeDefined();
+    expect(planung.eingefrorenAm).toBeDefined();
   });
 
   it('geschieht nie als Nebenwirkung einer Rubrikänderung (AK-1)', () => {
@@ -858,8 +879,8 @@ describe('Rubrik angleichen (FA-47)', () => {
       index: 0,
       aenderung: { name: 'Funktionsumfang' },
     });
-    expect(daten.abschnitte[0].rubrikKopie!.team[0].name).toBe('Funktionalität');
-    expect(daten.abschnitte[0].angeglichenAm).toBeUndefined();
+    expect(planungVon(daten, 's1', 'team1')!.rubrikKopie!.team[0].name).toBe('Funktionalität');
+    expect(planungVon(daten, 's1', 'team1')!.angeglichenAm).toBeUndefined();
   });
 
   it('rührt Abschnitte anderer Rubriken nicht an', () => {
@@ -868,12 +889,163 @@ describe('Rubrik angleichen (FA-47)', () => {
       { art: 'rubrik/anlegen', rubrik: testRubrik('r2', 'Andere') },
       { art: 'abschnitt/angleichen', rubrikId: 'r2' },
     );
-    expect(daten.abschnitte[0].angeglichenAm).toBeUndefined();
+    expect(planungVon(daten, 's1', 'team1')!.angeglichenAm).toBeUndefined();
   });
 
   it('rührt Abschnitte ohne eingefrorene Kopie nicht an', () => {
     const daten = anwenden(grundbestand(), { art: 'abschnitt/angleichen', rubrikId: RUBRIK_SPRINT });
     expect(daten.abschnitte[0].rubrikKopie).toBeUndefined();
     expect(daten.abschnitte[0].angeglichenAm).toBeUndefined();
+  });
+});
+
+describe('Sprintplanung je Team (FA-66)', () => {
+  it('legt Ziel, Beginn und Ende je Team an (AK-1)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'planung/festhalten',
+      abschnittId: 's1',
+      teamId: 'team1',
+      ziel: 'Kursbuchung mit Warteliste',
+      von: '2026-10-06',
+      bis: '2026-10-31',
+    });
+    const planung = planungVon(daten, 's1', 'team1')!;
+    expect(planung.ziel).toBe('Kursbuchung mit Warteliste');
+    expect(planung.von).toBe('2026-10-06');
+    expect(planung.bis).toBe('2026-10-31');
+    expect(planung.geplantAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('lässt sich anlegen, bevor ein Punkt erfasst ist (AK-2)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'planung/festhalten',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+    expect(daten.bewertungen).toHaveLength(0);
+    expect(planungVon(daten, 's1', 'team1')?.rubrikKopie).toBeDefined();
+  });
+
+  it('übernimmt den Rahmen des Abschnitts, wenn nichts angegeben ist (AK-3)', () => {
+    const start = anwenden(grundbestand(), {
+      art: 'abschnitt/aendern',
+      id: 's1',
+      aenderung: { von: '2026-10-06', bis: '2026-10-24' },
+    });
+    const daten = anwenden(start, {
+      art: 'planung/festhalten',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+    expect(planungVon(daten, 's1', 'team1')?.bis).toBe('2026-10-24');
+  });
+
+  it('wird für einen Test nicht angelegt – dort gilt der Zeitpunkt für alle (AK-6)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      {
+        art: 'abschnitt/anlegen',
+        abschnitt: abschnitt({ id: 'x1', nummer: 2, name: 'Test 1', art: 'test', strang: 'theorie', rubrikId: 'rubrik-test-1' }),
+        rubrik: testRubrik('rubrik-test-1', 'Test 1'),
+      },
+      { art: 'planung/festhalten', abschnittId: 'x1', teamId: 'team1' },
+    );
+    expect(daten.teamabschnitte.some((tp) => tp.abschnittId === 'x1')).toBe(false);
+  });
+
+  it('räumt Planungen mit dem Abschnitt und mit dem Team weg', () => {
+    const mitPlanung = anwenden(grundbestand(), {
+      art: 'planung/festhalten',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+    expect(anwenden(mitPlanung, { art: 'abschnitt/loeschen', id: 's1' }).teamabschnitte).toHaveLength(0);
+    expect(anwenden(mitPlanung, { art: 'team/loeschen', id: 'team1' }).teamabschnitte).toHaveLength(0);
+  });
+});
+
+describe('Kriterien je Team (FA-67)', () => {
+  function geplant(): Datenbestand {
+    return anwenden(grundbestand(), {
+      art: 'planung/festhalten',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+  }
+
+  it('streicht ein Kriterium nur für dieses Team (AK-2)', () => {
+    const daten = anwenden(geplant(), {
+      art: 'planung/kriteriumLoeschen',
+      abschnittId: 's1',
+      teamId: 'team1',
+      kategorie: 'team',
+      index: 0,
+    });
+    const kopie = planungVon(daten, 's1', 'team1')!.rubrikKopie!;
+    expect(kopie.team.map((k) => k.id)).not.toContain('t1');
+    // Die Rubrik selbst bleibt unberührt.
+    expect(daten.rubriken.find((r) => r.id === RUBRIK_SPRINT)!.team[0].id).toBe('t1');
+  });
+
+  it('ergänzt ein Kriterium und hält die Änderung als Herkunft fest (AK-9)', () => {
+    const daten = anwenden(geplant(), {
+      art: 'planung/kriteriumHinzufuegen',
+      abschnittId: 's1',
+      teamId: 'team1',
+      kategorie: 'team',
+      kriterium: { id: 'eigen1', name: 'Migrationsskript', beschreibung: '', max: 5 },
+    });
+    const planung = planungVon(daten, 's1', 'team1')!;
+    expect(planung.rubrikKopie!.team.map((k) => k.id)).toContain('eigen1');
+    expect(planung.herkunft?.art).toBe('geaendert');
+  });
+
+  it('lässt die Kriterien nach dem ersten Punkt nicht mehr ändern (AK-4)', () => {
+    const daten = anwenden(
+      geplant(),
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 8 },
+      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
+    );
+    expect(planungVon(daten, 's1', 'team1')!.rubrikKopie!.team[0].id).toBe('t1');
+  });
+
+  it('schreibt die Kriterien des vorigen Sprints fort, nicht die Rubrik (AK-7)', () => {
+    const daten = anwenden(
+      geplant(),
+      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
+      { art: 'abschnitt/anlegen', abschnitt: abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }) },
+      { art: 'planung/festhalten', abschnittId: 's2', teamId: 'team1' },
+    );
+    const zweiter = planungVon(daten, 's2', 'team1')!;
+    expect(zweiter.rubrikKopie!.team.map((k) => k.id)).not.toContain('t1');
+    expect(zweiter.herkunft).toEqual({ art: 'uebernommen', ausAbschnittId: 's1' });
+  });
+
+  it('nimmt für den ersten Sprint eine Vorlage, nicht die Kette (AK-8)', () => {
+    const daten = geplant();
+    expect(planungVon(daten, 's1', 'team1')!.herkunft).toEqual({
+      art: 'vorlage',
+      rubrikId: RUBRIK_SPRINT,
+    });
+  });
+
+  it('beginnt den ganzen Satz aus einer Vorlage neu (AK-10)', () => {
+    const daten = anwenden(
+      geplant(),
+      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
+      { art: 'planung/ausVorlage', abschnittId: 's1', teamId: 'team1', rubrikId: RUBRIK_SPRINT },
+    );
+    const planung = planungVon(daten, 's1', 'team1')!;
+    expect(planung.rubrikKopie!.team.map((k) => k.id)).toContain('t1');
+    expect(planung.herkunft).toEqual({ art: 'vorlage', rubrikId: RUBRIK_SPRINT });
+  });
+
+  it('rechnet danach mit dem Satz des Teams (AK-1)', () => {
+    const daten = anwenden(
+      geplant(),
+      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
+    );
+    expect(rubrikFuer(daten, daten.abschnitte[0], 'team1').team.map((k) => k.id)).not.toContain('t1');
+    expect(rubrikFuer(daten, daten.abschnitte[0], null).team.map((k) => k.id)).toContain('t1');
   });
 });

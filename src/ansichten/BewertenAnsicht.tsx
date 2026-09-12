@@ -22,7 +22,16 @@ import {
   selbstbildAbweichung,
   tendenz,
 } from '../domain/scoring';
-import { abschnitteVon, mitgliederIn, rubrikVon, rueckmeldungOffen } from '../domain/zuordnung';
+import {
+  abschnitteVon,
+  mitgliederIn,
+  planungVon,
+  punkteErfasst,
+  rubrikFuer,
+  rubrikVon,
+  rueckmeldungOffen,
+} from '../domain/zuordnung';
+import { PlanungsKarte } from './PlanungsKarte';
 import type {
   Abschnitt,
   Verstehensstufe,
@@ -149,7 +158,6 @@ export function BewertenAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
       ui={ui}
       setUi={setUi}
       abschnitt={abschnitt}
-      rubrik={rubrik}
       index={index}
       abschnittswahl={abschnittswahl}
     />
@@ -283,12 +291,10 @@ function TeamMaske({
   ui,
   setUi,
   abschnitt,
-  rubrik,
   index,
   abschnittswahl,
 }: AnsichtProps & {
   abschnitt: Abschnitt;
-  rubrik: Rubrik;
   index: Map<string, Bewertung>;
   abschnittswahl: ReactNode;
 }) {
@@ -309,10 +315,17 @@ function TeamMaske({
   }
 
   const team = teams.find((t) => t.id === ui.teamId) ?? teams[0];
+  // FA-67: Die geltenden Kriterien hängen am Team, nicht am Abschnitt.
+  const rubrik = rubrikFuer(daten, abschnitt, team.id);
+  const planung = planungVon(daten, abschnitt.id, team.id);
   const mitglieder = mitgliederIn(daten, abschnitt.id, team.id);
   const bewertung = index.get(bewertungsSchluessel(abschnitt.id, team.id));
   const bewerter = mitglieder.find((p) => p.id === ui.bewerterId) ?? mitglieder[0] ?? null;
-  const zeitraum = [abschnitt.von, abschnitt.bis].filter(Boolean).map(datumDeutsch).join(' – ');
+  // FA-66: Maßgeblich ist der Zeitraum des Teams; der Abschnitt gibt nur den Rahmen.
+  const zeitraum = [planung?.von || abschnitt.von, planung?.bis || abschnitt.bis]
+    .filter(Boolean)
+    .map(datumDeutsch)
+    .join(' – ');
   // FA-42 AK-4: Für wen steht die Rückmeldung noch aus?
   const offeneRueckmeldungen = new Set(
     rueckmeldungOffen(daten, abschnitt.id, index).map((p) => p.id),
@@ -397,6 +410,14 @@ function TeamMaske({
           </button>
         ))}
       </div>
+
+      <PlanungsKarte
+        daten={daten}
+        dispatch={dispatch}
+        abschnitt={abschnitt}
+        team={team}
+        gesperrt={punkteErfasst(daten, abschnitt.id, team.id)}
+      />
 
       <div className="zweispaltig">
         <div>
@@ -788,6 +809,7 @@ function TeamMaske({
                   stand: e.prozent,
                   staerken: r?.staerken ?? '',
                   entwicklung: r?.entwicklung ?? '',
+                  ziel: planung?.ziel || undefined,
                   zeitraum: zeitraum || undefined,
                 }),
                 'text/html;charset=utf-8',

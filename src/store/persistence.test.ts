@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RUBRIK_SPRINT, SCHEMA_VERSION, leererDatenbestand } from '../domain/defaults';
+import {
+  RUBRIK_SPRINT,
+  SCHEMA_VERSION,
+  STANDARD_NOTENSCHLUESSEL,
+  VORLAGE_RUBRIK_SPRINT,
+  leererDatenbestand,
+  strukturKopie,
+} from '../domain/defaults';
+import { ergebnisAusRubrik, gesamtErgebnis } from '../domain/scoring';
+import { planungVon } from '../domain/zuordnung';
+import { bewertungsIndex } from './storeReducer';
 import {
   SPEICHER_SCHLUESSEL,
   alsSicherung,
@@ -255,5 +265,142 @@ describe('Sicherungsdatei (FA-33)', () => {
 
   it('benennt die Sicherung nach dem Datum', () => {
     expect(sicherungsDateiname(new Date('2026-09-09T10:00:00Z'))).toBe('pre-syp-prp-2026-09-09.json');
+  });
+});
+
+/**
+ * Ein Bestand nach Schemastand 2: mit `abschnitte` und `rubriken`, aber ohne
+ * `teamabschnitte`. So lag er bis Release 0.3.0 im Speicher.
+ */
+function standZwei(): Record<string, unknown> {
+  return {
+    schemaVersion: 2,
+    rubriken: [strukturKopie(VORLAGE_RUBRIK_SPRINT)],
+    vorgabeRubrikId: RUBRIK_SPRINT,
+    notenschluessel: strukturKopie(STANDARD_NOTENSCHLUESSEL),
+    strangGewichte: { praxis: 75, theorie: 25 },
+    peerDeckelung: 5,
+    verstehensAnteil: 30,
+    zeitfaktorZweiteHaelfte: 2,
+    sperreAktiv: true,
+    stichtage: [],
+    gesamtstand: {},
+    notenstaende: {},
+    klassen: [{ id: 'k1', name: '4AHIF' }],
+    teams: [
+      { id: 'team1', klasseId: 'k1', name: 'Kepler' },
+      { id: 'team2', klasseId: 'k1', name: 'Doppler' },
+    ],
+    personen: [
+      { id: 'p1', klasseId: 'k1', name: 'Berger Lena', teamId: 'team1' },
+      { id: 'p2', klasseId: 'k1', name: 'Steiner Jonas', teamId: 'team2' },
+    ],
+    abschnitte: [
+      {
+        id: 's1',
+        klasseId: 'k1',
+        nummer: 1,
+        name: 'Sprint 1',
+        art: 'sprint',
+        strang: 'praxis',
+        rubrikId: RUBRIK_SPRINT,
+        rubrikKopie: strukturKopie(VORLAGE_RUBRIK_SPRINT),
+        eingefrorenAm: '2026-10-07T08:15:00.000Z',
+        von: '2026-10-06',
+        bis: '2026-10-24',
+        faktor: 1,
+        peerAktiv: false,
+      },
+      {
+        id: 'x1',
+        klasseId: 'k1',
+        nummer: 2,
+        name: 'Test 1',
+        art: 'test',
+        strang: 'theorie',
+        rubrikId: RUBRIK_SPRINT,
+        von: '2026-11-12',
+        bis: '2026-11-12',
+        faktor: 1,
+        peerAktiv: false,
+      },
+    ],
+    zugehoerigkeiten: [
+      { abschnittId: 's1', personId: 'p1', teamId: 'team1' },
+      { abschnittId: 's1', personId: 'p2', teamId: 'team2' },
+    ],
+    bewertungen: [
+      {
+        abschnittId: 's1',
+        teamId: 'team1',
+        team: { t1: 8, t2: 7 },
+        prozess: { p1: 4 },
+        individuell: { p1: { punkte: { i1: 8 }, notiz: 'im Review nachgefragt' } },
+        peer: {},
+        notiz: '',
+      },
+    ],
+    peerEntscheidungen: [],
+  };
+}
+
+describe('Migration auf Schemastand 3 (FA-68)', () => {
+  it('legt je Abschnitt und Team eine Planung mit dem Zeitraum des Abschnitts an (AK-1)', () => {
+    const daten = migriere(standZwei());
+    expect(daten.schemaVersion).toBe(SCHEMA_VERSION);
+    const planungen = daten.teamabschnitte.filter((tp) => tp.abschnittId === 's1');
+    expect(planungen).toHaveLength(2);
+    expect(planungen.every((tp) => tp.von === '2026-10-06' && tp.bis === '2026-10-24')).toBe(true);
+    expect(planungen.every((tp) => tp.ziel === '')).toBe(true);
+  });
+
+  it('übernimmt die eingefrorene Rubrik samt Zeitpunkt an jedes Team (AK-2)', () => {
+    const daten = migriere(standZwei());
+    const planung = planungVon(daten, 's1', 'team1')!;
+    expect(planung.rubrikKopie?.team[0].id).toBe('t1');
+    expect(planung.eingefrorenAm).toBe('2026-10-07T08:15:00.000Z');
+    expect(planung.herkunft).toEqual({ art: 'vorlage', rubrikId: RUBRIK_SPRINT });
+  });
+
+  it('lässt Tests ohne Planung – sie haben kein Team (AK-1)', () => {
+    const daten = migriere(standZwei());
+    expect(daten.teamabschnitte.some((tp) => tp.abschnittId === 'x1')).toBe(false);
+  });
+
+  it('lässt Punkte, Notizen und Zugehörigkeiten unverändert (AK-3)', () => {
+    const daten = migriere(standZwei());
+    const bewertung = daten.bewertungen[0];
+    expect(bewertung.team).toEqual({ t1: 8, t2: 7 });
+    expect(bewertung.individuell.p1.notiz).toBe('im Review nachgefragt');
+    expect(daten.zugehoerigkeiten).toHaveLength(2);
+  });
+
+  it('ergibt dieselben Prozentwerte wie vor der Umstellung (AK-5)', () => {
+    // Vor der Migration galt die Kopie am Abschnitt, danach die am Team – beide
+    // sind identisch, also darf sich kein Wert bewegen.
+    const daten = migriere(standZwei());
+    const person = daten.personen[0];
+    const ergebnis = gesamtErgebnis(daten, person, bewertungsIndex(daten));
+    const ausRubrik = ergebnisAusRubrik(
+      daten.bewertungen[0],
+      person,
+      [person],
+      VORLAGE_RUBRIK_SPRINT,
+      false,
+    );
+    expect(ergebnis.praxis.prozent).toBe(ausRubrik.prozent);
+  });
+
+  it('läuft genau einmal und sichert den alten Stand vorher (AK-4, AK-6)', () => {
+    const speicher = speicherAttrappe();
+    speicher.setItem(SPEICHER_SCHLUESSEL, JSON.stringify(standZwei()));
+    const erstes = laden(speicher);
+    expect(erstes.daten.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(sicherungen(speicher)).toHaveLength(1);
+
+    speichern(erstes.daten, speicher);
+    const zweites = laden(speicher);
+    expect(sicherungen(speicher)).toHaveLength(1);
+    expect(zweites.daten.teamabschnitte).toHaveLength(2);
   });
 });

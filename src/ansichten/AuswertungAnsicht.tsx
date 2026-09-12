@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 
 import type { AbschnittMitErgebnis } from '../domain/types';
 import {
+  abschnitteMitAbweichung,
   datumDeutsch,
   gesamtErgebnis,
   notenstandWeichtAb,
@@ -104,6 +105,9 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
 
   // Die Auslassung hängt am Zeitraum, nicht an der Person – einmal ablesen genügt.
   const ohneDatum = ergebnisse[0]?.ergebnis.auslassung.ohneDatum ?? [];
+  // FA-67 AK-6: Wo Teams nach verschiedenen Kriterien beurteilt wurden, ist der
+  // Vergleich zwischen ihnen ein Vergleich ungleicher Maßstäbe.
+  const abweichende = abschnitteMitAbweichung(daten, abschnitte);
 
   // FA-51 AK-1: Die Standardansicht zeigt Stand, Tendenz und offene
   // Kategorien. Die Punkte je Abschnitt sind die Herleitung und kommen erst
@@ -196,6 +200,16 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
             : '.'}{' '}
           Spätere Abschnitte bleiben erhalten und erscheinen nur hier nicht.
         </p>
+      ) : null}
+
+      {abweichende.length > 0 ? (
+        <div className="meldung" role="status">
+          In {abweichende.length === 1 ? 'einem Abschnitt' : `${abweichende.length} Abschnitten`} (
+          {abweichende.map((a) => a.name).join(', ')}) wurden die Teams nach{' '}
+          <b>verschiedenen Kriterien</b> beurteilt. Teamvergleich, Notenverteilung und Export
+          stellen damit ungleiche Maßstäbe nebeneinander – die Werte innerhalb eines Teams bleiben
+          davon unberührt.
+        </div>
       ) : null}
 
       {ohneDatum.length > 0 ? (

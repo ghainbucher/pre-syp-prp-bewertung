@@ -39,9 +39,9 @@ import {
 import {
   abschnitteVon,
   auslassungen,
-  imZeitraum,
+  imZeitraumFuer,
   mitgliederIn,
-  rubrikVon,
+  rubrikFuer,
   teamIn,
   teamsIn,
   zeitraumVon,
@@ -53,7 +53,7 @@ export const PEER_MAX = 5;
 /** Ab dieser Abweichung in Prozentpunkten gilt ein Selbstbild als auffällig (FA-27). */
 export const ABWEICHUNG_SCHWELLE = 20;
 
-const KATEGORIE_BEZEICHNUNG = {
+export const KATEGORIE_BEZEICHNUNG = {
   team: 'Team-Ergebnis',
   prozess: 'Scrum-Prozess',
   individuell: 'Individueller Beitrag',
@@ -339,8 +339,10 @@ export function abschnittsErgebnis(
   person: Person,
   bewertungen: Map<string, Bewertung>,
 ): Abschnittsergebnis {
-  const rubrik = rubrikVon(daten, abschnitt);
   const teamId = abschnitt.art === 'test' ? null : teamIn(daten, abschnitt.id, person.id);
+  // Ab Schemastand 3 hängen die geltenden Kriterien am Team, nicht am
+  // Abschnitt (FA-67): Zwei Teams desselben Sprints können verschiedene haben.
+  const rubrik = rubrikFuer(daten, abschnitt, teamId);
   const bewertung = bewertungen.get(bewertungsSchluessel(abschnitt.id, teamId));
   const mitglieder = mitgliederIn(daten, abschnitt.id, teamId);
   return ergebnisAusRubrik(
@@ -450,7 +452,7 @@ export function strangErgebnis(
   zeitraum: Zeitraum = { von: null, bis: null },
 ): Strangergebnis {
   const imStrang = abschnitteVon(daten, person.klasseId).filter(
-    (a) => a.strang === strang && imZeitraum(a, zeitraum),
+    (a) => a.strang === strang && imZeitraumFuer(daten, a, person.id, zeitraum),
   );
   // Der Zeitfaktor ergibt sich aus der Lage **innerhalb des Strangs**: Ein
   // Test und ein Sprint liegen in verschiedenen Zeitreihen und dürfen sich
@@ -512,7 +514,7 @@ export function gesamtErgebnis(
     praxis,
     theorie,
     alle,
-    auslassung: { ohneDatum: auslassungen(daten, person.klasseId, zeitraum) },
+    auslassung: { ohneDatum: auslassungen(daten, person, zeitraum) },
   };
 }
 
@@ -529,6 +531,13 @@ export interface Angleichungsfolge {
 
 export interface Angleichung {
   abschnitt: Abschnitt;
+  /**
+   * Das betroffene Team (FA-47 AK-6); `null` bei einer Kopie am Abschnitt –
+   * also bei einem Test oder einem Bestand vor Schemastand 3.
+   */
+  teamId: Id | null;
+  /** Name des Teams, für die Vorschau. */
+  teamname: string | null;
   /**
    * Nur Bezeichnungen und Beschreibungen betroffen (FA-47 AK-3)?
    *
@@ -564,18 +573,33 @@ export function angleichungsVorschau(
   const aktuell = daten.rubriken.find((r) => r.id === rubrikId);
   if (!aktuell) return [];
 
-  return daten.abschnitte
-    .filter((a) => a.rubrikId === rubrikId && a.rubrikKopie)
-    .filter((a) => JSON.stringify(a.rubrikKopie) !== JSON.stringify(aktuell))
-    .map((abschnitt) => {
-      const kopie = abschnitt.rubrikKopie!;
+  // Kandidaten: Kopien am Abschnitt (Tests, Altbestand) und Planungen, deren
+  // Kriterien aus **dieser** Rubrik stammen. Ein fortgeschriebener oder
+  // geänderter Satz ist eine Entscheidung des Teams und wird nicht eingeebnet
+  // (FA-47 AK-6).
+  const kandidaten: Array<{ abschnitt: Abschnitt; teamId: Id | null; kopie: Rubrik }> = [];
+  for (const abschnitt of daten.abschnitte) {
+    if (abschnitt.rubrikId !== rubrikId) continue;
+    if (abschnitt.rubrikKopie) {
+      kandidaten.push({ abschnitt, teamId: null, kopie: abschnitt.rubrikKopie });
+    }
+    for (const planung of daten.teamabschnitte ?? []) {
+      if (planung.abschnittId !== abschnitt.id || !planung.rubrikKopie) continue;
+      if (planung.herkunft?.art !== 'vorlage' || planung.herkunft.rubrikId !== rubrikId) continue;
+      kandidaten.push({ abschnitt, teamId: planung.teamId, kopie: planung.rubrikKopie });
+    }
+  }
+
+  return kandidaten
+    .filter(({ kopie }) => JSON.stringify(kopie) !== JSON.stringify(aktuell))
+    .map(({ abschnitt, teamId, kopie }) => {
       const nurTexte = rechenkern(kopie) === rechenkern(aktuell);
-      const teamId = abschnitt.art === 'test' ? null : undefined;
+      const teamname = daten.teams.find((t) => t.id === teamId)?.name ?? null;
 
       const folgen = daten.personen
         .filter((p) => p.klasseId === abschnitt.klasseId)
         .map((person) => {
-          const inTeam = teamId === null ? null : teamIn(daten, abschnitt.id, person.id);
+          const inTeam = abschnitt.art === 'test' ? null : teamIn(daten, abschnitt.id, person.id);
           const bewertung = bewertungen.get(bewertungsSchluessel(abschnitt.id, inTeam));
           const mitglieder = mitgliederIn(daten, abschnitt.id, inTeam);
           const wie = (rubrik: Rubrik) =>
@@ -590,10 +614,12 @@ export function angleichungsVorschau(
             ).prozent;
           return { person, vorher: wie(kopie), nachher: wie(aktuell) };
         })
+        // Wer zu dieser Kopie nicht gehört, ist nicht betroffen.
+        .filter((f) => teamId === null || teamIn(daten, abschnitt.id, f.person.id) === teamId)
         // Wer kein Ergebnis hat und keines bekommt, ist nicht betroffen.
         .filter((f) => f.vorher !== null || f.nachher !== null);
 
-      return { abschnitt, nurTexte, folgen };
+      return { abschnitt, teamId, teamname, nurTexte, folgen };
     });
 }
 
@@ -605,6 +631,38 @@ export function angleichungAendertWerte(angleichungen: Angleichung[]): boolean {
       return Math.abs(f.vorher - f.nachher) > 0.0001;
     }),
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Vergleichbarkeit zwischen den Teams (FA-67 AK-6)                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Beurteilen die Teams dieses Abschnitts nach verschiedenen Kriterien?
+ *
+ * Verglichen wird der **rechnende** Teil: Kennungen, Maximalpunkte, Gewichte.
+ * Verschiedene Beschreibungen desselben Kriteriums ändern keinen Prozentwert
+ * und machen einen Vergleich nicht schief.
+ */
+export function kriterienWeichenAb(daten: Datenbestand, abschnitt: Abschnitt): boolean {
+  if (abschnitt.art === 'test') return false;
+  const teams = teamsIn(daten, abschnitt.id);
+  if (teams.length < 2) return false;
+  const kerne = new Set(teams.map((t) => rechenkern(rubrikFuer(daten, abschnitt, t.id))));
+  return kerne.size > 1;
+}
+
+/**
+ * Abschnitte, in denen die Teams nach verschiedenen Kriterien beurteilt wurden.
+ *
+ * Überall, wo Teams verglichen werden, ist das auszuweisen: Ein Vergleich
+ * ungleicher Maßstäbe ohne Hinweis wäre irreführend (FA-67 AK-6).
+ */
+export function abschnitteMitAbweichung(
+  daten: Datenbestand,
+  abschnitte: Abschnitt[],
+): Abschnitt[] {
+  return abschnitte.filter((a) => kriterienWeichenAb(daten, a));
 }
 
 /**

@@ -14,11 +14,12 @@ import type {
   Verstehensstufe,
 } from './types';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Feste Kennungen der ausgelieferten Rubriken. */
 export const RUBRIK_SPRINT = 'rubrik-sprint';
 export const RUBRIK_DIPLOMARBEIT = 'rubrik-diplomarbeit';
+export const RUBRIK_VORBEREITUNG = 'rubrik-vorbereitungssprint';
 
 /** Höchste Verschiebung durch Peer-Werte in Prozentpunkten (FA-45 AK-4). */
 export const PEER_DECKELUNG = 5;
@@ -103,6 +104,53 @@ export const VORLAGE_RUBRIK_SPRINT: Rubrik = {
   // Der Peer-Anteil trägt kein Kategoriegewicht: Er wirkt ab 0.3.0 als
   // gedeckelter Korrekturfaktor (FA-45, ADR-007).
   gewichte: { team: 45, prozess: 20, individuell: 35, peer: 0 },
+  selbstZaehlt: false,
+};
+
+/**
+ * Vorlage für den Vorbereitungssprint (FA-69).
+ *
+ * Der erste Sprint unterscheidet sich maßgeblich von den späteren: Es gibt noch
+ * kein Produkt, sondern die Unterlagen, auf denen alles Weitere aufsetzt. Die
+ * sechs Ergebnisse sind die Vorgabe des Auftraggebers vom 12.09.2026.
+ *
+ * Prozess, individueller Beitrag und Peer sind **wörtlich** die der
+ * Sprint-Rubrik: Sie werden nach FA-67 AK-7 in den zweiten Sprint mitgenommen,
+ * und eine abweichende Benennung machte den Verlauf über das Jahr unlesbar.
+ */
+export const VORLAGE_RUBRIK_VORBEREITUNG: Rubrik = {
+  id: RUBRIK_VORBEREITUNG,
+  name: 'Vorbereitungssprint',
+  team: [
+    { id: 'v1', name: 'Fachliches Konzept', beschreibung: 'Problem, Zielgruppe und Nutzen sind beschrieben; der fachliche Ablauf ist in eigenen Worten dargestellt', max: 10 },
+    { id: 'v2', name: 'Anforderungsspezifikation', beschreibung: 'Anforderungen als überprüfbare Sätze mit Akzeptanzkriterien; Muss und Kann unterschieden', max: 10 },
+    { id: 'v3', name: 'Solution-Design', beschreibung: 'Architekturüberblick, Datenmodell und die tragenden Entscheidungen mit Begründung', max: 10 },
+    { id: 'v4', name: 'CI/CD', beschreibung: 'Pipeline läuft: Bauen und Tests bei jedem Push, ein fehlgeschlagener Lauf wird bemerkt und behoben', max: 8 },
+    { id: 'v5', name: 'Stakeholderanalyse', beschreibung: 'Beteiligte benannt, Interesse und Einfluss eingeschätzt, der Auftraggeber darunter', max: 6 },
+    { id: 'v6', name: 'Versionsverwaltung', beschreibung: 'Repository eingerichtet, aussagekräftige Commits, Branch-Strategie vereinbart und eingehalten', max: 6 },
+  ],
+  prozess: [
+    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5 },
+    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5 },
+    { id: 'p3', name: 'Backlog-Pflege', beschreibung: 'Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done', max: 5 },
+    { id: 'p4', name: 'Board & Transparenz', beschreibung: 'Board aktuell, Burndown bzw. Velocity gepflegt', max: 5 },
+    { id: 'p5', name: 'Retrospektive', beschreibung: 'Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt', max: 5 },
+  ],
+  individuell: [
+    { id: 'i1', name: 'Umfang & Schwierigkeit', beschreibung: 'Anspruch der übernommenen Aufgaben im Verhältnis zum Team', max: 10 },
+    { id: 'i2', name: 'Selbstständigkeit', beschreibung: 'Löst Probleme eigenständig, holt gezielt Hilfe', max: 8 },
+    { id: 'i3', name: 'Termintreue', beschreibung: 'Zugesagte Stories sind am Sprint-Ende fertig', max: 6 },
+    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Code Reviews, Unterstützung anderer, Kommunikation', max: 6 },
+  ],
+  peer: [
+    { id: 'q1', name: 'Verlässlichkeit', beschreibung: 'hält Zusagen ein', max: 5 },
+    { id: 'q2', name: 'Fachlicher Beitrag', beschreibung: 'trägt zum Ergebnis bei', max: 5 },
+    { id: 'q3', name: 'Zusammenarbeit', beschreibung: 'kommuniziert, hilft, nimmt Feedback an', max: 5 },
+    { id: 'q4', name: 'Eigeninitiative', beschreibung: 'bringt von sich aus Aufgaben ein', max: 5 },
+  ],
+  // Der Prozess wiegt weniger als später, weil er im ersten Sprint erst
+  // entsteht (FA-69 AK-6).
+  gewichte: { team: 50, prozess: 15, individuell: 35, peer: 0 },
   selbstZaehlt: false,
 };
 
@@ -203,7 +251,11 @@ export function schuljahrVon(datum = new Date()): number {
 
 /** Die mit der Anwendung ausgelieferten Rubriken. */
 export function vorlagenRubriken(): Rubrik[] {
-  return [strukturKopie(VORLAGE_RUBRIK_SPRINT), strukturKopie(VORLAGE_RUBRIK_DIPLOMARBEIT)];
+  return [
+    strukturKopie(VORLAGE_RUBRIK_SPRINT),
+    strukturKopie(VORLAGE_RUBRIK_VORBEREITUNG),
+    strukturKopie(VORLAGE_RUBRIK_DIPLOMARBEIT),
+  ];
 }
 
 export function leererDatenbestand(): Datenbestand {
@@ -224,6 +276,7 @@ export function leererDatenbestand(): Datenbestand {
     teams: [],
     personen: [],
     abschnitte: [],
+    teamabschnitte: [],
     zugehoerigkeiten: [],
     bewertungen: [],
     peerEntscheidungen: [],
