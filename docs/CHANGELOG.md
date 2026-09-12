@@ -8,6 +8,36 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ### Geändert
 
+- **Acht Bereiche statt vier (FA-34).** Die Oberfläche folgt jetzt dem Unterricht:
+  Klassen & Teams · Sprintplanning · Daily · Sprintreview · Diplomarbeitsvorbereitung ·
+  Tests · Auswertung · Rubrik & Notenschlüssel. „Bewerten“ entfällt als Bereich; seine
+  Inhalte liegen in den fünf neuen. Grundlage ist die Festlegung des Auftraggebers vom
+  12.09.2026: Planning, Daily und Review finden zu verschiedenen Zeiten statt und gehören
+  deshalb nicht in ein Formular – „diese bauen aufeinander auf“
+- **FA-70 Sprintplanning.** Ein Sprint **entsteht hier**, nicht mehr vorab unter
+  „Klassen & Teams“ – die Reihenfolge in der Anwendung entspricht damit der im Unterricht.
+  Ziel, Zeitraum und Kriterienauswahl je Team stehen hier, ebenso das Kriterienblatt für die
+  Klasse: Es gehört an den Anfang eines Sprints, nicht an sein Ende
+- **FA-71 Daily.** Was während des Sprints auffällt, samt den Notizen je Team und je Person.
+  Nicht abschaltbar, aber ein leeres Feld bleibt „nicht bewertet“ – das Daily wird oft nicht
+  beurteilt, und das ist kein Mangel
+- **FA-72 Sprintreview.** Der Abschluss: Punkte, Peer-Werte, Verstehensnachweis, Reflexion,
+  Rückmeldung und die Nachfrage zur Peer-Bewertung. Was in Planning oder Daily erfasst wurde,
+  steht hier unter „Früher erfasst“ **nur zur Ansicht** – zwei Eingabestellen für denselben
+  Wert sind eine Fehlerquelle, keine Bequemlichkeit
+- **FA-73 Diplomarbeitsvorbereitung.** Eigene Sicht, ganzjährig neben den Sprints statt als
+  Glied ihrer Reihe. Der Auftraggeber hat am selben Tag berichtigt, dass sie wegen der
+  Themensuche das ganze Jahr läuft; erst ihre Aufbereitung erfolgt nach dem Projekt. Ihr
+  „Ziel“ ist das gesuchte Thema
+- **FA-74 Tests.** Eigene Sicht; sie stehen nicht mehr in derselben Leiste wie die Sprints.
+  Inhaltlich unverändert
+- **FA-75 Erfassungszeitpunkt je Kriterium.** Ein Kriterium trägt, wann es beobachtet wird:
+  Planning, Daily oder Review; ohne Angabe Review. Das bestimmt **nur den Ort der Erfassung**,
+  nie die Rechnung. Ohne dieses Feld müssten die Sichten die Kennungen `p1` und `p2` fest
+  verdrahten – und das bräche, sobald ein Team andere Kriterien führt, was seit FA-67 der
+  Normalfall ist. Das Feld ist innerhalb von Schemastand 3 additiv: Ein Bestand ohne es wird
+  nicht verändert
+
 - **Schemastand 3: Der Sprint gehört dem Team.** Bisher war ein Abschnitt ein gemeinsames
   Zeitfenster der Klasse. Der Auftraggeber hat am 12.09.2026 festgehalten, dass Dauer und Ziel
   eines Sprints je Team beim Planning entstehen – damit fällt diese Annahme. Der Abschnitt
@@ -72,6 +102,19 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
   Probebestand aus dem Testlauf, zwölf Personen über acht Abschnitte, alle Werte gleich
 
 ### Behoben
+
+- **`npm run e2e` prüfte einen veralteten Build.** Das Skript rief nur
+  `playwright test` auf; der Vorschauserver liefert aus, was in `dist` liegt, und sagt nicht
+  dazu, wie alt das ist. Gebaut hat bisher nur `npm run pruefen` – solange man beides
+  hintereinander laufen ließ, fiel es nicht auf. Einmal nur `npm run e2e` genügte, um eine
+  bereits behobene Ursache zweimal als offen erscheinen zu lassen. Das Skript baut jetzt selbst
+
+- **Die Diplomarbeitsvorbereitung bekam die Sprint-Rubrik** statt ihrer eigenen (FA-56 AK-3,
+  FA-73 AK-2). Beim Anlegen eines Abschnitts galt die Vorgaberubrik für alles außer einem
+  Test; die mitgelieferte Rubrik „Diplomarbeitsvorbereitung“ wurde damit nie zugeordnet. Der
+  Fehler ist älter als Release 0.5.0 und fiel erst auf, als die Vorbereitung eine eigene Sicht
+  bekam und ein Durchstich nach „Themenqualität“ suchte. Die Art schlägt jetzt ihre Rubrik
+  vor; fehlt sie im Bestand, gilt weiterhin die Vorgabe
 
 - **Der Deploy-Workflow schob auch für einen Tag nach GitHub Pages** und scheiterte dort an der
   Schutzregel der Umgebung `github-pages`, die nur `main` zulässt. Weil das Release am

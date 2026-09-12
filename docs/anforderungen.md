@@ -4,7 +4,7 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung |
 | **Dokument** | Anforderungsdokument |
-| **Version** | 0.22 |
+| **Version** | 0.23 |
 | **Datum** | 2026-09-12 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
@@ -23,6 +23,7 @@
 | 0.2 | 2026-09-09 | G. Hainbucher | Umstellung auf Satzschablone; Stakeholderanalyse und Product Goal ausgelagert; neun neue Anforderungen FA-39 bis FA-47 aus Fachkonzept und Risikoanalyse; Rahmenbedingungen RB-07 bis RB-10 ergänzt | Entwurf |
 | 0.3 | 2026-09-10 | G. Hainbucher | Zeitraum berichtigt (1. Oktober bis 30. April statt Semester), Annahmen an das tatsächliche Zeitbudget angepasst, FA-48 für die Auswertung zu einem Stichtag ergänzt | Entwurf |
 | 0.4 | 2026-09-10 | G. Hainbucher | OP-F2 entschieden: Peer-Werte wirken als gedeckelter Korrekturfaktor. FA-45 von „Kann/offen“ auf „Soll/geplant“, FA-22 entsprechend angepasst | Entwurf |
+| 0.23 | 2026-09-12 | G. Hainbucher | Acht Bereiche entlang des Unterrichtsablaufs: Sprintplanning, Daily, Sprintreview, Diplomarbeitsvorbereitung und Tests als eigene Sichten (FA-70 bis FA-74), Erfassungszeitpunkt je Kriterium (FA-75). FA-34 neu gefasst, FA-04, FA-56 und FA-60 daran angeschlossen. Releaseplan: 0.5.0 „Ablauf“, bisheriges 0.5.0 wird 0.6.0. OP-F22 bis OP-F25 aufgenommen | Entwurf |
 | 0.22 | 2026-09-12 | G. Hainbucher | Schemastand 3: Beginn, Ende und Ziel eines Sprints liegen beim Team (FA-66), Kriterien werden je Team angepasst und aus dem vorigen Sprint fortgeschrieben (FA-67), Migration (FA-68), Vorlage „Vorbereitungssprint“ (FA-69). FA-04, FA-47, FA-48, FA-55 und FA-65 daran angeschlossen. Releaseplan: 0.4.0 „Planen“, bisheriges 0.4.0 wird 0.5.0. OP-F17 bis OP-F20 aufgenommen | Entwurf |
 | 0.21 | 2026-09-11 | G. Hainbucher | Release 0.3.0 umgesetzt: FA-32, FA-40 (AK-1 bis AK-4 nachgetragen), FA-41 (AK-3, AK-4), FA-42, FA-45, FA-47, FA-48 (AK-6, AK-7), FA-49, FA-50, FA-51, FA-54, FA-61 | Entwurf |
 | 0.20 | 2026-09-11 | G. Hainbucher | Release 0.2.0 umgesetzt: FA-17 (AK-1 bis AK-5 nachgetragen), FA-39 (AK-4 bis AK-7 nachgetragen), FA-46, FA-64, DS-06, FA-53 (AK-6, AK-7 nachgetragen). OP-F16 aufgenommen | Entwurf |
@@ -84,7 +85,8 @@ Funktion im Durchgang zum ersten Mal gebraucht?
 | **0.2.0 Erfassen** | Das Datenmodell in seiner endgültigen Form und alles, was zum Bewerten eines Sprints nötig ist. Dazu die Ausgabe der Rubrik an die Klasse und die Sicherung. | **Mitte Oktober**, erste Sprintbewertung |
 | **0.3.0 Beurteilen** | Rechnen und Ausgeben: Zeitfaktor, Peer-Korrektur, gesetzte Werte, Notenstand, Sperre, Stichtag, Belegfassung, Rückmeldung an die Person. | **Ende Jänner**, Semesterzeugnis |
 | **0.4.0 Planen** | Der Sprint gehört dem Team: Beginn, Ende und Ziel je Team, Kriterien je Team mit Fortschreibung aus dem vorigen Sprint, Vorlage für den Vorbereitungssprint, Migration auf Schemastand 3. | **vor dem ersten Sprintbeginn** eines Durchgangs |
-| **0.5.0 Ergänzen** | Was den Betrieb angenehmer macht, aber keinen Termin hat: Auftraggeber, Testzeitbudget, Ergebnisimport, Tastaturbedienung, Barrierefreiheit, Rubrikweitergabe. | laufend |
+| **0.5.0 Ablauf** | Die Oberfläche folgt dem Unterricht: acht Bereiche statt vier, Sprintplanning, Daily und Sprintreview getrennt, Diplomarbeitsvorbereitung und Tests mit eigener Sicht. Das Rechenmodell bleibt unberührt. | **vor dem ersten Sprintplanning** eines Durchgangs |
+| **0.6.0 Ergänzen** | Was den Betrieb angenehmer macht, aber keinen Termin hat: Auftraggeber, Testzeitbudget, Ergebnisimport, Tastaturbedienung, Barrierefreiheit, Rubrikweitergabe. | laufend |
 
 **Das Datenmodell kommt vollständig in 0.2.0** – einschließlich Theoriestrang und
 Diplomarbeitsvorbereitung, obwohl beides erst im November beziehungsweise im Mai benutzt
@@ -177,6 +179,7 @@ damit ich den tatsächlichen Projektverlauf abbilden und den Lernsprint geringer
 - **AK-1** Der Sprintfaktor ist frei wählbar; 0 nimmt den Sprint aus dem Gesamtergebnis.
 - **AK-2** Der Zeitraum am Sprint ist ein **Rahmen** und keine Festlegung: Maßgeblich sind Beginn und Ende, die jedes Team in seiner Planung einträgt (FA-66). Für einen Test gilt der Zeitraum des Abschnitts für alle.
 - **AK-3** Der Faktor bleibt am Sprint und gilt für alle Teams: Ein Lernsprint ist ein Format der Klasse, keine Vereinbarung eines einzelnen Teams.
+- **AK-4** Ab 0.5.0 **entsteht** ein Sprint im Sprintplanning (FA-70 AK-1), nicht mehr hier. Ändern und Löschen bleiben unter „Klassen & Teams“ erreichbar – wer einen Tippfehler berichtigt, plant nicht.
 
 ### FA-43 Auftraggeber je Team erfassen
 
@@ -458,6 +461,7 @@ damit die Jahresnote in einem Stück belegbar bleibt und nicht zu einem Drittel 
 - **AK-3** Die Art bestimmt nur die vorgeschlagene Rubrik und die Beschriftung in der Oberfläche.
 - **AK-4** Ein Abschnitt der Art Diplomarbeitsvorbereitung gehört zu einem Beurteilungszeitraum wie jeder andere (FA-48).
 - **AK-5** Die Peer-Bewertung ist auch für diesen Abschnitt zuschaltbar (FA-52).
+- **AK-6** Ab 0.5.0 ist sie **kein Glied der Sprintreihe**: Sie läuft ganzjährig parallel und hat eine eigene Sicht (FA-73). Für Erfassung und Rechnung bleibt sie ein Abschnitt wie jeder andere – AK-2 gilt unverändert.
 
 *Behandelt Risiko R-10.*
 
@@ -532,6 +536,98 @@ damit ich im Vorbereitungssprint nicht beurteile, was es dort noch gar nicht gib
 *Festgelegt vom Auftraggeber am 12.09.2026, Kriterien und Gewichtung ausgeschrieben in
 docs/entwurf-planung-je-team.md, Kapitel 9. Der Auftraggeber hat dazu angemerkt, dass sich der
 Satz nach den ersten Erfahrungen ändern wird – AK-3 hält diesen Weg offen.*
+
+### FA-70 Sprintplanning als eigene Sicht
+
+`Muss` · 0.5.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich einen Sprint dort anlegen und planen, wo ich ihn plane,
+damit die Reihenfolge in der Anwendung der Reihenfolge im Unterricht entspricht.
+
+- **AK-1** Ein Sprint **entsteht in dieser Sicht**, nicht mehr unter „Klassen & Teams“. Nummer und Bezeichnung werden vorgeschlagen.
+- **AK-2** Je Team werden Ziel, Beginn, Ende und die geltenden Kriterien erfasst (FA-66, FA-67).
+- **AK-3** Kriterien mit dem Erfassungszeitpunkt „Planning“ (FA-75) werden hier beurteilt, nicht am Sprintende.
+- **AK-4** Das Kriterienblatt für die Klasse (FA-39) wird hier ausgegeben: Es gehört an den Anfang eines Sprints, nicht an sein Ende.
+- **AK-5** Ein Sprint, der geplant und noch nicht beurteilt ist, ist als laufend erkennbar.
+
+*Folgt aus der Festlegung des Auftraggebers vom 12.09.2026: „Ein Abschnitt im
+Projekt ist ein Sprint, der beim Sprintplanning entsteht.“*
+
+### FA-71 Daily als eigene Sicht
+
+`Soll` · 0.5.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich während des Sprints festhalten, was mir im Daily auffällt,
+damit ich es am Sprintende nicht aus dem Gedächtnis rekonstruieren muss.
+
+- **AK-1** Die Sicht zeigt den laufenden Sprint je Team und erlaubt das Erfassen der Kriterien mit dem Erfassungszeitpunkt „Daily“ (FA-75).
+- **AK-2** Sie ist **nicht abschaltbar**; ein leeres Feld bleibt „nicht bewertet“. Das Daily wird oft nicht beurteilt, und das ist kein Mangel.
+- **AK-3** Die Notizen je Team und je Person (FA-16, FA-17) sind hier erreichbar: Was im Daily auffällt, ist meist eine Beobachtung und keine Punktzahl.
+
+*Die einseitige Bewertung – „eigentlich nur negativ, wenn nichts überlegt wurde“ –
+ist ausdrücklich **nicht** Gegenstand dieser Anforderung; siehe OP-F22.*
+
+### FA-72 Sprintreview als eigene Sicht
+
+`Muss` · 0.5.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich den Sprint dort beurteilen, wo ich ihn abschließe,
+damit Planung, Beobachtung und Beurteilung nicht in einem Formular verschwimmen.
+
+- **AK-1** Hier werden alle Kriterien mit dem Erfassungszeitpunkt „Review“ erfasst, dazu Peer-Werte, Verstehensnachweis, Reflexion und Rückmeldung.
+- **AK-2** Was in Planning und Daily bereits erfasst wurde, ist hier sichtbar und als dort erfasst gekennzeichnet; es wird nicht doppelt abgefragt.
+- **AK-3** Die Nachfrage zur Peer-Bewertung (FA-53) steht hier: Sie gehört an das Ende einer Sprintbeurteilung.
+- **AK-4** Die offenen Rückmeldungen (FA-42 AK-4) werden hier genannt.
+
+### FA-73 Diplomarbeitsvorbereitung als eigene Sicht
+
+`Muss` · 0.5.0 · SH-1, SH-4 · umgesetzt
+
+Als Lehrkraft
+möchte ich die Diplomarbeitsvorbereitung ganzjährig neben den Sprints führen,
+damit die Themensuche über das Jahr belegbar ist und nicht erst am Ende auffällt.
+
+- **AK-1** Sie ist **kein Glied der Sprintreihe**, sondern läuft parallel: eigene Sicht, eigener Zeitraum über das Schuljahr.
+- **AK-2** Erfasst wird nach der Rubrik „Diplomarbeitsvorbereitung“, je Team und je Person wie bisher.
+- **AK-3** Ihr Ergebnis geht wie bisher in den Praxisstrang ein.
+- **AK-4** Für den Zeitfaktor (FA-54) zählt sie **nicht** als Glied der Sprintreihe: Etwas Ganzjähriges hat keine zweite Hälfte. Wie sie stattdessen gewichtet wird, entscheidet OP-F23; bis dahin trägt sie den Faktor der Hälfte, in der ihr Ende liegt.
+- **AK-5** Die Aufbereitung des Themas nach Projektende ist ein Zeitabschnitt innerhalb dieser Sicht, keine eigene Sicht.
+
+*Folgt aus der Berichtigung des Auftraggebers vom 12.09.2026: Die
+Diplomarbeitsvorbereitung läuft wegen der Themensuche das ganze Jahr parallel;
+erst ihre Aufbereitung erfolgt nach dem Projekt.*
+
+### FA-74 Tests als eigene Sicht
+
+`Soll` · 0.5.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich Tests dort festlegen und erfassen, wo sie hingehören,
+damit sie nicht in derselben Leiste stehen wie die Sprints.
+
+- **AK-1** Tests werden hier angelegt, angekündigt (§ 8 LBVO) und erfasst – inhaltlich unverändert gegenüber FA-60.
+- **AK-2** Sie erscheinen nicht mehr in einer gemeinsamen Abschnittsleiste mit den Sprints.
+
+### FA-75 Erfassungszeitpunkt je Kriterium
+
+`Muss` · 0.5.0 · SH-1, SH-4 · umgesetzt
+
+Als Lehrkraft
+möchte ich je Kriterium festlegen, wann es beobachtet wird,
+damit jedes Kriterium in der Sicht auftaucht, in der ich es tatsächlich beurteile.
+
+- **AK-1** Ein Kriterium trägt einen Erfassungszeitpunkt: Planning, Daily oder Review. Ohne Angabe gilt Review.
+- **AK-2** Der Zeitpunkt bestimmt **nur den Ort der Erfassung**, niemals die Rechnung: Kategorie, Gewicht und Maximalpunkte bleiben unberührt.
+- **AK-3** Er ist in der Rubrik einstellbar und wird mit der Rubrik eingefroren (FA-65).
+- **AK-4** In den ausgelieferten Vorlagen trägt „Sprint Planning“ den Zeitpunkt Planning und „Daily Standup“ den Zeitpunkt Daily; alle übrigen Review.
+- **AK-5** Das Feld ist innerhalb von Schemastand 3 **additiv**: Ein Bestand ohne das Feld wird beim Laden nicht verändert, es gilt die Vorgabe aus AK-1.
+
+*Ohne diese Anforderung müssten FA-70 AK-3 und FA-71 AK-1 die Kennungen `p1`
+und `p2` fest verdrahten. Das bräche, sobald eine Rubrik andere Kriterien führt –
+und seit FA-67 führt jedes Team möglicherweise andere.*
 
 ### FA-57 Bestand auf Schemastand 2 heben
 
@@ -1076,13 +1172,23 @@ Schwelle erinnert wird – entschieden.*
 
 ## 10 Bedienung
 
-### FA-34 Vier Bereiche
+### FA-34 Bereiche entlang des Unterrichtsablaufs
 
-`Muss` · 0.1.0 · SH-1 · umgesetzt
+`Muss` · 0.1.0, neu gefasst in 0.5.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
-möchte ich die Anwendung in Bewerten, Auswertung, Klassen & Teams sowie Rubrik & Notenschlüssel gegliedert vorfinden,
-damit ich beim Bewerten nicht suchen muss.
+möchte ich die Anwendung so gegliedert vorfinden, wie der Unterricht abläuft,
+damit ich zu jedem Zeitpunkt genau den Bereich öffne, in dem ich gerade arbeite.
+
+- **AK-1** Acht Bereiche: Klassen & Teams, Sprintplanning, Daily, Sprintreview, Diplomarbeitsvorbereitung, Tests, Auswertung, Rubrik & Notenschlüssel.
+- **AK-2** Die Reihenfolge folgt dem Ablauf, nicht der Häufigkeit: erst die Stammdaten, dann der Sprint von seinem Beginn bis zu seinem Ende, dann das Ganzjährige, dann das Auswerten und Einstellen.
+- **AK-3** Ein Bereich „Bewerten“ entfällt; seine Inhalte liegen in Sprintplanning, Daily, Sprintreview, Diplomarbeitsvorbereitung und Tests.
+- **AK-4** Die Bereiche sind jederzeit erreichbar, auch wenn der vorherige leer ist – die Reihenfolge ist eine Ordnung, keine Sperre.
+
+*Ersetzt die Fassung „Vier Bereiche“ vom 09.09.2026. Grund: Der Auftraggeber hat
+am 12.09.2026 festgehalten, dass Planning, Daily und Review zu verschiedenen
+Zeiten stattfinden und deshalb nicht in einem Formular zusammengehören – „diese
+bauen aufeinander auf“.*
 
 ### FA-35 Auswahl merken
 
@@ -1298,4 +1404,8 @@ Leser den Aufwand nicht für unbegründet hält und abbaut.
 | OP-F19 | Reicht bei abweichenden Kriterien (FA-67) ein **Hinweis**, oder muss die Notenverteilung über die Klasse entfallen? Die Fortschreibung verschärft die Frage: Kleine Anpassungen wirken fort, die Teams driften über das Jahr auseinander | Auftraggeber | offen |
 | OP-F20 | Soll die Anwendung **melden**, wenn die Kriteriensätze der Teams zu weit auseinanderlaufen? Ein Maß dafür gibt es nicht von selbst; denkbar wäre ein Hinweis ab n unterschiedlichen Kriterien | Auftraggeber | offen |
 | OP-F21 | **KO-Kriterien**: Werden bestimmte Kriterien nicht geliefert, ist der Sprint negativ zu beurteilen. Vom Auftraggeber am 12.09.2026 angekündigt und ausdrücklich vertagt. Betrifft die Struktur eines Kriteriums und ist deshalb bis zur Umsetzung von 0.4.0 fast kostenlos, danach ein weiterer Schemastand | Auftraggeber | offen, vertagt |
+| OP-F22 | Die **einseitige Bewertung des Daily** – „eigentlich nur negativ, wenn nichts überlegt wurde“. Ein Kriterium, das nur nach unten wirkt, ist etwas anderes als ein unbewertetes, das aus der Gewichtung fällt (ADR-004). Verwandt mit OP-F21: beides wirkt nur in eine Richtung | Auftraggeber | offen, vom Auftraggeber am 12.09.2026 ausdrücklich vertagt |
+| OP-F23 | Wie wird die **ganzjährige Diplomarbeitsvorbereitung im Zeitfaktor** behandelt? Sie hat keine zweite Hälfte. Denkbar: fester Faktor, oder Zuordnung zu der Hälfte, in der ihr Ende liegt (so die vorläufige Regel in FA-73 AK-4) | Auftraggeber | offen |
+| OP-F24 | Ist eine **Reiterleiste bei acht Bereichen** noch die richtige Form? Vier passen in eine Zeile, acht nicht ohne Weiteres | Auftraggeber | offen |
+| OP-F25 | Bleibt **„Abschnitt“ als Oberbegriff in der Oberfläche**, wenn Sprints, Tests und Diplomarbeitsvorbereitung getrennte Sichten haben? Im Datenmodell bleibt er in jedem Fall (FA-56 AK-2) | Auftraggeber | offen |
 | OP-M3 | Aufwandsschätzung je Anforderung führen? Priorität ohne Aufwand ist die halbe Entscheidungsgrundlage. | Auftraggeber | **entschieden 2026-09-10: nein, nicht erforderlich. Die Reihenfolge ergibt sich aus dem Bedarfszeitpunkt (Kap. 3.1), nicht aus dem Aufwand** |

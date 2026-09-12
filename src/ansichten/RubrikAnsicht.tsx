@@ -14,6 +14,9 @@ import {
   RUBRIK_SPRINT,
   VORLAGE_RUBRIK_SPRINT,
   strukturKopie,
+  ZEITPUNKTE,
+  ZEITPUNKT_BEZEICHNUNG,
+  zeitpunktVon,
 } from '../domain/defaults';
 import {
   angleichungAendertWerte,
@@ -23,7 +26,7 @@ import {
 } from '../domain/scoring';
 import { bewertungsIndex } from '../store/storeReducer';
 import { rubrikMitId } from '../domain/zuordnung';
-import type { KategorieSchluessel, Rubrik } from '../domain/types';
+import type { Erfassungszeitpunkt, KategorieSchluessel, Rubrik } from '../domain/types';
 import { neueId } from '../ui/auswahl';
 import { BestaetigenSchalter, Karte, Prozent, Textfeld } from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
@@ -311,6 +314,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                       <tr>
                         <th>Kriterium</th>
                         <th>Beschreibung</th>
+                        {kategorie.mitPunkten ? <th>erfasst im</th> : null}
                         {kategorie.mitPunkten ? <th className="zahl">max.</th> : null}
                         <th />
                       </tr>
@@ -318,7 +322,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                     <tbody>
                       {kriterien.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="anmerkung">
+                          <td colSpan={5} className="anmerkung">
                             keine Kriterien
                           </td>
                         </tr>
@@ -356,6 +360,32 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                                 }
                               />
                             </td>
+                            {/* FA-75: Wann wird das Kriterium beobachtet? Das
+                                bestimmt nur den Ort der Erfassung, nie die
+                                Rechnung. */}
+                            {kategorie.mitPunkten ? (
+                              <td>
+                                <select
+                                  value={zeitpunktVon(kriterium)}
+                                  aria-label={`Erfassungszeitpunkt für ${kriterium.name}`}
+                                  onChange={(e) =>
+                                    dispatch({
+                                      art: 'rubrik/kriteriumAendern',
+                                      rubrikId: rubrik.id,
+                                      kategorie: kategorie.schluessel,
+                                      index,
+                                      aenderung: { zeitpunkt: e.target.value as Erfassungszeitpunkt },
+                                    })
+                                  }
+                                >
+                                  {ZEITPUNKTE.map((wert) => (
+                                    <option key={wert} value={wert}>
+                                      {ZEITPUNKT_BEZEICHNUNG[wert]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            ) : null}
                             {kategorie.mitPunkten ? (
                               <td className="zahl">
                                 <input

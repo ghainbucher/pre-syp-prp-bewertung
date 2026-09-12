@@ -8,9 +8,15 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { leererDatenbestand } from './domain/defaults';
 import type { Datenbestand } from './domain/types';
 import { AuswertungAnsicht } from './ansichten/AuswertungAnsicht';
-import { BewertenAnsicht } from './ansichten/BewertenAnsicht';
 import { RubrikAnsicht } from './ansichten/RubrikAnsicht';
+import {
+  DailyAnsicht,
+  DiplomarbeitAnsicht,
+  SprintplanningAnsicht,
+  SprintreviewAnsicht,
+} from './ansichten/SprintAnsicht';
 import { StrukturAnsicht } from './ansichten/StrukturAnsicht';
+import { TestAnsicht } from './ansichten/TestAnsicht';
 import { dateiAnbieten } from './export/csv';
 import {
   alsSicherung,
@@ -46,11 +52,22 @@ import { auswahlKorrigieren, klassen as alleKlassen } from './ui/auswahl';
 import { BestaetigenSchalter } from './ui/bausteine';
 import { useUiZustand, type Ansicht } from './ui/useUiZustand';
 
+/**
+ * Die acht Bereiche in der Reihenfolge des Unterrichts (FA-34 AK-1, AK-2).
+ *
+ * Nicht nach Häufigkeit geordnet, sondern nach Ablauf: Stammdaten, dann der
+ * Sprint von seinem Beginn bis zu seinem Ende, dann das Ganzjährige, zuletzt
+ * Auswerten und Einstellen.
+ */
 const ANSICHTEN: Array<{ id: Ansicht; nr: string; titel: string }> = [
-  { id: 'bewerten', nr: '01', titel: 'Bewerten' },
-  { id: 'auswertung', nr: '02', titel: 'Auswertung' },
-  { id: 'struktur', nr: '03', titel: 'Klassen & Teams' },
-  { id: 'rubrik', nr: '04', titel: 'Rubrik & Notenschlüssel' },
+  { id: 'struktur', nr: '01', titel: 'Klassen & Teams' },
+  { id: 'planning', nr: '02', titel: 'Sprintplanning' },
+  { id: 'daily', nr: '03', titel: 'Daily' },
+  { id: 'review', nr: '04', titel: 'Sprintreview' },
+  { id: 'diplomarbeit', nr: '05', titel: 'Diplomarbeitsvorbereitung' },
+  { id: 'tests', nr: '06', titel: 'Tests' },
+  { id: 'auswertung', nr: '07', titel: 'Auswertung' },
+  { id: 'rubrik', nr: '08', titel: 'Rubrik & Notenschlüssel' },
 ];
 
 const start = laden();
@@ -363,9 +380,13 @@ export function App() {
             </div>
           ) : null}
 
-          {ui.ansicht === 'bewerten' ? <BewertenAnsicht {...gemeinsam} /> : null}
-          {ui.ansicht === 'auswertung' ? <AuswertungAnsicht {...gemeinsam} /> : null}
           {ui.ansicht === 'struktur' ? <StrukturAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'planning' ? <SprintplanningAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'daily' ? <DailyAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'review' ? <SprintreviewAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'diplomarbeit' ? <DiplomarbeitAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'tests' ? <TestAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'auswertung' ? <AuswertungAnsicht {...gemeinsam} /> : null}
           {ui.ansicht === 'rubrik' ? <RubrikAnsicht {...gemeinsam} /> : null}
         </div>
       </main>

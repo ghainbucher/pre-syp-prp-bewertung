@@ -8,6 +8,12 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * E2E-Tests laufen gegen den Produktionsbuild (NFA-05).
  * Der Vorschauserver wird von Playwright selbst gestartet.
+ *
+ * **Gebaut wird vorher, im Skript `e2e`** – nicht hier. Der Vorschauserver
+ * liefert aus, was in `dist` liegt, und sagt nicht dazu, wie alt das ist. Wer
+ * `playwright test` ohne vorherigen Build aufruft, prüft stillschweigend einen
+ * veralteten Stand; genau das ist am 12.09.2026 passiert und hat eine bereits
+ * behobene Ursache zweimal als offen erscheinen lassen.
  */
 export default defineConfig({
   testDir: './e2e',

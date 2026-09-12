@@ -5,17 +5,34 @@
 
 import { useState } from 'react';
 
-import { schuljahrVon, testRubrik } from '../domain/defaults';
+import { RUBRIK_DIPLOMARBEIT, schuljahrVon, testRubrik } from '../domain/defaults';
 import { abschnitteVon, teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Abschnittsart, Strang } from '../domain/types';
 import { klassen as alleKlassen, neueId, personenVon, teamsVon } from '../ui/auswahl';
 import { BestaetigenSchalter, Karte, Textfeld } from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
 
-const ARTEN: Array<{ wert: Abschnittsart; name: string; strang: Strang }> = [
-  { wert: 'sprint', name: 'Sprint', strang: 'praxis' },
-  { wert: 'diplomarbeit', name: 'Diplomarbeitsvorbereitung', strang: 'praxis' },
+/**
+ * Was hier angelegt werden kann (FA-04 AK-4, FA-70 AK-1).
+ *
+ * Ein **Sprint fehlt bewusst**: Er entsteht beim Sprintplanning, nicht vorab.
+ * Ändern und Löschen bleiben hier erreichbar – wer einen Tippfehler berichtigt,
+ * plant nicht.
+ */
+const ARTEN: Array<{
+  wert: Abschnittsart;
+  name: string;
+  strang: Strang;
+  /** Rubrik, die die Art vorschlägt (FA-56 AK-3); leer = die Vorgabe. */
+  rubrikId?: string;
+}> = [
   { wert: 'test', name: 'Test', strang: 'theorie' },
+  {
+    wert: 'diplomarbeit',
+    name: 'Diplomarbeitsvorbereitung',
+    strang: 'praxis',
+    rubrikId: RUBRIK_DIPLOMARBEIT,
+  },
 ];
 
 const STRAENGE: Array<{ wert: Strang; name: string }> = [
@@ -27,7 +44,7 @@ export function StrukturAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
   const [neueKlasse, setNeueKlasse] = useState('');
   const [neuesTeam, setNeuesTeam] = useState('');
   const [neuerAbschnitt, setNeuerAbschnitt] = useState('');
-  const [neueArt, setNeueArt] = useState<Abschnittsart>('sprint');
+  const [neueArt, setNeueArt] = useState<Abschnittsart>('test');
   const [neuePersonen, setNeuePersonen] = useState('');
   const [neuePersonTeam, setNeuePersonTeam] = useState('');
 
@@ -67,6 +84,12 @@ export function StrukturAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
     const nummer = abschnitte.reduce((max, a) => Math.max(max, a.nummer), 0) + 1;
     const id = neueId('a');
     const eigeneRubrik = neueArt === 'test' ? testRubrik(neueId('r'), name) : null;
+    // FA-56 AK-3: Die Art bestimmt die vorgeschlagene Rubrik. Fehlt sie im
+    // Bestand – etwa weil sie gelöscht wurde –, gilt die Vorgabe.
+    const vorgeschlagen =
+      vorgabe.rubrikId && daten.rubriken.some((r) => r.id === vorgabe.rubrikId)
+        ? vorgabe.rubrikId
+        : daten.vorgabeRubrikId;
     const neu: Abschnitt = {
       id,
       klasseId: klasse.id,
@@ -74,7 +97,7 @@ export function StrukturAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
       name,
       art: neueArt,
       strang: vorgabe.strang,
-      rubrikId: eigeneRubrik?.id ?? daten.vorgabeRubrikId,
+      rubrikId: eigeneRubrik?.id ?? vorgeschlagen,
       von: '',
       bis: '',
       faktor: 1,
@@ -493,7 +516,7 @@ export function StrukturAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                       type="text"
                       value={neuerAbschnitt}
                       aria-label="Neuer Abschnitt"
-                      placeholder="z. B. Sprint 4 – Buchungsmodul"
+                      placeholder="z. B. Test 2 – Softwarearchitektur"
                       onChange={(e) => setNeuerAbschnitt(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && abschnittAnlegen()}
                     />
@@ -515,7 +538,8 @@ export function StrukturAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                   <p className="anmerkung" style={{ margin: '10px 0 0' }}>
                     Ein Test bekommt eine eigene Rubrik mit drei Multiple-Choice-Fragen und einer
                     offenen Frage (20/20/20/40); sie ist unter „Rubrik &amp; Notenschlüssel“
-                    bearbeitbar.
+                    bearbeitbar. <b>Sprints werden hier nicht angelegt</b> – sie entstehen beim
+                    Sprintplanning.
                   </p>
                 </div>
               </>

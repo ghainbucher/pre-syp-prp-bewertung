@@ -8,7 +8,22 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-export type Ansicht = 'bewerten' | 'auswertung' | 'struktur' | 'rubrik';
+/**
+ * Die acht Bereiche (FA-34).
+ *
+ * Die Reihenfolge folgt dem Unterrichtsablauf: erst die Stammdaten, dann der
+ * Sprint von seinem Beginn bis zu seinem Ende, dann das Ganzjährige, dann das
+ * Auswerten und Einstellen.
+ */
+export type Ansicht =
+  | 'struktur'
+  | 'planning'
+  | 'daily'
+  | 'review'
+  | 'diplomarbeit'
+  | 'tests'
+  | 'auswertung'
+  | 'rubrik';
 
 export interface UiZustand {
   ansicht: Ansicht;
@@ -30,13 +45,13 @@ export interface UiZustand {
   ausfuehrlich: boolean;
 }
 
-// Stand 2: Bis dahin hieß der gewählte Abschnitt „sprintId“. Ein neuer
-// Schlüssel ist einfacher als eine Migration eines Zustands, der sich in
+// Stand 3: Aus dem einen Bereich „Bewerten“ sind fünf geworden (FA-34). Ein
+// neuer Schlüssel ist einfacher als eine Migration eines Zustands, der sich in
 // Sekunden wiederherstellt.
-const SCHLUESSEL = 'pre-syp-prp.ui.v2';
+const SCHLUESSEL = 'pre-syp-prp.ui.v3';
 
 const START: UiZustand = {
-  ansicht: 'bewerten',
+  ansicht: 'planning',
   klasseId: null,
   abschnittId: null,
   teamId: null,
