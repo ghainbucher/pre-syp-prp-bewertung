@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { RUBRIK_SPRINT, leererDatenbestand, testRubrik } from '../domain/defaults';
-import { planungVon, rubrikFuer, rueckmeldungOffen, teamIn } from '../domain/zuordnung';
+import {
+  RUBRIK_DIPLOMARBEIT,
+  RUBRIK_SPRINT,
+  VORLAGE_RUBRIK_DIPLOMARBEIT,
+  VORLAGE_RUBRIK_SPRINT,
+  leererDatenbestand,
+  testRubrik,
+} from '../domain/defaults';
+import {
+  kriterienVorrat,
+  planungVon,
+  rubrikFuer,
+  rueckmeldungOffen,
+  teamIn,
+} from '../domain/zuordnung';
 import type { Abschnitt, Datenbestand } from '../domain/types';
 import { bewertungsIndex, storeReducer, type Aktion } from './storeReducer';
 
@@ -973,13 +986,14 @@ describe('Kriterien je Team (FA-67)', () => {
     });
   }
 
-  it('streicht ein Kriterium nur für dieses Team (AK-2)', () => {
+  it('wählt ein Kriterium nur für dieses Team ab (AK-2)', () => {
     const daten = anwenden(geplant(), {
-      art: 'planung/kriteriumLoeschen',
+      art: 'planung/kriteriumWaehlen',
       abschnittId: 's1',
       teamId: 'team1',
       kategorie: 'team',
-      index: 0,
+      kriteriumId: 't1',
+      gewaehlt: false,
     });
     const kopie = planungVon(daten, 's1', 'team1')!.rubrikKopie!;
     expect(kopie.team.map((k) => k.id)).not.toContain('t1');
@@ -1004,7 +1018,7 @@ describe('Kriterien je Team (FA-67)', () => {
     const daten = anwenden(
       geplant(),
       { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 8 },
-      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
+      { art: 'planung/kriteriumWaehlen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', gewaehlt: false },
     );
     expect(planungVon(daten, 's1', 'team1')!.rubrikKopie!.team[0].id).toBe('t1');
   });
@@ -1012,7 +1026,7 @@ describe('Kriterien je Team (FA-67)', () => {
   it('schreibt die Kriterien des vorigen Sprints fort, nicht die Rubrik (AK-7)', () => {
     const daten = anwenden(
       geplant(),
-      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
+      { art: 'planung/kriteriumWaehlen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', gewaehlt: false },
       { art: 'abschnitt/anlegen', abschnitt: abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }) },
       { art: 'planung/festhalten', abschnittId: 's2', teamId: 'team1' },
     );
@@ -1021,7 +1035,7 @@ describe('Kriterien je Team (FA-67)', () => {
     expect(zweiter.herkunft).toEqual({ art: 'uebernommen', ausAbschnittId: 's1' });
   });
 
-  it('nimmt für den ersten Sprint eine Vorlage, nicht die Kette (AK-8)', () => {
+  it('nimmt für den ersten Sprint die zugeordnete Rubrik, nicht die Kette (AK-8)', () => {
     const daten = geplant();
     expect(planungVon(daten, 's1', 'team1')!.herkunft).toEqual({
       art: 'vorlage',
@@ -1029,21 +1043,55 @@ describe('Kriterien je Team (FA-67)', () => {
     });
   });
 
-  it('beginnt den ganzen Satz aus einer Vorlage neu (AK-10)', () => {
+  it('nimmt ein abgewähltes Kriterium wieder auf und behält die Reihenfolge (AK-2)', () => {
+    const ohne = anwenden(geplant(), {
+      art: 'planung/kriteriumWaehlen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't2', gewaehlt: false,
+    });
+    const wieder = anwenden(ohne, {
+      art: 'planung/kriteriumWaehlen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't2', gewaehlt: true,
+    });
+    // t2 steht wieder an seinem Platz, nicht am Ende.
+    expect(planungVon(wieder, 's1', 'team1')!.rubrikKopie!.team.map((k) => k.id)).toEqual(
+      VORLAGE_RUBRIK_SPRINT.team.map((k) => k.id),
+    );
+  });
+
+  it('führt Vorlage, frühere Auswahl und Neues im Vorrat zusammen (AK-2a)', () => {
     const daten = anwenden(
       geplant(),
-      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
-      { art: 'planung/ausVorlage', abschnittId: 's1', teamId: 'team1', rubrikId: RUBRIK_SPRINT },
+      { art: 'planung/kriteriumWaehlen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', gewaehlt: false },
+      { art: 'planung/kriteriumHinzufuegen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriterium: { id: 'eigen2', name: 'Migrationsskript', beschreibung: '', max: 5 } },
     );
-    const planung = planungVon(daten, 's1', 'team1')!;
-    expect(planung.rubrikKopie!.team.map((k) => k.id)).toContain('t1');
-    expect(planung.herkunft).toEqual({ art: 'vorlage', rubrikId: RUBRIK_SPRINT });
+    const vorrat = kriterienVorrat(daten, daten.abschnitte[0], 'team1').team.map((k) => k.id);
+    // Abgewähltes bleibt im Vorrat, Neues kommt dazu, und die Vorlage für den
+    // Vorbereitungssprint steht bei einem Sprint ebenfalls zur Wahl.
+    expect(vorrat).toContain('t1');
+    expect(vorrat).toContain('eigen2');
+    expect(vorrat).toContain('v1');
+  });
+
+  it('führt bei der Diplomarbeitsvorbereitung keine Sprintkriterien (AK-10)', () => {
+    const daten = anwenden(
+      geplant(),
+      {
+        art: 'abschnitt/anlegen',
+        abschnitt: abschnitt({ id: 'd1', nummer: 5, name: 'Diplomarbeitsvorbereitung', art: 'diplomarbeit', rubrikId: RUBRIK_DIPLOMARBEIT }),
+      },
+      { art: 'planung/festhalten', abschnittId: 'd1', teamId: 'team1' },
+    );
+    const planung = planungVon(daten, 'd1', 'team1')!;
+    expect(planung.rubrikKopie!.team.map((k) => k.id)).toEqual(
+      VORLAGE_RUBRIK_DIPLOMARBEIT.team.map((k) => k.id),
+    );
+    expect(planung.herkunft).toEqual({ art: 'vorlage', rubrikId: RUBRIK_DIPLOMARBEIT });
+    const vorrat = kriterienVorrat(daten, daten.abschnitte.find((a) => a.id === 'd1')!, 'team1');
+    expect(vorrat.team.map((k) => k.id)).not.toContain('t1');
   });
 
   it('rechnet danach mit dem Satz des Teams (AK-1)', () => {
     const daten = anwenden(
       geplant(),
-      { art: 'planung/kriteriumLoeschen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', index: 0 },
+      { art: 'planung/kriteriumWaehlen', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', gewaehlt: false },
     );
     expect(rubrikFuer(daten, daten.abschnitte[0], 'team1').team.map((k) => k.id)).not.toContain('t1');
     expect(rubrikFuer(daten, daten.abschnitte[0], null).team.map((k) => k.id)).toContain('t1');

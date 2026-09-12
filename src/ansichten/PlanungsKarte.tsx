@@ -11,7 +11,7 @@
  * Aktionen zurück.
  */
 
-import { kriterienVorschlag, planungVon } from '../domain/zuordnung';
+import { kriterienVorrat, kriterienVorschlag, planungVon } from '../domain/zuordnung';
 import type {
   Abschnitt,
   Datenbestand,
@@ -21,6 +21,8 @@ import type {
 } from '../domain/types';
 import { KATEGORIE_BEZEICHNUNG, datumDeutsch } from '../domain/scoring';
 import type { Aktion } from '../store/storeReducer';
+import { useState } from 'react';
+
 import { Karte, Textfeld } from '../ui/bausteine';
 
 const KATEGORIEN: KategorieSchluessel[] = ['team', 'prozess', 'individuell'];
@@ -61,7 +63,10 @@ export function PlanungsKarte({
   gesperrt: boolean;
 }) {
   const planung = planungVon(daten, abschnitt.id, team.id);
-  const vorschlag = planung?.rubrikKopie ?? kriterienVorschlag(daten, abschnitt, team.id).rubrik;
+  // Die geltende Auswahl; vor dem Festhalten der Vorschlag (FA-67 AK-7, AK-8).
+  const gewaehlt = planung?.rubrikKopie ?? kriterienVorschlag(daten, abschnitt, team.id).rubrik;
+  // Alles, was zur Wahl steht (AK-2a).
+  const vorrat = kriterienVorrat(daten, abschnitt, team.id);
 
   if (!planung) {
     return (
@@ -87,7 +92,7 @@ export function PlanungsKarte({
         </p>
         <ul className="kriterienliste">
           {KATEGORIEN.map((kategorie) =>
-            vorschlag[kategorie].map((kriterium) => (
+            gewaehlt[kategorie].map((kriterium) => (
               <li key={`${kategorie}-${kriterium.id}`}>
                 <span className="etikett">{KATEGORIE_BEZEICHNUNG[kategorie]}</span> {kriterium.name}{' '}
                 <span className="maximum">/ {kriterium.max}</span>
@@ -179,26 +184,26 @@ export function PlanungsKarte({
 
       {gesperrt ? (
         <p className="hinweis">
-          Für dieses Team sind bereits Punkte erfasst – die Kriterien stehen damit fest. Eine
-          Berichtigung läuft über „Rubrik angleichen“.
+          Für dieses Team sind bereits Punkte erfasst – die Kriterien stehen damit fest. Die
+          Auswahl ist unten weiterhin zu sehen; eine Berichtigung läuft über „Rubrik angleichen“.
         </p>
-      ) : (
-        <VorlagenWahl daten={daten} dispatch={dispatch} abschnitt={abschnitt} team={team} />
-      )}
+      ) : null}
 
       {KATEGORIEN.map((kategorie) => (
         <Kriterienblock
           key={kategorie}
           kategorie={kategorie}
-          kriterien={vorschlag[kategorie]}
+          vorrat={vorrat[kategorie]}
+          gewaehlt={gewaehlt[kategorie]}
           gesperrt={gesperrt}
-          onLoeschen={(index) =>
+          onWaehlen={(kriteriumId, an) =>
             dispatch({
-              art: 'planung/kriteriumLoeschen',
+              art: 'planung/kriteriumWaehlen',
               abschnittId: abschnitt.id,
               teamId: team.id,
               kategorie,
-              index,
+              kriteriumId,
+              gewaehlt: an,
             })
           }
           onHinzufuegen={(kriterium) =>
@@ -216,105 +221,126 @@ export function PlanungsKarte({
   );
 }
 
-/**
- * Den ganzen Satz aus einer Vorlage neu beginnen (FA-67 AK-10).
- *
- * Der Übergang vom Vorbereitungssprint zum zweiten tauscht sechs Kriterien auf
- * einmal; einzeln wäre das der falsche Weg für einen Vorgang, der jedes Jahr
- * ansteht.
- */
-function VorlagenWahl({
-  daten,
-  dispatch,
-  abschnitt,
-  team,
-}: {
-  daten: Datenbestand;
-  dispatch: (aktion: Aktion) => void;
-  abschnitt: Abschnitt;
-  team: Team;
-}) {
-  return (
-    <div className="zeile">
-      <span className="etikett">Neu beginnen mit</span>
-      <select
-        value=""
-        aria-label={`Kriterien von ${team.name} aus einer Vorlage neu beginnen`}
-        onChange={(e) => {
-          if (!e.target.value) return;
-          dispatch({
-            art: 'planung/ausVorlage',
-            abschnittId: abschnitt.id,
-            teamId: team.id,
-            rubrikId: e.target.value,
-          });
-        }}
-      >
-        <option value="">– Vorlage wählen –</option>
-        {daten.rubriken.map((rubrik) => (
-          <option key={rubrik.id} value={rubrik.id}>
-            {rubrik.name}
-          </option>
-        ))}
-      </select>
-      <span className="hinweis">ersetzt den ganzen Satz</span>
-    </div>
-  );
-}
-
 function Kriterienblock({
   kategorie,
-  kriterien,
+  vorrat,
+  gewaehlt,
   gesperrt,
-  onLoeschen,
+  onWaehlen,
   onHinzufuegen,
 }: {
   kategorie: KategorieSchluessel;
-  kriterien: Kriterium[];
+  /** Alles, was zur Wahl steht (FA-67 AK-2a). */
+  vorrat: Kriterium[];
+  /** Was in diesem Abschnitt gilt. */
+  gewaehlt: Kriterium[];
   gesperrt: boolean;
-  onLoeschen: (index: number) => void;
+  onWaehlen: (kriteriumId: string, an: boolean) => void;
   onHinzufuegen: (kriterium: Kriterium) => void;
 }) {
+  const anIds = new Set(gewaehlt.map((k) => k.id));
+  const punkte = gewaehlt.reduce((summe, k) => summe + k.max, 0);
+
   return (
     <div className="kriterienblock">
-      <h5>{KATEGORIE_BEZEICHNUNG[kategorie]}</h5>
-      {kriterien.length === 0 ? (
-        <p className="hinweis">In dieser Kategorie ist nichts vorgesehen.</p>
+      <h5>
+        {KATEGORIE_BEZEICHNUNG[kategorie]}{' '}
+        <span className="hinweis">
+          {gewaehlt.length} von {vorrat.length} gewählt · {punkte} Punkte
+        </span>
+      </h5>
+      {vorrat.length === 0 ? (
+        <p className="hinweis">In dieser Kategorie steht nichts zur Wahl.</p>
       ) : (
         <ul className="kriterienliste">
-          {kriterien.map((kriterium, index) => (
+          {vorrat.map((kriterium) => (
             <li key={kriterium.id}>
-              {kriterium.name} <span className="maximum">/ {kriterium.max}</span>
-              {gesperrt ? null : (
-                <button
-                  type="button"
-                  className="schalter schlicht"
-                  aria-label={`${kriterium.name} für dieses Team streichen`}
-                  onClick={() => onLoeschen(index)}
-                >
-                  streichen
-                </button>
-              )}
+              <label className={anIds.has(kriterium.id) ? undefined : 'anmerkung'}>
+                <input
+                  type="checkbox"
+                  checked={anIds.has(kriterium.id)}
+                  disabled={gesperrt}
+                  aria-label={`${kriterium.name} in diesem Abschnitt verwenden`}
+                  onChange={(e) => onWaehlen(kriterium.id, e.target.checked)}
+                />{' '}
+                {kriterium.name} <span className="maximum">/ {kriterium.max}</span>
+                {kriterium.beschreibung ? (
+                  <span className="hinweis"> – {kriterium.beschreibung}</span>
+                ) : null}
+              </label>
             </li>
           ))}
         </ul>
       )}
-      {gesperrt ? null : (
-        <button
-          type="button"
-          className="schalter schlicht"
-          onClick={() =>
-            onHinzufuegen({
-              id: `${kategorie}-${Date.now().toString(36)}`,
-              name: 'Neues Kriterium',
-              beschreibung: '',
-              max: 5,
-            })
-          }
-        >
-          Kriterium ergänzen
-        </button>
-      )}
+      {gesperrt ? null : <NeuesKriterium kategorie={kategorie} onHinzufuegen={onHinzufuegen} />}
+    </div>
+  );
+}
+
+/**
+ * Ein Kriterium anlegen, das es in keiner Rubrik gibt (FA-67 AK-2a).
+ *
+ * Name und Punkte gleich mit: Ein Kriterium namens „Neues Kriterium“ wäre in
+ * der Belegfassung nicht begründbar. Wer es wieder loswerden will, nimmt das
+ * Häkchen weg – damit fällt es aus der Auswahl und aus dem Vorrat.
+ */
+function NeuesKriterium({
+  kategorie,
+  onHinzufuegen,
+}: {
+  kategorie: KategorieSchluessel;
+  onHinzufuegen: (kriterium: Kriterium) => void;
+}) {
+  const [offen, setOffen] = useState(false);
+  const [name, setName] = useState('');
+  const [punkte, setPunkte] = useState('5');
+
+  if (!offen) {
+    return (
+      <button type="button" className="schalter schlicht" onClick={() => setOffen(true)}>
+        Kriterium ergänzen
+      </button>
+    );
+  }
+
+  const max = Number(punkte.replace(',', '.'));
+  const gueltig = name.trim().length > 0 && Number.isFinite(max) && max > 0;
+
+  return (
+    <div className="zeile">
+      <Textfeld
+        wert={name}
+        beschriftung={`Name des neuen Kriteriums in ${KATEGORIE_BEZEICHNUNG[kategorie]}`}
+        platzhalter="Bezeichnung"
+        onAendern={setName}
+      />
+      <Textfeld
+        wert={punkte}
+        beschriftung={`Punkte des neuen Kriteriums in ${KATEGORIE_BEZEICHNUNG[kategorie]}`}
+        platzhalter="Punkte"
+        onAendern={setPunkte}
+      />
+      <button
+        type="button"
+        className="schalter klein"
+        disabled={!gueltig}
+        onClick={() => {
+          onHinzufuegen({
+            id: `${kategorie}-${Date.now().toString(36)}`,
+            name: name.trim(),
+            beschreibung: '',
+            max,
+          });
+          setName('');
+          setPunkte('5');
+          setOffen(false);
+        }}
+      >
+        Übernehmen
+      </button>
+      <button type="button" className="schalter schlicht" onClick={() => setOffen(false)}>
+        abbrechen
+      </button>
     </div>
   );
 }

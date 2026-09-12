@@ -236,16 +236,16 @@ test('plant den Sprint je Team, bevor bewertet wird (FA-66, FA-67)', async ({ pa
     'Buchungsmodul mit Storno',
   );
 
-  // Ein gestrichenes Kriterium verschwindet aus der Punktemaske dieses Teams.
-  await page
-    .getByRole('button', { name: 'Sprint Review für dieses Team streichen' })
-    .click();
+  // Alle Kriterien stehen zur Wahl; abgewählte verschwinden aus der Punktemaske,
+  // nicht aus der Liste (FA-67 AK-2).
+  const auswahl = page.getByLabel('Sprint Review in diesem Abschnitt verwenden');
+  await expect(auswahl).toBeChecked();
+  await auswahl.uncheck();
+  await expect(auswahl).not.toBeChecked();
   await expect(page.getByLabel('Sprint Review', { exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Funktionalität', { exact: true })).toBeVisible();
 
   // Nach dem ersten Punkt stehen die Kriterien fest (FA-67 AK-4).
   await page.getByLabel('Funktionalität', { exact: true }).fill('10');
-  await expect(
-    page.getByRole('button', { name: 'Funktionalität für dieses Team streichen' }),
-  ).toHaveCount(0);
+  await expect(page.getByLabel('Funktionalität in diesem Abschnitt verwenden')).toBeDisabled();
 });

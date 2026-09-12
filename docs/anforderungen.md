@@ -481,29 +481,38 @@ damit am Ende nachvollziehbar ist, was in welchem Zeitraum beurteilt wurde.
 (Sprint-Ziel im Planning) und 8.1. Hebt die Annahme aus Schemastand 2 auf, ein Abschnitt sei
 ein gemeinsames Zeitfenster der Klasse.*
 
-### FA-67 Kriterien je Team anpassen und fortschreiben
+### FA-67 Kriterien je Team auswählen und fortschreiben
 
 `Muss` · 0.4.0 · SH-1, SH-2 · umgesetzt
 
 Als Lehrkraft
-möchte ich beim Planning einzelne Kriterien für dieses Team ergänzen oder streichen,
+möchte ich beim Planning aus allen Kriterien auswählen, welche für dieses Team gelten,
 damit beurteilt wird, was dieses Team in diesem Sprint tatsächlich vorhat.
 
 - **AK-1** Mit dem Festhalten der Planung wird der geltende Kriteriensatz als Kopie an das Team gebunden (FA-65 AK-1a).
-- **AK-2** In dieser Kopie lassen sich einzelne Kriterien ergänzen oder streichen. Die Gewichte der vier Kategorien bleiben unverändert; innerhalb einer Kategorie verschiebt sich das Gewicht über die Maximalpunkte.
+- **AK-2** Beim Planen werden **alle verfügbaren Kriterien angezeigt**, und die Lehrkraft wählt aus, welche in diesem Abschnitt gelten. Die Gewichte der vier Kategorien bleiben unverändert; innerhalb einer Kategorie verschiebt sich das Gewicht über die Maximalpunkte der gewählten.
+- **AK-2a** Verfügbar ist: die dem Abschnitt zugeordnete Rubrik, alles, was dieses Team in einem früheren Abschnitt **derselben Art** verwendet hat, und bei einem Sprint zusätzlich die Vorlage „Vorbereitungssprint“ (FA-69). Ein hier neu angelegtes Kriterium kommt dazu.
 - **AK-3** Ein gestrichenes Kriterium ist nicht dasselbe wie ein unbewertetes: Es zählt in seiner Kategorie gar nicht mit, während ein unbewertetes aus der Gewichtung fällt und als offen gemeldet wird (FA-21, FA-26).
 - **AK-4** Nach dem ersten Punkteintrag ist die Kopie eingefroren; Änderungen laufen über das Angleichen (FA-47 AK-6).
 - **AK-5** Die Belegfassung weist je Abschnitt und Team die geltenden Kriterien aus und benennt Abweichungen von der zugrunde liegenden Rubrik.
 - **AK-6** Überall, wo Teams miteinander verglichen werden – Teamübersicht (FA-29), Notenverteilung (FA-30), Export (FA-31) –, ist auszuweisen, dass die Kriterien abweichen. Ein Vergleich ungleicher Maßstäbe ohne Hinweis wäre irreführend.
-- **AK-7** Beim Planen eines Sprints sind die Kriterien **des vorigen Sprints desselben Teams** vorbelegt, nicht die der Rubrik. Eine einmal getroffene Anpassung wirkt damit fort. Sie bleibt ein Vorschlag und ist bis zum Festhalten änderbar.
-- **AK-8** Hat das Team keinen vorigen Sprint, gilt die Vorlage für den ersten Sprint (FA-69). Tests bleiben außen vor: Sie haben ihre eigene Rubrik und stehen nicht in der Kette.
-- **AK-9** Die Herkunft der Kriterien ist erkennbar: übernommen aus Sprint n, aus einer Vorlage, oder in diesem Sprint geändert.
-- **AK-10** Neben dem Übernehmen muss sich der Satz **aus einer Vorlage neu beginnen** lassen. Der Übergang vom Vorbereitungssprint zum zweiten Sprint tauscht sechs Kriterien auf einmal; sie einzeln zu streichen und einzeln neu anzulegen wäre der falsche Weg für einen Vorgang, der jedes Jahr ansteht.
+- **AK-7** Vorausgewählt sind die Kriterien **des vorigen Sprints desselben Teams**, nicht die der Rubrik. Eine einmal getroffene Auswahl wirkt damit fort. Sie ist ein Vorschlag und bis zum Festhalten änderbar.
+- **AK-8** Hat das Team keinen vorigen Sprint, ist die dem Abschnitt zugeordnete Rubrik vorausgewählt.
+- **AK-9** Die Herkunft der Kriterien ist erkennbar: übernommen aus Sprint n, aus einer Rubrik, oder in diesem Sprint geändert.
+- **AK-10** **Die Fortschreibung läuft nur von Sprint zu Sprint.** Ein Test und die Diplomarbeitsvorbereitung entstehen aus keinem Sprint und geben an keinen weiter: Sie haben ihre eigenen Kriterien, und ihre Auswahl beginnt bei der zugeordneten Rubrik.
 
 *Folgt aus der Festlegung des Auftraggebers vom 12.09.2026: „Die Kriterien sollen immer aus
 dem letzten Sprint übernommen werden … am Ende geht es meistens um dieselben Kriterien, nur
 die ersten Sprints unterscheiden sich maßgeblich.“ Behandelt das Risiko, dass die
 Vergleichbarkeit zwischen den Teams unbemerkt verlorengeht – siehe OP-F19 und OP-F20.*
+
+*AK-2 und AK-10 am 12.09.2026 nachgeschärft, nachdem der Auftraggeber die erste Umsetzung
+gesehen hat: Gewählt wird aus dem vollständigen Vorrat, statt einzelne Kriterien zu streichen
+und zu ergänzen – „ich möchte die Kriterien alle sehen und auswählen, welche ich verwenden
+möchte“. Die frühere AK-10 („aus einer Vorlage neu beginnen“) entfällt damit ersatzlos: Wenn
+alles sichtbar ist, ist ein Satzwechsel eine Frage von Häkchen und braucht keinen eigenen Weg.
+Zugleich berichtigt: Die Kette läuft **nur** von Sprint zu Sprint – ein Test und die
+Diplomarbeitsvorbereitung entstehen aus keinem Sprint.*
 
 ### FA-69 Eigene Vorlage für den Vorbereitungssprint
 
@@ -514,7 +523,7 @@ möchte ich für den ersten Sprint einen eigenen Kriteriensatz vorgeschlagen bek
 damit ich im Vorbereitungssprint nicht beurteile, was es dort noch gar nicht gibt.
 
 - **AK-1** Neben „Sprint“ und „Diplomarbeitsvorbereitung“ wird eine dritte Vorlage ausgeliefert: „Vorbereitungssprint“.
-- **AK-2** Sie ist Ausgangspunkt der Fortschreibung nach FA-67 AK-7, nicht ihr Ziel: Ab dem zweiten Sprint trägt das Team seine eigenen Kriterien.
+- **AK-2** Ihre Kriterien stehen beim Planen eines Sprints immer im Vorrat zur Auswahl (FA-67 AK-2a) – auch später im Jahr, falls eine Unterlage nachgereicht wird. Ist sie dem ersten Sprint als Rubrik zugeordnet, ist sie dort vorausgewählt.
 - **AK-3** Die Vorlage ist wie jede andere Rubrik änderbar und zurücksetzbar (FA-09).
 - **AK-4** Ihr Team-Ergebnis trägt sechs Kriterien mit zusammen 50 Punkten: Fachliches Konzept (10), Anforderungsspezifikation (10), Solution-Design (10), CI/CD (8), Stakeholderanalyse (6), Versionsverwaltung (6).
 - **AK-5** Scrum-Prozess, Individueller Beitrag und Peer übernehmen die Kriterien der Sprint-Rubrik unverändert. Sie werden in den zweiten Sprint mitgenommen; eine abweichende Benennung würde den Verlauf über das Jahr unlesbar machen.

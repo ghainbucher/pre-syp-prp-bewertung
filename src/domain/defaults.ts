@@ -127,7 +127,9 @@ export const VORLAGE_RUBRIK_VORBEREITUNG: Rubrik = {
     { id: 'v3', name: 'Solution-Design', beschreibung: 'Architekturüberblick, Datenmodell und die tragenden Entscheidungen mit Begründung', max: 10 },
     { id: 'v4', name: 'CI/CD', beschreibung: 'Pipeline läuft: Bauen und Tests bei jedem Push, ein fehlgeschlagener Lauf wird bemerkt und behoben', max: 8 },
     { id: 'v5', name: 'Stakeholderanalyse', beschreibung: 'Beteiligte benannt, Interesse und Einfluss eingeschätzt, der Auftraggeber darunter', max: 6 },
-    { id: 'v6', name: 'Versionsverwaltung', beschreibung: 'Repository eingerichtet, aussagekräftige Commits, Branch-Strategie vereinbart und eingehalten', max: 6 },
+    // Bewusst dieselbe Kennung wie in der Sprint-Rubrik: Es ist dasselbe
+    // Kriterium. Sonst stünde es im Vorrat (FA-67 AK-2a) zweimal.
+    { id: 't5', name: 'Versionsverwaltung', beschreibung: 'Repository eingerichtet, aussagekräftige Commits, Branch-Strategie vereinbart und eingehalten', max: 6 },
   ],
   prozess: [
     { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5 },

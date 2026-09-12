@@ -1628,6 +1628,13 @@ describe('Vorlage für den Vorbereitungssprint (FA-69)', () => {
     expect(VORLAGE_RUBRIK_VORBEREITUNG.team.reduce((s, k) => s + k.max, 0)).toBe(50);
   });
 
+  it('teilt die Kennung mit der Sprint-Rubrik, wo es dasselbe Kriterium ist (FA-67 AK-2a)', () => {
+    // Sonst stünde „Versionsverwaltung“ im Vorrat zweimal.
+    const vorbereitung = VORLAGE_RUBRIK_VORBEREITUNG.team.find((k) => k.name === 'Versionsverwaltung');
+    const sprint = VORLAGE_RUBRIK_SPRINT.team.find((k) => k.name === 'Versionsverwaltung');
+    expect(vorbereitung?.id).toBe(sprint?.id);
+  });
+
   it('übernimmt Prozess, individuellen Beitrag und Peer wörtlich aus der Sprint-Rubrik (AK-5)', () => {
     for (const kategorie of ['prozess', 'individuell', 'peer'] as const) {
       expect(VORLAGE_RUBRIK_VORBEREITUNG[kategorie]).toEqual(VORLAGE_RUBRIK_SPRINT[kategorie]);

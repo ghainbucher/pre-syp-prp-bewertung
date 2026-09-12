@@ -13,6 +13,8 @@ import type {
   Datenbestand,
   Herkunft,
   Id,
+  KategorieSchluessel,
+  Kriterium,
   Person,
   Rubrik,
   Team,
@@ -82,17 +84,19 @@ export function planungenIn(daten: Datenbestand, abschnittId: Id): Teamabschnitt
 /**
  * Die Planung, aus der die Kriterien des nächsten Sprints stammen (FA-67 AK-7).
  *
- * „Voriger Sprint“ heißt: dieselbe Klasse, kein Test, kleinere Nummer, mit
- * vorhandener Planung – davon die größte Nummer. Tests stehen nicht in der
- * Kette: Sie haben ihre eigene Rubrik, deren Kriterien die Fragen sind.
+ * **Die Kette läuft nur von Sprint zu Sprint** (AK-10). Ein Test und die
+ * Diplomarbeitsvorbereitung entstehen aus keinem Sprint und geben an keinen
+ * weiter: Sie haben ihre eigenen Kriterien. Ein Sprint sucht also den Sprint
+ * mit der größten kleineren Nummer, der eine Planung dieses Teams trägt.
  */
 export function vorigePlanung(
   daten: Datenbestand,
   abschnitt: Abschnitt,
   teamId: Id,
 ): Teamabschnitt | undefined {
+  if (abschnitt.art !== 'sprint') return undefined;
   const fruehere = abschnitteVon(daten, abschnitt.klasseId)
-    .filter((a) => a.art !== 'test' && a.nummer < abschnitt.nummer)
+    .filter((a) => a.art === 'sprint' && a.nummer < abschnitt.nummer)
     .sort((a, b) => b.nummer - a.nummer);
   for (const frueher of fruehere) {
     const planung = planungVon(daten, frueher.id, teamId);
@@ -119,12 +123,74 @@ export function kriterienVorschlag(
       herkunft: { art: 'uebernommen', ausAbschnittId: vorige.abschnittId },
     };
   }
-  // Kein voriger Sprint: die dem Abschnitt zugeordnete Rubrik, ersatzweise die
-  // Vorlage für den Vorbereitungssprint.
+  // Kein voriger Sprint – oder gar kein Sprint: die dem Abschnitt zugeordnete
+  // Rubrik (AK-8, AK-10).
   const zugeordnet = daten.rubriken.find((r) => r.id === abschnitt.rubrikId);
-  const vorbereitung = daten.rubriken.find((r) => r.id === RUBRIK_VORBEREITUNG);
-  const rubrik = zugeordnet ?? vorbereitung ?? rubrikVon(daten, abschnitt);
+  const rubrik = zugeordnet ?? rubrikVon(daten, abschnitt);
   return { rubrik: strukturKopie(rubrik), herkunft: { art: 'vorlage', rubrikId: rubrik.id } };
+}
+
+/**
+ * Alle Kriterien, die beim Planen zur Auswahl stehen (FA-67 AK-2, AK-2a).
+ *
+ * Zusammengetragen aus: der dem Abschnitt zugeordneten Rubrik, allem, was
+ * dieses Team in einem früheren Abschnitt **derselben Art** verwendet hat, bei
+ * einem Sprint zusätzlich der Vorlage „Vorbereitungssprint“, und der aktuellen
+ * Auswahl – darin steckt auch, was hier neu angelegt wurde.
+ *
+ * Zurück kommt eine Rubrik-Struktur: Gewichte und `selbstZaehlt` stammen aus
+ * der geltenden Rubrik, damit die Ansicht nichts zusammensetzen muss.
+ */
+export function kriterienVorrat(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  teamId: Id | null,
+): Rubrik {
+  const geltend = rubrikFuer(daten, abschnitt, teamId);
+  const quellen: Rubrik[] = [];
+
+  const zugeordnet = daten.rubriken.find((r) => r.id === abschnitt.rubrikId);
+  if (zugeordnet) quellen.push(zugeordnet);
+
+  if (abschnitt.art === 'sprint') {
+    const vorbereitung = daten.rubriken.find((r) => r.id === RUBRIK_VORBEREITUNG);
+    if (vorbereitung) quellen.push(vorbereitung);
+  }
+
+  if (teamId) {
+    for (const frueher of abschnitteVon(daten, abschnitt.klasseId)) {
+      if (frueher.art !== abschnitt.art || frueher.id === abschnitt.id) continue;
+      const planung = planungVon(daten, frueher.id, teamId);
+      if (planung?.rubrikKopie) quellen.push(planung.rubrikKopie);
+    }
+  }
+
+  // Zuletzt die geltende Auswahl: Was hier angelegt wurde, steht sonst nirgends.
+  quellen.push(geltend);
+
+  const zusammen = (kategorie: KategorieSchluessel): Kriterium[] => {
+    const gesehen = new Set<Id>();
+    const liste: Kriterium[] = [];
+    for (const quelle of quellen) {
+      for (const kriterium of quelle[kategorie]) {
+        if (gesehen.has(kriterium.id)) continue;
+        gesehen.add(kriterium.id);
+        liste.push(kriterium);
+      }
+    }
+    return liste;
+  };
+
+  return {
+    id: geltend.id,
+    name: geltend.name,
+    team: zusammen('team'),
+    prozess: zusammen('prozess'),
+    individuell: zusammen('individuell'),
+    peer: zusammen('peer'),
+    gewichte: geltend.gewichte,
+    selbstZaehlt: geltend.selbstZaehlt,
+  };
 }
 
 /** Rubrik zu einer Kennung, unabhängig von einem Abschnitt. */

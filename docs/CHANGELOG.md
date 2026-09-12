@@ -23,18 +23,25 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
   einem Team am 28.01. und beim anderen am 03.02., zählt er für das eine ins Semesterzeugnis
   und für das andere nicht. Das ist die Folge unterschiedlicher Enddaten und keine
   Ungenauigkeit – die Auswertung macht es erkennbar, weil danach gefragt werden wird
-- **FA-67 Kriterien je Team.** Beim Planen lassen sich einzelne Kriterien ergänzen oder
-  streichen. Ein gestrichenes Kriterium ist nicht dasselbe wie ein unbewertetes: Es zählt in
-  seiner Kategorie gar nicht mit, während ein unbewertetes aus der Gewichtung fällt und als
-  offen gemeldet wird. Nach dem ersten Punkt stehen die Kriterien fest
+- **FA-67 Kriterien je Team.** Beim Planen stehen **alle** Kriterien da, und angehakt wird,
+  was in diesem Abschnitt gilt. Im Vorrat liegen: die zugeordnete Rubrik, alles, was dieses
+  Team in einem früheren Abschnitt derselben Art verwendet hat, bei einem Sprint zusätzlich
+  die Vorlage „Vorbereitungssprint“, und was hier neu angelegt wird. Ein abgewähltes Kriterium
+  ist nicht dasselbe wie ein unbewertetes: Es zählt in seiner Kategorie gar nicht mit, während
+  ein unbewertetes aus der Gewichtung fällt und als offen gemeldet wird. Nach dem ersten Punkt
+  stehen die Kriterien fest
 - **Fortgeschrieben wird der Satz des vorigen Sprints**, nicht die Rubrik (AK-7). Damit ist
   eine Rubrik nur noch **Saatgut**: Sie belegt die erste Planung vor, danach trägt die Kette.
   Die Rubrikansicht ist damit nicht mehr der Ort, an dem die geltenden Kriterien stehen –
   sie sagt das jetzt auch (FA-55 AK-7)
-- Der Übergang vom Vorbereitungssprint zum zweiten tauscht sechs Kriterien auf einmal.
-  Deshalb gibt es neben dem Übernehmen ein **Neubeginnen aus einer Vorlage** (AK-10); sie
-  einzeln zu streichen und einzeln neu anzulegen wäre der falsche Weg für einen Vorgang, der
-  jedes Jahr ansteht
+- **Die Kette läuft nur von Sprint zu Sprint** (AK-10). Ein Test und die
+  Diplomarbeitsvorbereitung entstehen aus keinem Sprint und geben an keinen weiter: Ihre
+  Auswahl beginnt bei der zugeordneten Rubrik. Die erste Umsetzung hatte die
+  Diplomarbeitsvorbereitung in die Kette gestellt – vom Auftraggeber am selben Tag berichtigt
+- Ebenfalls nach Durchsicht berichtigt: Statt einzelne Kriterien zu streichen und zu ergänzen,
+  wird aus dem vollständigen Vorrat **ausgewählt**. Ein eigener Weg „aus einer Vorlage neu
+  beginnen“ entfällt damit ersatzlos – wenn alles sichtbar ist, ist ein Satzwechsel eine Frage
+  von Häkchen
 - **Wo Teams verglichen werden, wird die Abweichung ausgewiesen** (AK-6): Auswertung,
   Notenverteilung und CSV-Export nennen die Abschnitte, in denen nach verschiedenen Kriterien
   beurteilt wurde. Verglichen wird dabei der rechnende Teil – eine andere Beschreibung

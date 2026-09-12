@@ -21,6 +21,7 @@ import {
 } from '../domain/defaults';
 import { bewertungsSchluessel } from '../domain/scoring';
 import {
+  kriterienVorrat,
   kriterienVorschlag,
   planungVon,
   punkteErfasst,
@@ -84,21 +85,14 @@ export type Aktion =
       kriterium: Kriterium;
     }
   | {
-      art: 'planung/kriteriumAendern';
+      /** Ein Kriterium des Vorrats für diesen Abschnitt an- oder abwählen (FA-67 AK-2). */
+      art: 'planung/kriteriumWaehlen';
       abschnittId: Id;
       teamId: Id;
       kategorie: KategorieSchluessel;
-      index: number;
-      aenderung: Partial<Kriterium>;
+      kriteriumId: Id;
+      gewaehlt: boolean;
     }
-  | {
-      art: 'planung/kriteriumLoeschen';
-      abschnittId: Id;
-      teamId: Id;
-      kategorie: KategorieSchluessel;
-      index: number;
-    }
-  | { art: 'planung/ausVorlage'; abschnittId: Id; teamId: Id; rubrikId: Id }
   | { art: 'planung/loeschen'; abschnittId: Id; teamId: Id }
   | {
       art: 'bewertung/punkte';
@@ -590,33 +584,27 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       break;
     }
 
-    case 'planung/kriteriumAendern': {
+    /*
+     * FA-67 AK-2: Gewählt wird aus dem vollständigen Vorrat, statt einzelne
+     * Kriterien zu streichen und zu ergänzen. Die Auswahl wird aus dem Vorrat
+     * neu aufgebaut – so bleibt die Reihenfolge stabil, statt beim Anhaken
+     * ans Ende zu springen.
+     */
+    case 'planung/kriteriumWaehlen': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.abschnittId);
       const liste = kriterienZumAendern(daten, aktion.abschnittId, aktion.teamId, aktion.kategorie);
-      const kriterium = liste?.[aktion.index];
-      if (!kriterium) break;
-      Object.assign(kriterium, aktion.aenderung);
-      alsGeaendertVermerken(planungHolen(daten, aktion.abschnittId, aktion.teamId));
-      break;
-    }
+      if (!abschnitt || !liste) break;
 
-    case 'planung/kriteriumLoeschen': {
-      const liste = kriterienZumAendern(daten, aktion.abschnittId, aktion.teamId, aktion.kategorie);
-      if (!liste || aktion.index < 0 || aktion.index >= liste.length) break;
-      liste.splice(aktion.index, 1);
-      alsGeaendertVermerken(planungHolen(daten, aktion.abschnittId, aktion.teamId));
-      break;
-    }
+      const vorrat = kriterienVorrat(daten, abschnitt, aktion.teamId);
+      const gewaehlt = new Set(liste.map((k) => k.id));
+      if (aktion.gewaehlt) gewaehlt.add(aktion.kriteriumId);
+      else gewaehlt.delete(aktion.kriteriumId);
 
-    // FA-67 AK-10: Der Übergang vom Vorbereitungssprint zum zweiten tauscht
-    // sechs Kriterien auf einmal – einzeln wäre das der falsche Weg.
-    case 'planung/ausVorlage': {
-      if (punkteErfasst(daten, aktion.abschnittId, aktion.teamId)) break;
-      const vorlage = rubrikSuchen(daten, aktion.rubrikId);
-      if (!vorlage) break;
       const planung = planungHolen(daten, aktion.abschnittId, aktion.teamId);
-      planung.rubrikKopie = strukturKopie(vorlage);
-      planung.herkunft = { art: 'vorlage', rubrikId: aktion.rubrikId };
-      planung.eingefrorenAm ??= new Date().toISOString();
+      planung.rubrikKopie![aktion.kategorie] = vorrat[aktion.kategorie]
+        .filter((k) => gewaehlt.has(k.id))
+        .map((k) => strukturKopie(k));
+      alsGeaendertVermerken(planung);
       break;
     }
 
