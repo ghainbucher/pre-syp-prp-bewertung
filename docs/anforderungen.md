@@ -4,12 +4,12 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung |
 | **Dokument** | Anforderungsdokument |
-| **Version** | 0.21 |
-| **Datum** | 2026-09-11 |
+| **Version** | 0.53 |
+| **Datum** | 2026-09-15 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.3.0 |
-| **Zuletzt geprüft** | 2026-09-11 |
+| **Gültig für Softwarestand** | 0.8.0 |
+| **Zuletzt geprüft** | 2026-09-15 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Rahmenbedingung** | RB-01 |
 
@@ -23,6 +23,38 @@
 | 0.2 | 2026-09-09 | G. Hainbucher | Umstellung auf Satzschablone; Stakeholderanalyse und Product Goal ausgelagert; neun neue Anforderungen FA-39 bis FA-47 aus Fachkonzept und Risikoanalyse; Rahmenbedingungen RB-07 bis RB-10 ergänzt | Entwurf |
 | 0.3 | 2026-09-10 | G. Hainbucher | Zeitraum berichtigt (1. Oktober bis 30. April statt Semester), Annahmen an das tatsächliche Zeitbudget angepasst, FA-48 für die Auswertung zu einem Stichtag ergänzt | Entwurf |
 | 0.4 | 2026-09-10 | G. Hainbucher | OP-F2 entschieden: Peer-Werte wirken als gedeckelter Korrekturfaktor. FA-45 von „Kann/offen“ auf „Soll/geplant“, FA-22 entsprechend angepasst | Entwurf |
+| 0.53 | 2026-09-15 | G. Hainbucher | **Softwarestand 0.8.0 „Ordnen“ freigegeben.** FA-95 um AK-10 und AK-11 ergänzt (Auswahlleisten bleiben in leeren Sichten erreichbar; eine leere Sicht sagt, ob sie leer oder gefiltert ist). OP-F39 und OP-F40 aufgenommen – Probelauf und die Umbenennung Team → Projekt standen bisher nur im Gesprächsverlauf. Bei FA-89 festgehalten, dass vor dem Bauen eine echte Exportdatei nötig ist | Entwurf |
+| 0.52 | 2026-09-14 | G. Hainbucher | **FA-95 aufgenommen**: ein Klassenfilter für die ganze Anwendung, mit „alle Klassen", sichtbar und änderbar auf jeder Sicht, wirksam auf jeder Liste. Der eigene Klassenfilter der Projektsicht geht darin auf. **FA-96 aufgenommen**: geplante Anforderungen im Planning, umgesetzte im Review, vorerst als Freitext. Fachliche Grundlagen neu als **A14** und **A15**; OP-F38 aufgenommen | Entwurf |
+| 0.51 | 2026-09-14 | G. Hainbucher | **Durchstiche gestrafft** (Solution-Design 8.1): zehn der 21 E2E-Fälle auf die tiefere Ebene gezogen, elf bleiben. Vier Entscheidungen, die in Ansichten steckten, sind in Domäne bzw. Store gewandert (NFA-06): Überschneidung bei der Projektzuordnung, doppelte GitHub-Kennung, Lesen der GitHub-Auswertungsdatei, was vom Sichtzustand dauerhaft gemerkt wird. OP-F37 aufgenommen: fünf Aussagen über die Verdrahtung werden nicht mehr maschinell geprüft | Entwurf |
+| 0.50 | 2026-09-14 | G. Hainbucher | **FA-94 aufgenommen**: Stammdaten werden nur noch in den Stammdatenblättern gepflegt; das Löschen hat zwei Ausgänge (endgültig, solange nichts Bewertetes daran hängt – sonst ausgeblendet und wiederherstellbar) und sagt vorher, welcher greift. Fachliche Grundlage neu als **A13** im Fachkonzept. Das Anlegen und Ändern von Projekten ist aus der Projektsicht entfernt; das Anlegen eines Sprints bleibt dort, weil ein Sprint Leistungsdatum ist | Entwurf |
+| 0.49 | 2026-09-14 | G. Hainbucher | **Stammdaten auf sechs Blätter aufgeteilt** (FA-34 AK-3 bis AK-3d): Klassen und Schüler getrennt, Stichtage mit eigenem Blatt, keine Projektzuordnung mehr auf dem Schülerblatt. FA-73 neu gefasst: Die Diplomarbeit ist ein Projekt eines Typs und keine eigene Sicht. `Team.kennungen` entfällt – die Kennung liegt an der Person | Entwurf |
+| 0.48 | 2026-09-14 | G. Hainbucher | **Schemastand 4 umgesetzt**: Schüler gehören zu Projekten (`Mitgliedschaft`), `Zugehoerigkeit`, `Person.teamId` und `Team.kennungen` entfallen. FA-34 umgesetzt (vier Bereiche, vier Stammdatenseiten). FA-87 auf den tatsächlichen Stand gebracht; der Rest wird Schemastand 5 | Entwurf |
+| 0.47 | 2026-09-14 | G. Hainbucher | **FA-34 neu gefasst: vier Bereiche statt fünf**, Stammdaten mit vier Unterseiten, Diplomarbeitsvorbereitung entfällt als Bereich. FA-34 und FA-87 bis FA-93 nennen jetzt ihre **fachliche Grundlage** im neuen [Fachkonzept-Kapitel 15](fachkonzept-unterricht.md); die Dokumentenprüfung warnt, wo sie fehlt | Entwurf |
+| 0.46 | 2026-09-14 | G. Hainbucher | OP-F36 aufgenommen: Projekttyp und Jahrgang sind vermischt; die fehlende Normalisierung ist bekannt und wird bewusst nicht aufgelöst | Entwurf |
+| 0.45 | 2026-09-13 | G. Hainbucher | FA-34 **AK-5a** ergänzt: Die zweite Reiterzeile mit den Teilen eines Abschnitts ist nur im Bereich Projekt sichtbar. Festlegung des Auftraggebers nach dem ersten Anschauen der neuen Sichten | Entwurf |
+| 0.44 | 2026-09-13 | G. Hainbucher | **Sichten gebaut, Modell noch nicht umgestellt.** Der Auftraggeber hat nach der Spezifikation verlangt, die Sichten zuerst zu bauen und anzusehen. Umgesetzt sind FA-34 (fünf Bereiche, Sprintteile eine Ebene tiefer), FA-88, FA-90, FA-91 und FA-93; FA-87 nur in seinem **additiven** Teil (Projektart, Kennung je Person) – Schemastand 4 mit `Abschnitt.projektId` bleibt Schritt 2, siehe ADR-012. „Gemischt“ wird bis dahin **abgeleitet**: aus den Klassen der Mitglieder statt aus einer leeren Klassenangabe. FA-89 und FA-92 bleiben geplant | Entwurf |
+| 0.43 | 2026-09-13 | G. Hainbucher | **Sichtenreview vom 13.09.2026:** Das Projekt wird zur Ordnungsachse (ADR-012). FA-34 neu gefasst – fünf Bereiche statt acht; FA-87 bis FA-93 aufgenommen: Projekt mit Art und optionaler Klasse, Stammdatenseite Schüler, CSV-Klassenimport, Filter je Sicht, Sprintliste, Überarbeitungshinweis. Release 0.8.0 „Ordnen". Schemastand 4 | Entwurf |
+| 0.42 | 2026-09-13 | G. Hainbucher | FA-85 (Aufruf der Auswertungsskripte zusammensetzen und kopieren) und FA-86 (Berichte aus dem Auswertungsordner anzeigen) aufgenommen. Beide halten ADR-001 ein: Die Anwendung bereitet vor, ausgelöst wird außerhalb | Entwurf |
+| 0.41 | 2026-09-13 | G. Hainbucher | Prüfung der Anforderungen gegen den neuen Grundsatz **G11** (Fachkonzept 7): kein Widerspruch gefunden. Offen geblieben ist die Gewichtung unterschiedlich langer erster Sprints – OP-F31 aufgenommen | Entwurf |
+| 0.40 | 2026-09-13 | G. Hainbucher | OP-F30 entschieden: `p2` heißt „Standup“ und wird nur bewertet, wenn eines stattgefunden hat – sonst bleibt es leer und fällt aus der Gewichtung. FA-75 AK-4 nachgezogen | Entwurf |
+| 0.39 | 2026-09-13 | G. Hainbucher | FA-84 aufgenommen: Übersicht, welches Team in welchem Sprint steht. Folgt aus der Festlegung des Auftraggebers vom 13.09.2026, die Sprints der Teams **versetzt** zu führen – ein Block pro Woche trägt nur ein Review. Releaseplan 0.6.0 ergänzt, OP-F30 aufgenommen | Entwurf |
+| 0.38 | 2026-09-12 | G. Hainbucher | FA-77 AK-5a ergänzt: Der Sprintabschluss unterliegt dem Schreibschutz wie alles andere im Review. Berichtigt eine Inkonsistenz der Umsetzung, die ein E2E-Test aufgedeckt hat | Entwurf |
+| 0.37 | 2026-09-12 | G. Hainbucher | FA-82 und FA-83 umgesetzt und durch Tests belegt | Entwurf |
+| 0.36 | 2026-09-12 | G. Hainbucher | FA-82 Sprintwert je Team (gesetzt, mit Vorschlag) und FA-83 Rückmeldung an das Team für den Teams-Kanal (Textvorschlag, Bausteine zuschaltbar, Zwischenablage) aufgenommen. OP-F29 zur Klärung mit der Schulleitung: Personenrückmeldung im Teamkanal | Entwurf |
+| 0.35 | 2026-09-12 | G. Hainbucher | OP-F28 aufgenommen: Zugriff vom Handy – Möglichkeiten, Preise und die zwei Hürden (Konfliktregel, Handybreite). Keine Änderung an Anforderungen oder Code | Entwurf |
+| 0.34 | 2026-09-12 | G. Hainbucher | FA-78 bis FA-81 umgesetzt und durch Tests belegt | Entwurf |
+| 0.33 | 2026-09-12 | G. Hainbucher | FA-79 AK-4 berichtigt (Bezugsgröße ist der Mittelwert der Mitglieder, nicht das Teamergebnis) und AK-4c ergänzt: ein Abstand von mindestens der doppelten Schwelle trägt allein. Beides durch fehlschlagende Tests aufgedeckt | Entwurf |
+| 0.32 | 2026-09-12 | G. Hainbucher | OP-F26 und OP-F27 entschieden: „Eigene Spur“ mit 6 Punkten, `i4` um „Code Reviews“ entlastet (FA-78 AK-5, AK-5a); Befundschwelle einstellbar mit Vorgabe 15 Prozentpunkte (FA-79 AK-4a, AK-4b) | Entwurf |
+| 0.31 | 2026-09-12 | G. Hainbucher | FA-81: GitHub-Kennzahlen zur Zusammenarbeit werden über ein Skript abgefragt und eingelesen, nicht von der Anwendung abgerufen. Vorschlagswert für `t5`, sonst keine Ableitung. NZ-2 und DS-01 daran angeschlossen, R-13 aufgenommen | Entwurf |
+| 0.30 | 2026-09-12 | G. Hainbucher | FA-78 und FA-79 um die empirische Grundlage ergänzt (Fachkonzept 14.4, E1 bis E3) | Entwurf |
+| 0.29 | 2026-09-12 | G. Hainbucher | Festlegung des Auftraggebers: zuerst feststellen, ob das Team als Team agiert, dann entwickeln (Fachkonzept 8.2a). Daraus FA-78 Spur je Person, FA-79 Befund über die Verteilung im Team, FA-80 Maßnahmen aus der Retrospektive. Releaseplan: 0.6.0 „Feststellen“, bisheriges 0.6.0 wird 0.7.0. OP-F26 und OP-F27 aufgenommen. Berichtigt: Die sieben Anforderungen des Release „Ergänzen“ trugen noch 0.5.0, obwohl das Release mit v0.23 zu 0.6.0 und nun zu 0.7.0 geworden ist | Entwurf |
+| 0.28 | 2026-09-12 | G. Hainbucher | Der laufende Sprint wird am Datum erkannt (FA-76 AK-1 neu gefasst); Sprintzustände Vorschlag, fixiert, abgeschlossen als FA-77 aufgenommen: fixiert wird erst nach dem Review-Abschluss des vorigen Sprints | Entwurf |
+| 0.27 | 2026-09-12 | G. Hainbucher | Die Sprints eines Teams überschneiden sich zeitlich nicht (FA-66 AK-8 bis AK-8b); Berührung am selben Tag ist erlaubt, eine echte Überlappung wird benannt und nicht verhindert | Entwurf |
+| 0.26 | 2026-09-12 | G. Hainbucher | Schreibschutz für abgeschlossene Abschnitte (FA-76): geschrieben wird im laufenden, ältere werden auf ausdrückliche Handlung geöffnet | Entwurf |
+| 0.25 | 2026-09-12 | G. Hainbucher | Löschen benennt, was verlorengeht (FA-36 AK-3); ein Sprint lässt sich für ein einzelnes Team entfernen (FA-70 AK-8) | Entwurf |
+| 0.24 | 2026-09-12 | G. Hainbucher | Der Sprint gehört dem Team: Sprintleiste, Kürzel und Bezugsgröße des Zeitfaktors richten sich nach dem gewählten Team (FA-70 AK-6 und AK-7, FA-54 AK-7, FA-04 AK-5). OP-F17 entschieden, belegt durch TF-N und TF-O | Entwurf |
+| 0.23 | 2026-09-12 | G. Hainbucher | Acht Bereiche entlang des Unterrichtsablaufs: Sprintplanning, Daily, Sprintreview, Diplomarbeitsvorbereitung und Tests als eigene Sichten (FA-70 bis FA-74), Erfassungszeitpunkt je Kriterium (FA-75). FA-34 neu gefasst, FA-04, FA-56 und FA-60 daran angeschlossen. Releaseplan: 0.5.0 „Ablauf“, bisheriges 0.5.0 wird 0.6.0. OP-F22 bis OP-F25 aufgenommen | Entwurf |
+| 0.22 | 2026-09-12 | G. Hainbucher | Schemastand 3: Beginn, Ende und Ziel eines Sprints liegen beim Team (FA-66), Kriterien werden je Team angepasst und aus dem vorigen Sprint fortgeschrieben (FA-67), Migration (FA-68), Vorlage „Vorbereitungssprint“ (FA-69). FA-04, FA-47, FA-48, FA-55 und FA-65 daran angeschlossen. Releaseplan: 0.4.0 „Planen“, bisheriges 0.4.0 wird 0.5.0. OP-F17 bis OP-F20 aufgenommen | Entwurf |
 | 0.21 | 2026-09-11 | G. Hainbucher | Release 0.3.0 umgesetzt: FA-32, FA-40 (AK-1 bis AK-4 nachgetragen), FA-41 (AK-3, AK-4), FA-42, FA-45, FA-47, FA-48 (AK-6, AK-7), FA-49, FA-50, FA-51, FA-54, FA-61 | Entwurf |
 | 0.20 | 2026-09-11 | G. Hainbucher | Release 0.2.0 umgesetzt: FA-17 (AK-1 bis AK-5 nachgetragen), FA-39 (AK-4 bis AK-7 nachgetragen), FA-46, FA-64, DS-06, FA-53 (AK-6, AK-7 nachgetragen). OP-F16 aufgenommen | Entwurf |
 | 0.19 | 2026-09-11 | G. Hainbucher | Schemastand 2 umgesetzt: FA-52, FA-55 bis FA-60 und FA-65 von „geplant“ auf „umgesetzt“, jeweils durch Tests belegt | Entwurf |
@@ -65,7 +97,7 @@ Zurückgestellt), Stakeholder-IDs siehe [Stakeholderanalyse](stakeholder.md).
 | Nr. | Nicht-Ziel | Begründung |
 |---|---|---|
 | NZ-1 | Anbindung an ein Schulverwaltungsprogramm | Kein Zugriff auf Schnittstellen; Export genügt |
-| NZ-2 | Analyse von Schüler-Quellcode oder Git-Statistiken | Metriken sind keine Beobachtung von Kompetenz (PN-2) |
+| NZ-2 | Analyse von Schüler-Quellcode; Ableitung von Noten aus Codemetriken | Metriken sind keine Beobachtung von Kompetenz (PN-2). **Abgegrenzt am 12.09.2026:** Kennzahlen zur Zusammenarbeit im Repository werden eingelesen (FA-81) – sie speisen den Befund über das Team und einen Vorschlag für die Versionsverwaltung, sonst nichts |
 | NZ-3 | Verwaltung des Product Backlogs der Schülerteams | Dafür nutzen die Teams GitHub (PN-5) |
 | NZ-4 | Mehrbenutzerbetrieb mit Rollen und Anmeldung | Ein Anwender pro Installation (RB-05) |
 | NZ-5 | Rechtsverbindliche Notenarchivierung | Verbleibt im Schulsystem |
@@ -82,13 +114,24 @@ Funktion im Durchgang zum ersten Mal gebraucht?
 |---|---|---|
 | **0.2.0 Erfassen** | Das Datenmodell in seiner endgültigen Form und alles, was zum Bewerten eines Sprints nötig ist. Dazu die Ausgabe der Rubrik an die Klasse und die Sicherung. | **Mitte Oktober**, erste Sprintbewertung |
 | **0.3.0 Beurteilen** | Rechnen und Ausgeben: Zeitfaktor, Peer-Korrektur, gesetzte Werte, Notenstand, Sperre, Stichtag, Belegfassung, Rückmeldung an die Person. | **Ende Jänner**, Semesterzeugnis |
-| **0.4.0 Ergänzen** | Was den Betrieb angenehmer macht, aber keinen Termin hat: Auftraggeber, Testzeitbudget, Ergebnisimport, Tastaturbedienung, Barrierefreiheit, Rubrikweitergabe. | laufend |
+| **0.4.0 Planen** | Der Sprint gehört dem Team: Beginn, Ende und Ziel je Team, Kriterien je Team mit Fortschreibung aus dem vorigen Sprint, Vorlage für den Vorbereitungssprint, Migration auf Schemastand 3. | **vor dem ersten Sprintbeginn** eines Durchgangs |
+| **0.5.0 Ablauf** | Die Oberfläche folgt dem Unterricht: acht Bereiche statt vier, Sprintplanning, Daily und Sprintreview getrennt, Diplomarbeitsvorbereitung und Tests mit eigener Sicht. Das Rechenmodell bleibt unberührt. | **vor dem ersten Sprintplanning** eines Durchgangs |
+| **0.6.0 Feststellen** | Zuerst feststellen, ob das Team als Team agiert, dann entwickeln: Spur je Person, Befund über die Verteilung im Team, Maßnahmen aus der Retrospektive mit Fortschreibung. Dazu die Übersicht, welches Team in welchem Sprint steht – Voraussetzung des versetzten Betriebs (FA-84). | **vor dem ersten Sprintreview** eines Durchgangs |
+| **0.7.0 Ergänzen** | Was den Betrieb angenehmer macht, aber keinen Termin hat: Auftraggeber, Testzeitbudget, Ergebnisimport, Tastaturbedienung, Barrierefreiheit, Rubrikweitergabe, Aufruf und Anzeige der Auswertungsberichte. | laufend |
+| **0.8.0 Ordnen** | Das Projekt statt der Klasse als Ordnungsachse (ADR-012): fünf Bereiche statt acht, Projekt mit Art und optionaler Klasse, Stammdatenseite für Schüler mit Kennung und Schul-E-Mail, Klassenimport, Filter je Sicht. Schemastand 4 mit Migration. | **vor dem ersten Projekt** eines Durchgangs – die Nummer ist höher als 0.7.0, der Bedarfszeitpunkt früher; geordnet wird nach dem Termin, nicht nach der Zahl |
 
 **Das Datenmodell kommt vollständig in 0.2.0** – einschließlich Theoriestrang und
 Diplomarbeitsvorbereitung, obwohl beides erst im November beziehungsweise im Mai benutzt
 wird. Der Grund ist nicht Ordnungsliebe: Jede spätere Modelländerung wäre eine Migration
 eines laufenden Bestands mit echten Schülerdaten – das riskanteste, was dieses Projekt kennt
 (R-01). Einmal richtig ist billiger als dreimal migriert.
+
+**Schemastand 3 widerspricht dem vorigen Absatz nicht, er belegt ihn.** Am 12.09.2026 hat der
+Auftraggeber festgehalten, dass Dauer und Ziel eines Sprints je Team beim Planning entstehen –
+eine Tatsache über den Unterricht, die beim Schnitt von 0.2.0 nicht bekannt war. „Einmal
+richtig“ heißt nicht „einmal geraten“; es heißt, das Modell dann zu ändern, wenn neues Wissen
+da ist, und nicht in Teilschritten danach. Die Umstellung fällt weiterhin in eine Zeit **ohne
+echte Daten** – der teure Fall aus R-01 tritt damit auch diesmal nicht ein.
 
 **Zum Zeitpunkt dieses Plans liegen keine echten Daten vor** (bestätigt am 10.09.2026). Ist
 0.2.0 vor dem ersten Datensatz fertig, entsteht der Bestand von Anfang an im Schemastand 2
@@ -107,7 +150,12 @@ knappe Größe ist der Termin, und den ordnet der Bedarfszeitpunkt. Entschieden 
 
 | Begriff | Bedeutung |
 |---|---|
-| **Sprint** | Fester Zeitraum mit lauffähigem Zwischenergebnis |
+| **Sprint** | Beurteilungsabschnitt der Klasse. Nummer, Reihenfolge und Art gelten für alle; Beginn, Ende und Ziel legt **jedes Team** beim Planning fest (FA-66) |
+| **Vorschlag / fixiert / abgeschlossen** | Zustände der Planung eines Teams (FA-77). Vorschlag: vorausgeplant, gilt noch nicht. Fixiert: der geltende Sprint – möglich erst, wenn der vorige abgeschlossen ist. Abgeschlossen: mit dem Sprintreview geschlossen |
+| **Laufender Abschnitt** | Der Abschnitt, in dessen Zeitraum das heutige Datum liegt (FA-76 AK-1). Nur dort wird ohne Freigabe geschrieben |
+| **Spur** | Die eine Stelle, an der eine Person ihren Beitrag in einem Abschnitt zeigt – Commit, Pull Request, Dokument (FA-78). Anker des Urteils, kein Punktewert |
+| **Befund** | Aussage darüber, ob die Beiträge innerhalb eines Teams zusammenliegen (FA-79). Über das Team, nicht über eine Person; Anlass für ein Gespräch, kein Ergebnis |
+| **Sprintplanung** | Was ein Team sich für einen Sprint vornimmt: Ziel, Beginn, Ende und die Kriterien, nach denen am Ende beurteilt wird |
 | **Team** | Gruppe, die gemeinsam an einem Produkt arbeitet |
 | **Rubrik** | Katalog von Bewertungskriterien mit erreichbaren Punkten |
 | **Kategorie** | Team-Ergebnis, Scrum-Prozess, Individueller Beitrag, Peer-Bewertung |
@@ -165,10 +213,14 @@ möchte ich Sprints mit Nummer, Bezeichnung, Zeitraum und Faktor anlegen und än
 damit ich den tatsächlichen Projektverlauf abbilden und den Lernsprint geringer gewichten kann.
 
 - **AK-1** Der Sprintfaktor ist frei wählbar; 0 nimmt den Sprint aus dem Gesamtergebnis.
+- **AK-2** Der Zeitraum am Sprint ist ein **Rahmen** und keine Festlegung: Maßgeblich sind Beginn und Ende, die jedes Team in seiner Planung einträgt (FA-66). Für einen Test gilt der Zeitraum des Abschnitts für alle.
+- **AK-3** Der Faktor bleibt am Sprint und gilt für alle Teams: Ein Lernsprint ist ein Format der Klasse, keine Vereinbarung eines einzelnen Teams.
+- **AK-4** Ab 0.5.0 **entsteht** ein Sprint im Sprintplanning (FA-70 AK-1), nicht mehr hier. Ändern und Löschen bleiben unter „Klassen & Teams“ erreichbar – wer einen Tippfehler berichtigt, plant nicht.
+- **AK-5** Die angezeigte Nummer eines Abschnitts zählt **innerhalb seiner Art und seines Teams**: der wievielte Sprint dieses Teams. Die gespeicherte `nummer` ordnet dagegen alle Abschnitte einer Klasse gemeinsam und bleibt die Grundlage für die Reihenfolge. Beides auseinanderzuhalten ist nötig, weil sonst nach dem Löschen eines Tests der siebte Sprint „S9“ hieße – und weil Keplers dritter Sprint S3 heißt, auch wenn Doppler schon bei fünf ist. Wo für die ganze Klasse beschriftet wird (Auswertung), zählt die Klasse.
 
 ### FA-43 Auftraggeber je Team erfassen
 
-`Soll` · 0.4.0 · SH-5 · geplant
+`Soll` · 0.7.0 · SH-5 · geplant
 
 Als Lehrkraft
 möchte ich zu jedem Team festhalten, wer der Auftraggeber ist und welcher Art,
@@ -229,6 +281,8 @@ Als Lehrkraft
 möchte ich die Rubrik auf die mitgelieferte Vorlage zurücksetzen können,
 damit ich nach einem Fehlversuch ohne Neuinstallation wieder auf einem sinnvollen Stand bin.
 
+- **AK-3** Ausgeliefert werden drei Vorlagen: „Sprint“, „Diplomarbeitsvorbereitung“ und ab 0.4.0 „Vorbereitungssprint“ (FA-69).
+
 ### FA-10 Einheitliche Rubrik
 
 `Muss` · 0.1.0 · SH-4 · umgesetzt
@@ -239,30 +293,34 @@ damit Bewertungen untereinander vergleichbar bleiben.
 
 ### FA-11 Rubrik weitergeben
 
-`Kann` · 0.4.0 · SH-6 · geplant
+`Kann` · 0.7.0 · SH-6 · geplant
 
 Als lehrende Kollegin oder lehrender Kollege
 möchte ich eine Rubrik als Datei erhalten und einlesen können,
 damit ich ein erprobtes Bewertungsmodell übernehmen kann, statt es nachzubauen.
 
-### FA-65 Rubrik beim ersten Eintrag einfrieren
+### FA-65 Kriterien einfrieren
 
-`Muss` · 0.2.0 · SH-4, SH-1 · umgesetzt
+`Muss` · 0.4.0 · SH-4, SH-1 · umgesetzt
 
 Als Lehrkraft
-möchte ich, dass ein bewerteter Abschnitt die Rubrik behält, nach der ich ihn bewertet habe,
+möchte ich, dass ein bewertetes Team die Kriterien behält, nach denen ich es bewertet habe,
 damit eine später erzeugte Belegfassung zeigt, was damals galt, und nicht, was heute gilt.
 
-- **AK-1** Gegeben ein Abschnitt ohne erfasste Punkte, wenn die erste Punktzahl eingetragen wird, dann erhält der Abschnitt eine vollständige Kopie der ihm zugeordneten Rubrik.
-- **AK-2** Alle Berechnungen und Ausgaben dieses Abschnitts verwenden ab diesem Zeitpunkt seine Kopie, nicht die aktuelle Rubrik.
-- **AK-3** Eine Änderung an der Rubrik wirkt nur auf Abschnitte, die noch keine Kopie tragen – also auf künftige.
+- **AK-1** Die Kriterien werden **je Team und Abschnitt** eingefroren, nicht je Abschnitt. Seit FA-67 können sie sich von Team zu Team unterscheiden; eine Kopie am Abschnitt könnte diesen Unterschied nicht tragen.
+- **AK-1a** Eingefroren wird beim **Festhalten der Planung** (FA-66). Fehlt eine Planung, geschieht es ersatzweise beim ersten Punkteintrag – so bleibt ein Abschnitt auch ohne Planung geschützt.
+- **AK-2** Alle Berechnungen und Ausgaben dieses Teams in diesem Abschnitt verwenden ab diesem Zeitpunkt seine Kopie, nicht die aktuelle Rubrik.
+- **AK-3** Eine Änderung an der Rubrik wirkt nur dort, wo noch keine Kopie liegt – also auf künftige Planungen.
 - **AK-4** Die Belegfassung (FA-32) weist die Kriterien so aus, wie sie zum Zeitpunkt der Erfassung galten.
 - **AK-5** Der Zeitpunkt des Einfrierens wird festgehalten.
-- **AK-6** Eine eingefrorene Rubrik lässt sich innerhalb ihres Abschnitts weiterhin ändern – die Änderung bleibt dann auf diesen Abschnitt beschränkt.
+- **AK-6** Eine eingefrorene Kopie lässt sich innerhalb ihrer Planung weiterhin ändern – die Änderung bleibt auf dieses Team und diesen Abschnitt beschränkt.
+- **AK-7** Ein Test (FA-60) hat keine Teams; dort bleibt die Kopie am Abschnitt.
 
-*Entschieden mit OP-R1 am 10.09.2026. Behandelt Risiko R-06. Dasselbe Muster wie bei den
-gesetzten Werten (ADR-006): Die Kopie ist, was galt; die Rubrik ist, was gelten wird. Nichts
-wird überschrieben. Gehört ins Datenmodell und damit nach 0.2.0.*
+*Entschieden mit OP-R1 am 10.09.2026, geändert am 12.09.2026. Behandelt Risiko R-06. Dasselbe
+Muster wie bei den gesetzten Werten (ADR-006): Die Kopie ist, was galt; die Rubrik ist, was
+gelten wird. Nichts wird überschrieben. Das frühere Einfrieren – beim Planen statt beim ersten
+Punkt – ist zugleich die pädagogisch richtige Reihenfolge: Die Kriterien stehen fest, bevor
+gearbeitet wird, und nicht erst, wenn beurteilt wird.*
 
 ### FA-47 Eingefrorene Rubrik an die aktuelle angleichen
 
@@ -277,10 +335,15 @@ damit ich einen Tippfehler oder eine unklare Beschreibung berichtigen kann, ohne
 - **AK-3** Ändern sich Prozentwerte, ist eine zweite Bestätigung nötig; ändern sich nur Bezeichnungen und Beschreibungen, genügt eine.
 - **AK-4** Das Angleichen wird mit Zeitpunkt festgehalten und erscheint in der Belegfassung.
 - **AK-5** Eine Rubrikänderung ohne Angleichen erzeugt keine Warnung mehr – sie wirkt nur nach vorne und ist damit harmlos (FA-65 AK-3).
+- **AK-6** Das Angleichen wirkt **je Team**; die Vorschau nennt Abschnitt und Team. Ein Team, dessen Kriterien nach FA-67 abweichen, wird dabei nicht eingeebnet: Angeglichen wird nur, was aus der Rubrik stammt.
 
 *Behandelt Risiko R-06. Ersetzt die frühere Fassung dieser Anforderung: Gewarnt wird nicht
 mehr vor der Rubrikänderung, sondern vor dem Übertragen auf bereits Bewertetes – seit FA-65
 ist die Änderung selbst folgenlos für Vergangenes.*
+
+*Verliert mit FA-67 an Bedeutung: Der übliche Weg einer Kriterienänderung ist ab 0.4.0 der
+nächste Sprint, nicht das nachträgliche Angleichen des vorigen. Angleichen bleibt für den
+Fall, dass ein Kriterium **falsch** war – nicht dafür, dass es sich weiterentwickelt hat.*
 
 ---
 
@@ -328,7 +391,7 @@ in das Werkzeug (Fachkonzept 3.6, OP-F15).*
 
 ### FA-63 Testergebnisse einlesen
 
-`Soll` · 0.4.0 · SH-1 · geplant
+`Soll` · 0.7.0 · SH-1 · geplant
 
 Als Lehrkraft
 möchte ich die Punkte eines Tests aus einer Datei übernehmen, statt sie einzeln einzutippen,
@@ -348,7 +411,7 @@ Durchgang drückt.*
 
 ### FA-62 Testzeitbudget je Semester
 
-`Soll` · 0.4.0 · SH-1 · geplant
+`Soll` · 0.7.0 · SH-1 · geplant
 
 Als Lehrkraft
 möchte ich sehen, wie viel der zulässigen Testzeit eines Semesters schon verbraucht ist,
@@ -414,8 +477,13 @@ damit ich eine Phase mit anderen Kriterien beurteilen kann, ohne die Rubrik der 
 - **AK-4** Kriterien-IDs sind je Rubrik eindeutig; Punkte behalten ihren Bezug, auch wenn zwei Rubriken gleich benannte Kriterien führen.
 - **AK-5** Die Warnung bei nachträglicher Rubrikänderung (FA-47) gilt je Rubrik.
 - **AK-6** Ein Bestand nach Schemastand 1 wird beim Einlesen auf eine einzige Rubrik mit dem Namen „Sprint“ überführt, ohne dass Punkte verloren gehen.
+- **AK-7** Ab 0.4.0 ist eine Rubrik **Saatgut**: Sie belegt die erste Planung eines Teams vor; danach schreibt das Team seine eigenen Kriterien fort (FA-67 AK-7). Wer wissen will, wonach ein Team in einem Sprint beurteilt wird, findet das in dessen Planung – nicht in der Rubrikansicht.
 
 *Folgt aus OP-F12. Rahmenbedingung: Fachkonzept 3.4.*
+
+*AK-7 verschiebt die Rolle dieser Anforderung merklich: Die Rubrikansicht war bis 0.3.0 der
+Ort, an dem die geltenden Kriterien standen. Ab 0.4.0 ist sie der Ort, an dem sie **beginnen**.
+Die Oberfläche muss das zeigen, sonst sucht man dort eine Antwort, die es dort nicht gibt.*
 
 ### FA-56 Die Diplomarbeitsvorbereitung als Abschnitt
 
@@ -430,8 +498,425 @@ damit die Jahresnote in einem Stück belegbar bleibt und nicht zu einem Drittel 
 - **AK-3** Die Art bestimmt nur die vorgeschlagene Rubrik und die Beschriftung in der Oberfläche.
 - **AK-4** Ein Abschnitt der Art Diplomarbeitsvorbereitung gehört zu einem Beurteilungszeitraum wie jeder andere (FA-48).
 - **AK-5** Die Peer-Bewertung ist auch für diesen Abschnitt zuschaltbar (FA-52).
+- **AK-6** Ab 0.5.0 ist sie **kein Glied der Sprintreihe**: Sie läuft ganzjährig parallel und hat eine eigene Sicht (FA-73). Für Erfassung und Rechnung bleibt sie ein Abschnitt wie jeder andere – AK-2 gilt unverändert.
 
 *Behandelt Risiko R-10.*
+
+### FA-66 Sprintplanung je Team
+
+`Muss` · 0.4.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich am Sprintbeginn je Team Ziel, Beginn und Ende festhalten,
+damit am Ende nachvollziehbar ist, was in welchem Zeitraum beurteilt wurde.
+
+- **AK-1** Je Abschnitt und Team lassen sich Ziel, Beginn und Ende erfassen.
+- **AK-2** Die Planung kann angelegt werden, bevor ein einziger Punkt erfasst ist. Sie ist der erste Schritt eines Sprints, nicht ein Nebenprodukt der Bewertung.
+- **AK-3** Der Abschnitt gibt Nummer, Art, Strang und Faktor vor, aber keinen verbindlichen Zeitraum (FA-04 AK-2). Weicht ein Team deutlich von den übrigen ab, wird das angezeigt und nicht verhindert.
+- **AK-4** Ein Team ohne erfasstes Ende bleibt in der Stichtagsauswertung außen vor **und wird dabei genannt** (FA-48 AK-6).
+- **AK-5** Das Ziel erscheint in der Belegfassung (FA-32) und in der Rückmeldung (FA-42). Es ist keine Bewertung, sondern ihr Gegenstand – ohne es steht in der Aufzeichnung ein Prozentwert ohne Bezug.
+- **AK-6** Für einen Test (FA-60) entfällt die Planung; dort gelten Zeitpunkt und Fragen des Abschnitts für alle.
+- **AK-7** Wechselt eine Person das Team (FA-58), gilt für sie die Planung des Teams, in dem sie in diesem Abschnitt war.
+- **AK-8** **Die Sprints eines Teams überschneiden sich zeitlich nicht.** Ein Team arbeitet zu einer Zeit an einem Sprint; überlappen zwei Zeiträume, ist nicht mehr entscheidbar, in welchen eine Leistung gehört – und Stichtagszuordnung (FA-48) wie Zeitfaktor (FA-54) hängen genau daran. Endet ein Sprint an dem Tag, an dem der nächste beginnt, ist das **keine** Überschneidung, sondern der übliche Übergabetag.
+- **AK-8a** Eine Überschneidung wird beim Planen **benannt und nicht verhindert** – wie in AK-3. Ein hartes Verbot verlangte, die Zeiträume in einer bestimmten Reihenfolge zu berichtigen: Wer das Ende des vorigen Sprints um eine Woche verschieben will, müsste zuerst den nächsten anfassen. Genannt werden die betroffenen Sprints mit Namen, nicht nur die Tatsache.
+- **AK-8b** Ebenso benannt wird ein Ende **vor** dem Beginn. Das ist kein Zeitraum, sondern ein Tippfehler, und er bleibt sonst bis zur Stichtagsauswertung unbemerkt.
+
+*Folgt aus der Festlegung des Auftraggebers vom 12.09.2026. Grundlage: Fachkonzept 3.2
+(Sprint-Ziel im Planning) und 8.1. Hebt die Annahme aus Schemastand 2 auf, ein Abschnitt sei
+ein gemeinsames Zeitfenster der Klasse.*
+
+*AK-8 bis AK-8b am 12.09.2026 ergänzt: „Es muss möglich sein pro Team mehrere Sprints
+anzulegen. Bei diesen Sprint darf es keine zeitliche Überschneidung geben (Ende des letzten
+und Beginn des nächsten am selben Tag ist aber erlaubt).“ Mehrere Sprints je Team waren mit
+FA-70 AK-6 bereits möglich; neu ist die Prüfung der Zeiträume.*
+
+### FA-67 Kriterien je Team auswählen und fortschreiben
+
+`Muss` · 0.4.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich beim Planning aus allen Kriterien auswählen, welche für dieses Team gelten,
+damit beurteilt wird, was dieses Team in diesem Sprint tatsächlich vorhat.
+
+- **AK-1** Mit dem Festhalten der Planung wird der geltende Kriteriensatz als Kopie an das Team gebunden (FA-65 AK-1a).
+- **AK-2** Beim Planen werden **alle verfügbaren Kriterien angezeigt**, und die Lehrkraft wählt aus, welche in diesem Abschnitt gelten. Die Gewichte der vier Kategorien bleiben unverändert; innerhalb einer Kategorie verschiebt sich das Gewicht über die Maximalpunkte der gewählten.
+- **AK-2a** Verfügbar ist: die dem Abschnitt zugeordnete Rubrik, alles, was dieses Team in einem früheren Abschnitt **derselben Art** verwendet hat, und bei einem Sprint zusätzlich die Vorlage „Vorbereitungssprint“ (FA-69). Ein hier neu angelegtes Kriterium kommt dazu.
+- **AK-3** Ein gestrichenes Kriterium ist nicht dasselbe wie ein unbewertetes: Es zählt in seiner Kategorie gar nicht mit, während ein unbewertetes aus der Gewichtung fällt und als offen gemeldet wird (FA-21, FA-26).
+- **AK-4** Nach dem ersten Punkteintrag ist die Kopie eingefroren; Änderungen laufen über das Angleichen (FA-47 AK-6).
+- **AK-5** Die Belegfassung weist je Abschnitt und Team die geltenden Kriterien aus und benennt Abweichungen von der zugrunde liegenden Rubrik.
+- **AK-6** Überall, wo Teams miteinander verglichen werden – Teamübersicht (FA-29), Notenverteilung (FA-30), Export (FA-31) –, ist auszuweisen, dass die Kriterien abweichen. Ein Vergleich ungleicher Maßstäbe ohne Hinweis wäre irreführend.
+- **AK-7** Vorausgewählt sind die Kriterien **des vorigen Sprints desselben Teams**, nicht die der Rubrik. Eine einmal getroffene Auswahl wirkt damit fort. Sie ist ein Vorschlag und bis zum Festhalten änderbar.
+- **AK-8** Hat das Team keinen vorigen Sprint, ist die dem Abschnitt zugeordnete Rubrik vorausgewählt.
+- **AK-9** Die Herkunft der Kriterien ist erkennbar: übernommen aus Sprint n, aus einer Rubrik, oder in diesem Sprint geändert.
+- **AK-10** **Die Fortschreibung läuft nur von Sprint zu Sprint.** Ein Test und die Diplomarbeitsvorbereitung entstehen aus keinem Sprint und geben an keinen weiter: Sie haben ihre eigenen Kriterien, und ihre Auswahl beginnt bei der zugeordneten Rubrik.
+
+*Folgt aus der Festlegung des Auftraggebers vom 12.09.2026: „Die Kriterien sollen immer aus
+dem letzten Sprint übernommen werden … am Ende geht es meistens um dieselben Kriterien, nur
+die ersten Sprints unterscheiden sich maßgeblich.“ Behandelt das Risiko, dass die
+Vergleichbarkeit zwischen den Teams unbemerkt verlorengeht – siehe OP-F19 und OP-F20.*
+
+*AK-2 und AK-10 am 12.09.2026 nachgeschärft, nachdem der Auftraggeber die erste Umsetzung
+gesehen hat: Gewählt wird aus dem vollständigen Vorrat, statt einzelne Kriterien zu streichen
+und zu ergänzen – „ich möchte die Kriterien alle sehen und auswählen, welche ich verwenden
+möchte“. Die frühere AK-10 („aus einer Vorlage neu beginnen“) entfällt damit ersatzlos: Wenn
+alles sichtbar ist, ist ein Satzwechsel eine Frage von Häkchen und braucht keinen eigenen Weg.
+Zugleich berichtigt: Die Kette läuft **nur** von Sprint zu Sprint – ein Test und die
+Diplomarbeitsvorbereitung entstehen aus keinem Sprint.*
+
+### FA-69 Eigene Vorlage für den Vorbereitungssprint
+
+`Soll` · 0.4.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich für den ersten Sprint einen eigenen Kriteriensatz vorgeschlagen bekommen,
+damit ich im Vorbereitungssprint nicht beurteile, was es dort noch gar nicht gibt.
+
+- **AK-1** Neben „Sprint“ und „Diplomarbeitsvorbereitung“ wird eine dritte Vorlage ausgeliefert: „Vorbereitungssprint“.
+- **AK-2** Ihre Kriterien stehen beim Planen eines Sprints immer im Vorrat zur Auswahl (FA-67 AK-2a) – auch später im Jahr, falls eine Unterlage nachgereicht wird. Ist sie dem ersten Sprint als Rubrik zugeordnet, ist sie dort vorausgewählt.
+- **AK-3** Die Vorlage ist wie jede andere Rubrik änderbar und zurücksetzbar (FA-09).
+- **AK-4** Ihr Team-Ergebnis trägt sechs Kriterien mit zusammen 50 Punkten: Fachliches Konzept (10), Anforderungsspezifikation (10), Solution-Design (10), CI/CD (8), Stakeholderanalyse (6), Versionsverwaltung (6).
+- **AK-5** Scrum-Prozess, Individueller Beitrag und Peer übernehmen die Kriterien der Sprint-Rubrik unverändert. Sie werden in den zweiten Sprint mitgenommen; eine abweichende Benennung würde den Verlauf über das Jahr unlesbar machen.
+- **AK-6** Die Gewichtung lautet 50 / 15 / 35: Der Prozess wiegt weniger als später, weil er im ersten Sprint erst entsteht.
+
+*Festgelegt vom Auftraggeber am 12.09.2026, Kriterien und Gewichtung ausgeschrieben in
+docs/entwurf-planung-je-team.md, Kapitel 9. Der Auftraggeber hat dazu angemerkt, dass sich der
+Satz nach den ersten Erfahrungen ändern wird – AK-3 hält diesen Weg offen.*
+
+### FA-70 Sprintplanning als eigene Sicht
+
+`Muss` · 0.5.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich einen Sprint dort anlegen und planen, wo ich ihn plane,
+damit die Reihenfolge in der Anwendung der Reihenfolge im Unterricht entspricht.
+
+- **AK-1** Ein Sprint **entsteht in dieser Sicht**, nicht mehr unter „Klassen & Teams“. Nummer und Bezeichnung werden vorgeschlagen.
+- **AK-2** Je Team werden Ziel, Beginn, Ende und die geltenden Kriterien erfasst (FA-66, FA-67).
+- **AK-3** Kriterien mit dem Erfassungszeitpunkt „Planning“ (FA-75) werden hier beurteilt, nicht am Sprintende.
+- **AK-4** Das Kriterienblatt für die Klasse (FA-39) wird hier ausgegeben: Es gehört an den Anfang eines Sprints, nicht an sein Ende.
+- **AK-5** Ein Sprint, der geplant und noch nicht beurteilt ist, ist als laufend erkennbar.
+- **AK-6** **Ein Sprint gehört dem Team.** Die Sprintleiste zeigt nur, wofür das gewählte Team eine Planung hat; das Team steht in der Bedienung vor dem Sprint. Ein neu angelegter Sprint wird sofort für dieses Team geplant – ein Sprint ohne Planung gehörte niemandem und stünde in jeder Leiste.
+- **AK-7** Ein Abschnitt, den **kein** Team geplant hat, gilt wie vor Schemastand 3 für die ganze Klasse. Nur so bleibt ein älterer Bestand lesbar.
+- **AK-8** Ein Sprint lässt sich hier für **dieses Team** entfernen; andere Teams behalten ihn. Bleibt kein Team übrig, verschwindet der Abschnitt ganz. Vorher wird benannt, was daran hängt (FA-36 AK-3).
+
+*Folgt aus der Festlegung des Auftraggebers vom 12.09.2026: „Ein Abschnitt im
+Projekt ist ein Sprint, der beim Sprintplanning entsteht.“*
+
+### FA-71 Daily als eigene Sicht
+
+`Soll` · 0.5.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich während des Sprints festhalten, was mir im Daily auffällt,
+damit ich es am Sprintende nicht aus dem Gedächtnis rekonstruieren muss.
+
+- **AK-1** Die Sicht zeigt den laufenden Sprint je Team und erlaubt das Erfassen der Kriterien mit dem Erfassungszeitpunkt „Daily“ (FA-75).
+- **AK-2** Sie ist **nicht abschaltbar**; ein leeres Feld bleibt „nicht bewertet“. Das Daily wird oft nicht beurteilt, und das ist kein Mangel.
+- **AK-3** Die Notizen je Team und je Person (FA-16, FA-17) sind hier erreichbar: Was im Daily auffällt, ist meist eine Beobachtung und keine Punktzahl.
+
+*Die einseitige Bewertung – „eigentlich nur negativ, wenn nichts überlegt wurde“ –
+ist ausdrücklich **nicht** Gegenstand dieser Anforderung; siehe OP-F22.*
+
+### FA-72 Sprintreview als eigene Sicht
+
+`Muss` · 0.5.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich den Sprint dort beurteilen, wo ich ihn abschließe,
+damit Planung, Beobachtung und Beurteilung nicht in einem Formular verschwimmen.
+
+- **AK-1** Hier werden alle Kriterien mit dem Erfassungszeitpunkt „Review“ erfasst, dazu Peer-Werte, Verstehensnachweis, Reflexion und Rückmeldung.
+- **AK-2** Was in Planning und Daily bereits erfasst wurde, ist hier sichtbar und als dort erfasst gekennzeichnet; es wird nicht doppelt abgefragt.
+- **AK-3** Die Nachfrage zur Peer-Bewertung (FA-53) steht hier: Sie gehört an das Ende einer Sprintbeurteilung.
+- **AK-4** Die offenen Rückmeldungen (FA-42 AK-4) werden hier genannt.
+
+### FA-73 Die Diplomarbeit ist ein Projekt
+
+`Soll` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich eine Diplomarbeit wie jedes andere Projekt führen,
+damit ich nicht zwei Arten von Sachen nebeneinander pflege, die sich gleich verhalten.
+
+**Fachliche Grundlage:** [Fachkonzept 15.1](fachkonzept-unterricht.md) – eine Diplomarbeit ist
+generisch ein Projekt; der Typ unterscheidet sie, nicht die Art der Sache.
+
+- **AK-1** Eine Diplomarbeit wird als **Projekt vom Typ Diplomarbeit** angelegt (FA-87 AK-2) und hat Mitglieder, Sprints und Bewertungen wie jedes Projekt.
+- **AK-2** Es gibt **keine eigene Sicht** und keine eigene Abschnittsart dafür (FA-34 AK-6).
+- **AK-3** Sie läuft neben dem SYP/PRE-Projekt her; dieselben Schüler dürfen in beiden sein – die Überschneidung wird bestätigt und festgehalten (FA-87 AK-5).
+- **AK-4** Bestehende Abschnitte der alten Art „Diplomarbeitsvorbereitung" bleiben erreichbar, bis Schemastand 5 sie umhängt ([Solution-Design 5.0d](solution-design.md)). Neu angelegt werden können sie nicht mehr.
+
+*Ersetzt die Fassung „Diplomarbeitsvorbereitung als eigene Sicht" vom 12.09.2026. Sie war
+richtig, solange ein Abschnitt der Klasse gehörte; seit die Zuordnung am Projekt hängt, wäre
+sie eine zweite Art von Sache für denselben Vorgang.*
+
+### FA-74 Tests als eigene Sicht
+
+`Soll` · 0.5.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich Tests dort festlegen und erfassen, wo sie hingehören,
+damit sie nicht in derselben Leiste stehen wie die Sprints.
+
+- **AK-1** Tests werden hier angelegt, angekündigt (§ 8 LBVO) und erfasst – inhaltlich unverändert gegenüber FA-60.
+- **AK-2** Sie erscheinen nicht mehr in einer gemeinsamen Abschnittsleiste mit den Sprints.
+
+### FA-76 Schreibschutz für abgeschlossene Abschnitte
+
+`Soll` · 0.5.0 · SH-1, SH-4 · umgesetzt
+
+Als Lehrkraft
+möchte ich nur im laufenden Abschnitt ohne Weiteres schreiben können,
+damit im Gespräch mit einem Team nichts versehentlich in einem alten Sprint landet.
+
+- **AK-1** Beschreibbar ist der **laufende** Abschnitt: der, in dessen Zeitraum **das heutige Datum** liegt – Beginn und Ende zählen mit. Maßgeblich ist der Zeitraum **dieses Teams** (FA-66); fehlt eine Planung, der Rahmen des Abschnitts. Da sich die Sprints eines Teams nicht überschneiden (FA-66 AK-8), gibt es höchstens einen.
+- **AK-1a** Liegt heute in **keinem** Zeitraum – das Ende ist vorbei und das Review noch offen, oder es sind Ferien –, ist **nichts** ohne Weiteres beschreibbar. Das ist beim Nachtragen der Regelfall und deshalb kein Fehler: Es steht da, welcher Sprint zuletzt lief, und eine Handlung gibt ihn frei (AK-3).
+- **AK-1b** Ältere und künftige Abschnitte werden vollständig angezeigt, aber gesperrt.
+- **AK-1c** Gesperrt ist die **Bewertung**. Die **Planung** eines Sprints, der noch nicht begonnen hat, bleibt änderbar – vorausplanen heißt, vor dem Beginn zu schreiben, und FA-77 AK-2 verlangt beliebig viele Vorschläge. Ein **vergangener** Sprint ist auch in seiner Planung gesperrt: Beginn und Ende verschieben Stichtagszuordnung (FA-48) und Zeitfaktor (FA-54).
+- **AK-2** Die Sperre nennt sich: Es steht da, dass dieser Abschnitt abgeschlossen ist und warum nichts eingetragen werden kann.
+- **AK-3** Sie ist mit **einer ausdrücklichen Handlung** aufhebbar – Schutz gegen Versehen, nicht gegen Absicht. Die Freigabe gilt nur für die laufende Sitzung und nur für diesen einen Abschnitt; sie landet in keiner Sicherung.
+- **AK-4** Ein geöffneter Abschnitt ist als solcher gekennzeichnet, samt Hinweis, dass eine Änderung einen bereits gebildeten Stand verschiebt.
+- **AK-5** Der Wechsel des Teams setzt die Abschnittswahl auf dessen laufenden Abschnitt zurück (FA-70 AK-6).
+- **AK-6** Die Sperre gilt für Sprints. Ein Test wird an einem Tag geschrieben und in einem Zug erfasst; die Diplomarbeitsvorbereitung läuft ganzjährig und ist damit immer die laufende.
+
+*Folgt aus der Festlegung des Auftraggebers vom 12.09.2026: „Im Unterricht unterhalte ich mich
+zu einem Zeitpunkt genau mit einem Team … nur dann darf man schreiben können.“ Die weiche
+Auslegung ist bewusst gewählt: Ein harter Schreibschutz sperrt auch die Berichtigung aus, und
+Tippfehler fallen erfahrungsgemäß später auf als am selben Tag.*
+
+*AK-1 am 12.09.2026 neu gefasst: „Der laufende Sprint ist am Datum zu erkennen.“ Die erste
+Umsetzung nahm den letzten in der Reihe. Das war falsch, sobald künftige Sprints geplant sind:
+Ein Sprint, der im Februar beginnt, wäre im Oktober der beschreibbare gewesen. Die Reihenfolge
+bleibt für Kürzel (FA-04 AK-5) und Zeitfaktor (FA-54) maßgeblich – nur für „laufend“ nicht.*
+
+### FA-78 Spur je Person und Sprint
+
+`Muss` · 0.6.0 · SH-1, SH-2, SH-4 · umgesetzt
+
+Als Lehrkraft
+möchte ich je Person und Sprint festhalten, woran diese Person ihren Beitrag zeigt,
+damit mein Urteil über den individuellen Beitrag einen Anker hat und nicht allein aus meiner Erinnerung stammt.
+
+- **AK-1** Je Person und Abschnitt lässt sich **eine** Spur erfassen: eine kurze Bezeichnung und wahlweise ein Verweis (Commit, Pull Request, Datei, Dokument). Erfasst wird sie im Sprintreview, neben dem Verstehensnachweis (FA-40) – dort wird darüber gesprochen.
+- **AK-2** Die Spur ist **erwartet, nicht erzwungen**: Sie blockiert nichts. Fehlt sie, wird sie wie eine offene Rückmeldung gemeldet (FA-42 AK-4) – gezählt, benannt, nicht verhindert.
+- **AK-3** Sie geht **nicht in die Rechnung ein**. Eine Spur ist kein Punktewert; sie belegt nichts über Umfang – eine einzige Stelle kann viel oder wenig Arbeit sein. Sie ist der Anker des Urteils, nicht das Urteil.
+- **AK-4** Die Anwendung **öffnet den Verweis nicht und liest ihn nicht**. Er wird gespeichert und angezeigt; ob und wie er geöffnet wird, entscheidet die Lehrkraft außerhalb der Anwendung (NFA-03, ADR-001). Kein Abruf eines Repositorys, keine Prüfung, ob der Verweis noch gilt.
+- **AK-5** Die ausgelieferte Sprintrubrik trägt im individuellen Beitrag ein Kriterium **„Eigene Spur“ mit 6 Punkten**: nachvollziehbare eigene Commits, gegebene Code-Reviews. Die Kategorie trägt damit 36 statt 30 Punkte; ihr Gewicht von 35 % bleibt unverändert, innerhalb der Kategorie verschiebt sich das Gewicht über die Maximalpunkte (FA-67 AK-2). Das Team-Kriterium „Versionsverwaltung“ (`t5`) bleibt unverändert – Repository, Branch-Strategie und PR-Kultur sind eine Teamleistung, die eigene Spur ist es nicht.
+- **AK-5a** Zugleich wird `i4` **„Beitrag zum Team“ geschärft**: Es deckt Unterstützung anderer und Kommunikation; „Code Reviews“ entfällt dort, weil es in AK-5 zählt. Ohne diese Änderung würden gegebene Reviews zweimal gewertet. Die **Kennung `i4` bleibt** – geändert wird die Beschreibung, nicht das Kriterium (FA-06 AK-1). Bereits eingefrorene Rubrikkopien sind unberührt (FA-65); eine Berichtigung läuft über das Angleichen (FA-47).
+- **AK-6** Im Vorbereitungssprint ist die Spur ein Dokument, kein Commit. Die Bezeichnung des Feldes ist deshalb **nicht** „Commit“, sondern neutral: woran diese Person ihren Beitrag zeigt.
+- **AK-7** Die Spur erscheint in der Belegfassung (FA-32) und in der Rückmeldung an die Person (FA-42). Sie ist der Teil der Aufzeichnung, der ein Urteil über den individuellen Beitrag überhaupt überprüfbar macht (§ 18 Abs. 1 SchUG).
+- **AK-8** Wechselt eine Person das Team (FA-58), bleibt die Spur bei der Person und dem Abschnitt, in dem sie erfasst wurde.
+
+*Folgt aus der Festlegung des Auftraggebers vom 12.09.2026 und Fachkonzept 8.2. Zwei Ziele in
+einem Feld: Das Urteil über den individuellen Beitrag bekommt einen Anker (bisher tragen i1
+bis i4 allein die Erinnerung), und die Versionsverwaltung wird für die Schülerinnen und
+Schüler von einer Vorschrift zu einer Notwendigkeit – wer im Review eine eigene Stelle zeigen
+soll, muss eine haben. **PN-2 bleibt unangetastet:** Die Anwendung wertet keine
+Git-Statistiken aus; sie hält fest, was die Lehrkraft angesehen hat.*
+
+*AK-3 ist empirisch begründet (Fachkonzept 14.4): Git-Kennzahlen korrelieren selbst dann nur
+schwach bis mittel mit Peer-Bewertung und Note, wenn sie an User Stories gebunden sind
+(r 0,19–0,46, E2); ohne diese Bindung ist kein Zusammenhang nachweisbar (E1). Die Autoren von
+E2 nennen als Hauptfehlerquelle, dass die Zuordnung zu einem Issue nicht sagt, wer es gemacht
+hat – **genau das repariert der Verstehensnachweis**: Die Person erklärt die Stelle. Damit ist
+die Spur methodisch stärker als jede automatisierte Zuordnung und trägt trotzdem keinen
+Punktewert.*
+
+*Punktezahl und Abgrenzung zu `i4` am 12.09.2026 vom Auftraggeber entschieden (OP-F26): 6
+Punkte, und „Code Reviews“ wandert aus `i4` heraus. Die vier bestehenden Kriterien verlieren
+damit anteilig etwa ein Sechstel ihres Gewichts innerhalb der Kategorie – „Umfang &
+Schwierigkeit“ fällt von 33 % auf 28 % der Kategorie.*
+
+### FA-79 Befund: agiert das Team als Team?
+
+`Muss` · 0.6.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich im Sprintreview sehen, wie die Beiträge innerhalb des Teams auseinanderliegen,
+damit ich erkenne, ob aus den Personen ein Team geworden ist, solange eine Maßnahme noch etwas ändert.
+
+- **AK-1** Im Sprintreview steht **zuerst eine Aussage über das Team**, darunter die Personenwerte, die sie tragen. Nicht umgekehrt: Gefragt ist der Befund über das Team, nicht ein Urteil über eine Person (Fachkonzept 8.2a).
+- **AK-2** Unterschieden werden drei Muster: alle nah beieinander und hoch; alle nah beieinander und niedrig; einer weicht ab. Das zweite Muster ist **kein** Teamproblem, sondern ein fachliches – eine Darstellung, die beide gleich behandelt, führt in die falsche Maßnahme.
+- **AK-3** Eine Abweichung gilt **in beide Richtungen**: Wer deutlich über dem Team liegt, ist derselbe Befund wie wer deutlich darunter liegt. Ein Team, das von einer Person getragen wird, ist keines.
+- **AK-4** Auffällig ist, wenn **mindestens zwei** dieser drei Signale in dieselbe Richtung zeigen: individueller Beitrag gegen den **Median der Mitglieder**, Peer-Wert gegen den Median der Peer-Werte des Teams, Zahl der Abschnitte ohne Spur (FA-78). Ein einzelnes Signal ist Rauschen – ein schwacher Sprint, eine Krankheit, ein Missverständnis in der Aufgabenverteilung.
+- **AK-4c** Ein Abstand von **mindestens der doppelten Schwelle** trägt **allein**. Fünfzehn Prozentpunkte können ein schwacher Sprint sein; fünfzig sind kein Rauschen. Ohne diese Regel wäre der Befund in der Phase, in der er gebraucht wird, blind: Läuft die Peer-Bewertung noch nicht (FA-52) und ist die Spur erfasst, bleibt nur ein Signal übrig, und „zwei von drei“ könnte nie ansprechen.
+- **AK-4a** Das erste Signal spricht an, wenn der Abstand zum Teamergebnis eine **Schwelle** übersteigt. Sie ist **einstellbar**, Vorgabe **15 Prozentpunkte**, und wird wie Peer-Deckelung und Verstehensanteil im Datenbestand geführt. Eine fest verdrahtete Zahl wäre im Widerspruchsfall nicht zu begründen; eine einstellbare ist eine Festlegung der Lehrkraft, die in der Aufzeichnung steht.
+- **AK-4b** Die geltende Schwelle wird dort genannt, wo der Befund erscheint, und in der Belegfassung ausgewiesen. Ein Befund, dessen Maßstab man nicht kennt, ist keiner.
+- **AK-5** Die Darstellung nennt **Tatsachen und kein Etikett**: Werte, Abstände, fehlende Spuren. Wörter wie „Trittbrettfahrer“ oder „Mitläufer“ kommen in Oberfläche und Ausgaben nicht vor – sie wären in einer Aufzeichnung, die nach § 71 SchUG eingesehen werden kann, angreifbar und beenden das Gespräch, das beginnen soll.
+- **AK-6** Der Ton ist „sieh hin“, nie „hier stimmt etwas nicht“. Der Befund ist ein Anlass für ein Gespräch, kein Ergebnis (wie bei den Peer-Werten, FA-45 AK-5).
+- **AK-7** Er rechnet **nichts** in die Note. Er liest nur, was ohnehin erfasst ist.
+- **AK-8** Er funktioniert ab dem **ersten** Sprint: Fehlen Peer-Werte, weil die Peer-Bewertung noch nicht läuft (FA-52), tragen die beiden übrigen Signale. Fehlen zwei, wird kein Befund behauptet.
+
+*Folgt aus Fachkonzept 8.2a. Behandelt die Lücke, dass ein ungleicher Beitrag heute erst
+sichtbar wird, wenn die Note schon gebildet ist – für eine Frühwarnung nach § 19 Abs. 3a
+SchUG zu spät. Steht im Sprintreview und nicht in der Auswertung, weil er dort gebraucht
+wird, wo das Gespräch mit dem Team stattfindet (Festlegung vom 12.09.2026).*
+
+*AK-4 am 12.09.2026 berichtigt, noch vor der Umsetzung: Bezugsgröße des ersten Signals ist der
+**Median der Mitglieder** und nicht das Teamergebnis. Grund ist ein Rechenfehler in der
+ersten Fassung – das Teamergebnis liegt bei einem guten Team nahe 100 %, also kann niemand
+15 Prozentpunkte **darüber** liegen, und AK-3 („in beide Richtungen“) wäre für die Person, die
+das Team trägt, strukturell nie erfüllbar gewesen. Der Median der Mitglieder ist zugleich
+die Größe, die die Story nennt („wie die Beiträge **innerhalb** des Teams auseinanderliegen“)
+und die empirisch trägt (E3). Der **Median** und nicht das Mittel, weil ein einziger Ausreißer
+das Mittel mit sich zieht – dann weichen plötzlich alle ab und die Abweichung fällt niemandem
+mehr zu. Das Teamergebnis bleibt in der Anzeige – der Abstand zu ihm ist
+die Information, dass ein gutes Teamergebnis einen schwachen eigenen Beitrag trägt.*
+
+*AK-1 bis AK-3 sind empirisch gestützt (Fachkonzept 14.4): Die Gleichverteilung der Beiträge
+eines Teams korrelierte positiv mit dessen Peer-Bewertung (E3), und Teams mit einem
+„designierten Ingenieur“ hatten die schlechtesten Ergebnisse, Teams mit gleichmäßiger
+Beteiligung die besten (E1a). **Die Streuung trägt Information, wo die Einzelzahl keine
+trägt** – das ist der Grund, warum AK-1 die Team-Aussage vor die Personenwerte stellt. AK-7
+folgt aus derselben Literatur: Die gefundenen Zusammenhänge sind für eine Note um
+Größenordnungen zu schwach (E2), und Messen verändert das Gemessene (Campbell's Law).*
+
+### FA-80 Maßnahmen aus der Retrospektive
+
+`Muss` · 0.6.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich die Maßnahmen festhalten, die ein Team sich in der Retrospektive vornimmt, und sie im Folgesprint wiedersehen,
+damit „im Folgesprint sichtbar umgesetzt“ überprüfbar ist und nicht aus meinem Gedächtnis kommt.
+
+- **AK-1** Je Team und Abschnitt lassen sich **zwei bis drei** Maßnahmen erfassen: ein Satz je Maßnahme (Fachkonzept 6.2).
+- **AK-2** Erfasst werden sie **am Ende des Sprintreviews**, vor dem Abschließen des Sprints (FA-77 AK-5) – dort, wo Review und Retrospektive im Unterricht zusammenfallen. Kein eigener Bereich.
+- **AK-3** Im Folgesprint desselben Teams stehen sie **wieder da**, mit Herkunft benannt: „aus der Retrospektive von Sprint n“. Dieselbe Fortschreibung wie bei den Kriterien (FA-67 AK-7, AK-9).
+- **AK-4** Je Maßnahme wird im Folgesprint festgehalten, ob sie umgesetzt wurde: ja, teilweise, nein, mit Platz für einen Satz. Das ist die Grundlage für das Prozesskriterium „Retrospektive“ (`p5`), das heute etwas bewertet, das nirgends steht.
+- **AK-5** Die Maßnahmen gehen **nicht in die Rechnung ein**. Bewertet wird über `p5` wie bisher; die Anwendung leitet aus dem Umsetzungsstand keine Punkte ab.
+- **AK-6** Die Fortschreibung läuft **nur von Sprint zu Sprint**: Ein Test und die Diplomarbeitsvorbereitung haben keine Retrospektive (wie FA-67 AK-10).
+- **AK-7** Maßnahmen erscheinen in der Belegfassung des Teams, nicht in der Rückmeldung an eine Person: Sie sind eine Zusage des Teams, keine Zuschreibung an jemanden.
+
+*Folgt aus Fachkonzept 8.2a und der Festlegung vom 12.09.2026: „erst dann kann man ein Team
+entwickeln“. Schließt eine bestehende Lücke – die Retrospektive kommt in diesem Dokument
+bisher nicht vor, obwohl `p5` ihre Wirkung bewertet und K2.5 sie als Kompetenz führt. Ohne
+aufgeschriebene Maßnahme ist „sichtbar umgesetzt“ nicht feststellbar, sondern geraten.*
+
+### FA-81 GitHub-Auswertung je Team einlesen
+
+`Soll` · 0.6.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich die Zusammenarbeit eines Teams im Repository nicht von Hand nachzählen müssen,
+damit der Befund über das Team (FA-79) und die Beurteilung der Versionsverwaltung auf abgefragten Zahlen stehen und nicht auf meinem Eindruck.
+
+- **AK-1** Die Zahlen entstehen **außerhalb** der Anwendung: Ein mitgeliefertes Skript fragt je Team und Zeitraum ab und schreibt eine Datei; die Anwendung **liest sie ein** (wie FA-63). Damit bleiben ADR-001, NFA-03 und DS-02 unverändert gültig – die Anwendung selbst ruft nichts ab und braucht kein Zugriffstoken.
+- **AK-2** Eingelesen werden vier Größen, alle auf **Teamebene** und alle als **Verteilung**, nicht als Leistungszahl je Person:
+  1. Anteil der Mitglieder an den Beiträgen des Zeitraums,
+  2. wer wessen Pull Requests kommentiert oder genehmigt hat,
+  3. Anteil der Änderungen über Pull Requests mit Review gegenüber direkten Pushes auf den Hauptzweig,
+  4. zeitliche Verteilung der Beiträge über den Zeitraum.
+- **AK-3** Das Repository gehört zum **Team** (ein Pfad je Team). Die Zuordnung GitHub-Kennung → Person wird ebenfalls am Team geführt; eine Person kann **mehrere** Kennungen haben. Ohne Zuordnung bleibt eine Kennung als „nicht zugeordnet“ sichtbar und wird nicht stillschweigend weggelassen.
+- **AK-4** Die Daten sind ein **Stand zum Zeitpunkt des Einlesens**, mit Datum. Sie werden nicht aktualisiert und nicht nachgeführt; die Belegfassung nennt den Stand (§ 18 Abs. 1 SchUG).
+- **AK-5** Sie speisen den Befund nach FA-79 und **schlagen einen Punktewert für das Team-Kriterium „Versionsverwaltung“ (`t5`) vor**. Der Vorschlag deckt **nur den mechanisch beobachtbaren Teil** des Kriteriums – Branch-Strategie, Pull Requests mit Review, direkte Pushes. Der Teil „aussagekräftige Commits“ bleibt bei der Lehrkraft: Ein Skript kann ihn nicht beurteilen, und für die Qualität von Commit-Nachrichten ist kein Zusammenhang mit der Leistung nachweisbar (Fachkonzept 14.4, E1). Das steht am Vorschlag dran.
+- **AK-6** Der Vorschlag **überschreibt nichts** (G9): Er wird angezeigt und erst durch eine Handlung übernommen. Ein bereits erfasster Wert bleibt stehen, auch wenn später neue Zahlen eingelesen werden – dann steht der Unterschied da.
+- **AK-7** Ist ein Wert aus einem Vorschlag übernommen worden, ist das in der Aufzeichnung erkennbar, samt Datum und Zahlen, auf denen er beruht. Eine Punktevergabe, deren Herkunft unklar ist, wäre nach § 18 Abs. 1 SchUG unbrauchbar.
+- **AK-8** Für die **anderen** Kriterien gibt es keinen Vorschlag. Weder Funktionalität noch Code-Qualität noch der individuelle Beitrag werden aus Repository-Zahlen abgeleitet; dort ist der Zusammenhang empirisch nicht nachweisbar (E1, E2).
+- **AK-9** Fehlt die Datei, verhält sich die Anwendung wie bisher: Der Befund stützt sich auf die übrigen Signale (FA-79 AK-8), und `t5` wird von Hand vergeben. Die Auswertung ist eine Erleichterung, keine Voraussetzung.
+- **AK-10** Das Skript verarbeitet **keine Inhalte**: keine Quelltexte, keine Commit-Texte, keine Kommentartexte. Es zählt Ereignisse und Beziehungen und schreibt Zahlen.
+
+*Festlegung des Auftraggebers vom 12.09.2026. Grundlage: Fachkonzept 8.2a und 14.4. Der
+Vorschlag für `t5` ist ausdrücklich gewollt und tragfähiger als die Warnung aus E1 vermuten
+lässt: Bei `t5` sind Kennzahl und Kriterium **dasselbe Konstrukt** – der PR-Anteil ist kein
+Stellvertreter für „Pull Requests mit Review“, er ist es. Das unterscheidet ihn von einer
+Commit-Zahl, die für Produktqualität stehen soll.*
+
+*Der Weg über ein Skript statt eines Abrufs in der Anwendung ist eine bewusste Wahl des
+Auftraggebers vom 12.09.2026: Ein Abruf hätte ADR-001 und NFA-03 aufgehoben, den E2E-Test
+„überträgt keine Daten an einen Server“ entwertet und ein Lesetoken für die Schülerrepos in
+den Browserspeicher eines Lehrergeräts gelegt. Der Preis ist ein Befehl je Sprint.*
+
+*Behandelt R-13.*
+
+### FA-82 Sprintwert je Team
+
+`Muss` · 0.6.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich je Sprint und Team **einen** Wert festlegen, der die Leistung des Teams in diesem Sprint benennt,
+damit ich dem Team etwas Griffiges sagen kann, ohne ihm eine Punktetabelle vorzulegen.
+
+- **AK-1** Je Abschnitt und Team lässt sich ein Sprintwert **setzen**, samt Begründung – wie ein gesetzter Wert (FA-50): Er tritt **neben** die Rechnung und überschreibt sie nicht (G9).
+- **AK-2** Vorgeschlagen wird der gerechnete **Team-Anteil**: Team-Ergebnis und Scrum-Prozess zusammen, auf 100 % umgerechnet. Das sind die beiden Kategorien, die ein Team gemeinsam verantwortet; individueller Beitrag und Peer-Korrektur bleiben draußen, weil sie Personen betreffen.
+- **AK-3** Der Vorschlag ist ein Vorschlag: Er wird angezeigt und erst durch eine Handlung übernommen. Ein gesetzter Wert bleibt stehen, auch wenn sich die Rechnung darunter später ändert – dann steht der Unterschied da.
+- **AK-4** Der Sprintwert geht in **keine** Note ein. Er ist eine Aussage an das Team, keine Bewertungsebene: Die Jahresnote entsteht weiter aus den Abschnittsergebnissen je Person (FA-27, FA-54).
+- **AK-5** Er erscheint in der Belegfassung mit Datum und Begründung. Ein Wert, den das Team kennt und der in keiner Aufzeichnung steht, wäre im Anlassfall nicht erklärbar.
+- **AK-6** Ohne gesetzten Wert gibt es keinen Sprintwert – er wird nicht stillschweigend aus der Rechnung eingesetzt (ADR-004, G9).
+
+*Festlegung des Auftraggebers vom 12.09.2026: „Es muss einen Wert geben. Den bestimme ich.“
+Die Bezugsgröße in AK-2 ist eine Entwurfsentscheidung und überstimmbar – gewählt, weil der
+individuelle Beitrag im Team unterschiedlich ist und ein Mittel daraus in einem Dreierteam auf
+die Werte der übrigen zurückrechenbar wäre.*
+
+### FA-83 Rückmeldung an das Team für den Kanal
+
+`Soll` · 0.6.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich nach dem Review einen fertigen Text für den Teams-Kanal des Teams bekommen, den ich vor dem Absenden ändern kann,
+damit das Team zwischen den Sprints schriftlich hat, woran es war und was es sich vorgenommen hat.
+
+- **AK-1** Die Anwendung erzeugt einen **Textvorschlag** je Abschnitt und Team. Er ist im Feld **frei änderbar**, bevor er kopiert wird; nichts wird ohne diese Zwischenstufe weitergegeben.
+- **AK-2** Bausteine, jeder **einzeln zuschaltbar** (AK-1 der Festlegung: „Das muss ich bestimmen können“): Ziel und Zeitraum (FA-66), was gelungen ist (aus der Notiz zum Sprint, FA-16), woran die Einzelnen gearbeitet haben (aus den Spuren, FA-78), Maßnahmen für den nächsten Sprint (FA-80), Sprintwert (FA-82).
+- **AK-3** Der Baustein „woran die Einzelnen gearbeitet haben“ nennt **Namen und Tätigkeit, aber keine Bewertung**: keine Prozentwerte je Person, keine Stärken, keine Entwicklungsfelder, keinen individuellen Beitrag. Tatsachen über die Arbeit, die im Team ohnehin bekannt sind.
+- **AK-4** Es gibt **keinen Baustein**, der die Rückmeldung je Person (FA-42) in den Teamtext einsetzt. Das Feld ist frei – wer es hineinschreibt, entscheidet das bewusst; ein Knopf dafür machte aus der Entscheidung eine Gewohnheit. Siehe OP-F29.
+- **AK-5** Der Text wird in die Zwischenablage kopiert. Ist die Schnittstelle nicht verfügbar, steht er markierbar da und es wird darauf hingewiesen (NFA-05).
+- **AK-6** Kein Versand aus der Anwendung: Sie spricht mit keinem Dienst (ADR-001, NFA-03, DS-02). Was in den Kanal gelangt, stellt die Lehrkraft dort selbst hinein und sieht es vorher.
+- **AK-7** Derselbe Weg steht für die Rückmeldung **je Person** zur Verfügung – als eigener Text für ein Einzelgespräch, mit dem Hinweis, dass er nicht in den Teamkanal gehört.
+- **AK-8** Was kopiert wurde, wird **nicht** gespeichert: Der Text ist eine Ausgabe, kein Datenbestand. Gespeichert sind die Bausteine, aus denen er entsteht.
+
+*Festlegung des Auftraggebers vom 12.09.2026: ein Teams-Kanal je Team, Rückmeldung dorthin,
+über die Zwischenablage. Grundlage: Fachkonzept G10 (Zurückhaltung in der Darstellung) und
+8.2a – die Maßnahmen stehen damit dort, wo das Team sie zwischen den Sprints liest, und beim
+nächsten Review lässt sich darauf zeigen.*
+
+### FA-77 Sprintzustand: Vorschlag, fixiert, abgeschlossen
+
+`Muss` · 0.5.0 · SH-1, SH-2 · umgesetzt
+
+Als Lehrkraft
+möchte ich mehrere Sprints vorausplanen können, ohne dass sie damit schon gelten,
+damit ein Plan ein Plan bleibt und erst zum Maßstab wird, wenn der vorige Sprint besprochen ist.
+
+- **AK-1** Die Planung eines Teams trägt einen von drei Zuständen: **Vorschlag**, **fixiert**, **abgeschlossen**. Vorschlag ist der Anfangszustand.
+- **AK-2** Es darf beliebig viele Vorschläge geben. Sie sind Absichten und keine Festlegung – die Oberfläche benennt sie so und nennt keine Nummer, die eine Ordnung suggeriert, die noch nicht gilt.
+- **AK-3** **Fixiert** wird mit einer ausdrücklichen Handlung. Sie ist erst möglich, wenn der **vorige Sprint desselben Teams abgeschlossen** ist (voriger im Sinne von FA-67 AK-7). Hat das Team keinen vorigen Sprint, ist die Fixierung sofort möglich – der Vorbereitungssprint beginnt ohne Vorgänger.
+- **AK-4** Ist die Fixierung noch gesperrt, steht der Grund da, samt dem Sprint, der noch auf sein Review wartet. Eine Schaltfläche, die nichts tut und nicht sagt warum, ist schlimmer als keine.
+- **AK-5** **Abgeschlossen** wird im Sprintreview mit einer ausdrücklichen Handlung; sie hält ein Datum fest. **Vorgeschlagen** wird sie, sobald für alle Mitglieder alle Review-Kriterien erfasst sind – ausgelöst wird sie von der Lehrkraft. Ein bewusst leer gelassenes Feld hält damit die Kette nicht auf (FA-21: leer ist „nicht bewertet“, nicht 0).
+- **AK-5a** Der Abschluss unterliegt dem **Schreibschutz** wie alles andere im Sprintreview (FA-76): Liegt heute außerhalb des Zeitraums, ist er erst nach der ausdrücklichen Freigabe möglich. Das ist ein Klick mehr je Review – der Preis dafür, dass die Sicht vorhersehbar ist. Eine Sicht, in der die eine Hälfte erreichbar und die andere gesperrt ist, lässt sich nicht erklären.
+- **AK-6** Der Abschluss ist zurücknehmbar, weil auch er eine Fehleingabe sein kann. Ein bereits fixierter Folgesprint verliert dadurch seine Fixierung **nicht**; das wäre eine Kettenreaktion in den Aufzeichnungen. Stattdessen wird die Rücknahme benannt.
+- **AK-7** Der Zustand **sperrt nicht**. Auch in einem Vorschlag lässt sich erfassen; die Oberfläche kennzeichnet ihn als noch nicht fixiert. Was ohne Weiteres beschreibbar ist, entscheidet allein das Datum (FA-76 AK-1). Zwei Sperren mit verschiedenen Bedingungen wären im Unterricht nicht mehr durchschaubar.
+- **AK-8** Fixieren ist **nicht** dasselbe wie das Festhalten der Planung (FA-66 AK-2, FA-67 AK-1): Festhalten friert die Kriterien ein, Fixieren macht aus der Absicht den geltenden Sprint. Zwei Handlungen, zwei Zeitpunkte – die Kriterien können früh feststehen und der Sprint erst später beginnen.
+- **AK-9** Beide Zeitpunkte stehen an der Planung und erscheinen in der Belegfassung (FA-32). § 18 Abs. 1 SchUG verlangt Aufzeichnungen, aus denen die Beurteilung hervorgeht; wann ein Abschnitt begann und wann er geschlossen wurde, gehört dazu.
+- **AK-10** Die Felder sind innerhalb von Schemastand 3 **additiv**: Ein Bestand ohne sie wird beim Laden nicht verändert. Fehlt der Fixierungszeitpunkt, gilt eine Planung als fixiert, **sobald für sie Punkte erfasst sind** – was bewertet wird, ist nicht mehr Absicht. Die eingefrorene Rubrik taugt dafür nicht als Ersatz: Sie entsteht schon beim Festhalten der Planung (AK-8), und das ist gerade der Vorschlag. Für den Abschluss gibt es keine Ersatzregel: Was nie abgeschlossen wurde, ist offen.
+
+*AK-5a am 12.09.2026 ergänzt, nachdem ein E2E-Test die erste Umsetzung offengelegt hat: Der
+Abschluss-Schalter stand **außerhalb** der Maske, die Retrospektive und der Kanaltext darin.
+Damit war der Sprint abschließbar, ohne etwas freizugeben, die Maßnahmen desselben Gesprächs
+aber nicht. Vom Auftraggeber entschieden: alles gleich gesperrt.*
+
+*Folgt aus der Festlegung des Auftraggebers vom 12.09.2026: „Es kann mehrere geplante Sprints
+geben, wobei bis auf den aktuellen die anderen nur als Vorschläge zu verstehen sind. Ein
+Sprintplanning wird erst fixiert, wenn der vorhergehende Sprint mit dem Review abgeschlossen
+ist.“ Damit wird aus dem Review erstmals ein Ereignis mit Folgen und nicht bloß eine Sicht.*
+
+### FA-75 Erfassungszeitpunkt je Kriterium
+
+`Muss` · 0.5.0 · SH-1, SH-4 · umgesetzt
+
+Als Lehrkraft
+möchte ich je Kriterium festlegen, wann es beobachtet wird,
+damit jedes Kriterium in der Sicht auftaucht, in der ich es tatsächlich beurteile.
+
+- **AK-1** Ein Kriterium trägt einen Erfassungszeitpunkt: Planning, Daily oder Review. Ohne Angabe gilt Review.
+- **AK-2** Der Zeitpunkt bestimmt **nur den Ort der Erfassung**, niemals die Rechnung: Kategorie, Gewicht und Maximalpunkte bleiben unberührt.
+- **AK-3** Er ist in der Rubrik einstellbar und wird mit der Rubrik eingefroren (FA-65).
+- **AK-4** In den ausgelieferten Vorlagen trägt „Sprint Planning“ den Zeitpunkt Planning und „Standup“ den Zeitpunkt Daily; alle übrigen Review. Der Zeitpunkt sagt, **wann** beobachtet wird – nicht, dass beobachtet werden **muss**: Findet kein Standup statt, bleibt das Kriterium leer (FA-21, OP-F30).
+- **AK-5** Das Feld ist innerhalb von Schemastand 3 **additiv**: Ein Bestand ohne das Feld wird beim Laden nicht verändert, es gilt die Vorgabe aus AK-1.
+
+*Ohne diese Anforderung müssten FA-70 AK-3 und FA-71 AK-1 die Kennungen `p1`
+und `p2` fest verdrahten. Das bräche, sobald eine Rubrik andere Kriterien führt –
+und seit FA-67 führt jedes Team möglicherweise andere.*
 
 ### FA-57 Bestand auf Schemastand 2 heben
 
@@ -451,6 +936,26 @@ damit eine Änderung am Datenmodell nicht die Aufzeichnungen eines laufenden Dur
 Schemastand 1 vor (bestätigt am 10.09.2026). Entsteht der erste echte Datensatz bereits unter
 0.2.0, wird diese Migration nie ausgeführt – der Mechanismus bleibt trotzdem nötig, weil jede
 künftige Schemaänderung ihn braucht.*
+
+### FA-68 Bestand auf Schemastand 3 heben
+
+`Muss` · 0.4.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich meinen bisherigen Bestand ohne Verlust weiterverwenden,
+damit ein laufendes Schuljahr eine Programmänderung übersteht.
+
+- **AK-1** Zu jedem Abschnitt mit Teams entsteht je Team eine Planung mit Beginn und Ende des Abschnitts und leerem Ziel.
+- **AK-2** Eine vorhandene Rubrikkopie am Abschnitt wird an jedes Team übernommen; der Zeitpunkt des Einfrierens bleibt erhalten.
+- **AK-3** Punkte, Notizen, Rückmeldungen, Verstehensnachweise, Reflexionen, Peer-Urteile, gesetzte Werte und Notenstände bleiben unverändert.
+- **AK-4** Vor der Umstellung wird der bisherige Stand unverändert gesichert (wie FA-57 AK-3).
+- **AK-5** Ein migrierter Bestand ergibt **dieselben Prozentwerte, Notenvorschläge und Sperren** wie vorher. Der Probebestand aus dem Testlauf ist dafür der Prüfstein und liegt als Test bei.
+- **AK-6** Die Migration läuft genau einmal und ist an der Schemanummer erkennbar; schlägt sie fehl, bleibt der alte Bestand unangetastet.
+
+*Behandelt Risiko R-01. Zum Zeitpunkt dieser Planung liegen weiterhin keine echten Daten vor
+(bestätigt am 12.09.2026); die Migration ist Absicherung, nicht Voraussetzung. AK-5 ist der
+eigentliche Inhalt: Eine Umstellung, die Noten verschiebt, wäre keine Migration, sondern eine
+stille Neubewertung.*
 
 ## 7 Bewertung erfassen
 
@@ -538,7 +1043,7 @@ damit ich beim Bewerten nicht an die Bedienung denken muss.
 
 ### FA-20 Erfassung durch die Teams
 
-`Zurückgestellt` · 0.4.0 · SH-2 · offen
+`Zurückgestellt` · 0.7.0 · SH-2 · offen
 
 Als Schülerin oder Schüler
 möchte ich meine Peer-Einschätzung selbst eingeben, ohne fremde Bewertungen zu sehen,
@@ -578,7 +1083,7 @@ damit meine Sicht in die Beurteilung eingeht und ich im Folgesprint daran anknü
 
 ### FA-44 Rückmeldung des Auftraggebers erfassen
 
-`Soll` · 0.4.0 · SH-5 · geplant
+`Soll` · 0.7.0 · SH-5 · geplant
 
 Als Lehrkraft
 möchte ich die Rückmeldung des Auftraggebers je Sprint und Team festhalten, samt Kennzeichnung ihrer Herkunft,
@@ -655,6 +1160,7 @@ damit die Beurteilung § 20 Abs. 1 LBVO entspricht und die Entwicklung einer Per
 - **AK-4** Zeitfaktor und Sprintfaktor bleiben getrennt gespeichert und werden getrennt ausgewiesen; das Gewicht ist ihr Produkt.
 - **AK-5** Gegeben zwei Personen mit spiegelbildlichem Verlauf – eine steigend, eine fallend, gleiches arithmetisches Mittel –, wenn der Gesamtstand gebildet wird, dann liegen die beiden Werte auseinander.
 - **AK-6** Der Faktor der zweiten Hälfte ist einstellbar; Vorgabe 2. Der Wert 1 ist zulässig, aber als Abweichung von § 20 Abs. 1 LBVO gekennzeichnet.
+- **AK-7** Die Hälften werden über die Abschnitte gebildet, die die **jeweilige Person tatsächlich hatte** – nicht über die der Klasse (OP-F17, FA-70 AK-6). Andernfalls fiele der Zeitfaktor überall dort ganz aus, wo alle Sprints eines Teams in derselben Hälfte der Klassenliste liegen: Ein gemeinsamer Faktor kürzt sich aus dem gewichteten Mittel heraus, und ein Team, das sich von 55 auf 95 steigert, stünde auf demselben Wert wie eines, das von 95 auf 55 abfällt. Belegt durch TF-N und TF-O in `docs/testfaelle-notenfindung.md`.
 
 *Entschieden mit OP-F4 am 10.09.2026. Rechtsgrundlage Q1 im Fachkonzept, Kap. 14. Die
 erwarteten Werte für neun Verläufe stehen in [Testfälle zur Notenfindung](testfaelle-notenfindung.md).*
@@ -863,7 +1369,8 @@ damit ich zu jedem der drei Zeitpunkte im Jahr nach denselben Regeln einen Stand
 - **AK-3** Der gewählte Stichtag ist in der Ausgabe erkennbar.
 - **AK-4** Drei Stichtage sind vorgesehen: Ende Jänner (Semesterzeugnis), Ende April (Frühwarnung, Ende der Sprintphase), Anfang Juni (Jahreszeugnis).
 - **AK-5** Der Stichtag Ende April erzeugt keinen Beurteilungszeitraum; er wertet den laufenden aus.
-- **AK-6** Zugeordnet wird nach dem **Ende** eines Abschnitts. Ein Abschnitt ohne Enddatum lässt sich keinem Zeitraum zuordnen: Er bleibt in der Stichtagsauswertung außen vor und wird dabei ausdrücklich genannt – weder stilles Weglassen noch stilles Mitzählen.
+- **AK-6** Zugeordnet wird nach dem **Ende**. Ab 0.4.0 ist das für einen Sprint das Enddatum **des Teams** (FA-66), für einen Test das des Abschnitts. Ohne Enddatum ist keine Zuordnung möglich: Das Team bleibt in der Stichtagsauswertung außen vor und wird dabei ausdrücklich genannt – weder stilles Weglassen noch stilles Mitzählen.
+- **AK-6a** Damit kann derselbe Sprint für ein Team in den Beurteilungszeitraum fallen und für ein anderes nicht. Das ist die Folge unterschiedlicher Enddaten und keine Ungenauigkeit; die Auswertung muss es erkennbar machen, weil danach gefragt werden wird. Siehe OP-F18 für den Fall eines Sprints, der über den Stichtag hinausläuft.
 - **AK-7** Der Zeitfaktor (FA-54) wird innerhalb des gewählten Zeitraums neu bestimmt; ein Semester ist eine eigene Zeitreihe.
 
 *Grundlage: Fachkonzept 3.3 und 3.4. Der Stichtag Ende April dient der Frühwarnung nach
@@ -953,15 +1460,279 @@ Schwelle erinnert wird – entschieden.*
 
 ---
 
+### FA-85 Aufruf der Auswertungsskripte zusammensetzen
+
+`Soll` · 0.7.0 · SH-1 · geplant
+
+Als Lehrkraft
+möchte ich den fertigen Befehl für die Auswertung eines Teams aus der Anwendung in die Zwischenablage bekommen,
+damit ich Repository, Zeitraum und Teamnamen nicht aus drei Ansichten zusammensuche und mich dabei vertippe.
+
+- **AK-1** In der Sprintreview-Sicht steht je Team ein **fertiger Aufruf**, der in die Zwischenablage geht.
+- **AK-2** Er entsteht aus dem Bestand: Repository (FA-81 AK-3), Zeitraum des Teams (FA-66), Teamname. Es wird nichts eingetippt, was schon erfasst ist.
+- **AK-3** Fehlt das Repository am Team, wird **kein** Aufruf angeboten; stattdessen steht da, dass es fehlt, und wo es einzutragen ist. Ein Befehl, der sicher scheitert, ist schlechter als keiner.
+- **AK-4** Auswählbar ist, welches Skript gemeint ist: Kennzahlen (`github`), Pull Requests (`pullrequests`), Deutung (`deutung`), Reviewzettel (`reviewzettel`). Vorgabe ist die Kennzahlenabfrage, weil sie am Anfang der Kette steht.
+- **AK-5** Der Text ist **frei änderbar**, bevor er kopiert wird – wie beim Kanaltext (FA-83 AK-1).
+- **AK-6** Die Anwendung **führt nichts aus** und ruft nichts auf. Sie legt Text in die Zwischenablage, mehr nicht (ADR-001, NFA-03, DS-02).
+- **AK-7** Der Aufruf ist in PowerShell unter Windows unmittelbar brauchbar, einschließlich der Form `npm run <skript> -- --parameter`.
+- **AK-8** Im Aufruf steht **kein Zugriffstoken und kein Schlüssel**. Die Anmeldung besorgt `gh` auf dem Gerät.
+- **AK-9** Keine neue Abhängigkeit; die Zwischenablage wird wie in FA-83 AK-5 behandelt, samt Rückfall auf markierbaren Text.
+
+*Die ehrliche Fassung von „das Skript aus der Anwendung starten": Eine Seite im Browser kann
+keinen Prozess starten, und die drei Wege, die es gäbe – ein lokaler Dienst über `localhost`,
+eine Electron-Hülle, eine Browser-Erweiterung – heben alle ADR-001 auf. Die Anwendung bereitet
+vor, ausgelöst wird außerhalb: derselbe Bauplan wie beim gesetzten Wert und beim Kanaltext.*
+
+### FA-86 Auswertungsberichte in der Anwendung anzeigen
+
+`Kann` · 0.7.0 · SH-1 · geplant
+
+Als Lehrkraft
+möchte ich den Bericht zum gewählten Team und Sprint in der Anwendung sehen,
+damit ich im Review nicht zwischen Editor und Bewertung hin- und herwechsle.
+
+- **AK-1** Der Ordner `Review-Auswertungen` wird **einmal** gewählt; die Auswahl bleibt erhalten, die Freigabe wird je Sitzung bestätigt – dieselbe Mechanik wie bei der automatischen Sicherung (FA-64 AK-6).
+- **AK-2** Gesucht wird der Bericht zum gewählten Abschnitt und Team: Monatsordner aus dem **Ende** des Teamzeitraums (wie FA-48 AK-6), Datei nach dem Namensmuster der Skripte.
+- **AK-3** Gibt es mehrere passende Berichte, wird der neueste gezeigt und auf die übrigen hingewiesen. Ein stillschweigend gewählter von drei wäre eine Aussage, die niemand getroffen hat.
+- **AK-4** Gibt es keinen, steht das da – zusammen mit dem Aufruf aus FA-85. Eine leere Fläche erklärt nichts.
+- **AK-5** Der Bericht wird **angezeigt, nicht übernommen**: Er bleibt eine Datei auf dem Gerät. Nichts davon wandert in den Datenbestand, in die Sicherung oder in die Belegfassung – er enthält GitHub-Kennungen und ist kein Beurteilungsbeleg.
+- **AK-6** Dargestellt werden Überschriften, Listen und Tabellen. **Keine neue Abhängigkeit** für einen Markdown-Darsteller; reicht die schlichte Darstellung nicht, wird der Rohtext gezeigt.
+- **AK-7** Wo der Browser keine Ordnerwahl kann, bleibt das Einlesen einer **einzelnen** Datei möglich (NFA-05, wie FA-64 AK-7).
+- **AK-8** Die Anwendung liest den Ordner nur; sie schreibt nicht hinein und löscht nichts darin.
+
+*`Kann` und nicht `Soll`: Ohne diese Sicht öffnet man den Bericht im Editor daneben – unbequem,
+aber vollständig. FA-85 spart dagegen einen Arbeitsschritt, der sonst jedes Mal Tippfehler
+erzeugt; deshalb steht es höher.*
+
+---
+
 ## 10 Bedienung
 
 ### FA-34 Vier Bereiche
 
-`Muss` · 0.1.0 · SH-1 · umgesetzt
+`Muss` · 0.8.0 · SH-1 · umgesetzt
 
 Als Lehrkraft
-möchte ich die Anwendung in Bewerten, Auswertung, Klassen & Teams sowie Rubrik & Notenschlüssel gegliedert vorfinden,
-damit ich beim Bewerten nicht suchen muss.
+möchte ich die Anwendung in vier Bereichen vorfinden, die meiner Arbeitsweise entsprechen,
+damit ich dort anfange, wo ich tatsächlich arbeite, und nicht dort, wo ein Ablaufdiagramm beginnt.
+
+**Fachliche Grundlage:** [Fachkonzept 15.2](fachkonzept-unterricht.md), Aussagen **A1** (zwei
+getrennte Leistungsbereiche), **A2** (ein Projekt zu einem Zeitpunkt), **A3** (bei Tests und
+Noten ein Schüler zu einem Zeitpunkt) und **A6** (Häufigkeit statt Ablauf).
+
+- **AK-1** Vier Bereiche in dieser Reihenfolge: **Projekte**, **Tests**, **Notenauswertung**, **Stammdaten**. Die ersten beiden sind die Leistungsbereiche aus A1, der dritte führt sie zusammen, der vierte trägt, was dafür gepflegt wird.
+- **AK-2** Die Reihenfolge folgt der **Häufigkeit der Benutzung**, nicht dem Ablauf (A6). Das ist eine ausdrückliche Umkehr der Fassung von 0.5.0: Der Ablauf – Planning, Daily, Review – liegt **eine Ebene tiefer**, im Sprint innerhalb des Projekts (FA-91).
+- **AK-3** **Stammdaten** hat sechs Unterseiten, **ein Blatt je Sache**: **Klassen**, **Schüler**, **Projekte**, **Tests**, **Rubrik & Notenschlüssel**, **Stichtage**. Jeder Leistungsbereich hat damit seine eigene Stammdatenseite; Klassen, Schüler, Notenschlüssel und Stichtage gelten für beide und stehen daneben.
+- **AK-3a** Klassen und Schüler sind **zwei Blätter**, nicht eines. Auf dem Klassenblatt stehen nur die Klassen; die Zuordnung Klasse → Schüler geschieht **beim Schüler** (Fachkonzept 15.1: die Klasse hängt am Schüler).
+- **AK-3b** Die **Stichtage** haben ein eigenes Blatt. Sie sind Rahmendaten des ganzen Durchgangs und gehören weder zu den Schülern noch zu einem Leistungsbereich.
+- **AK-3c** Auf dem Schülerblatt steht **keine Projektzuordnung**: Die Schüler werden beim Projekt gewählt (Fachkonzept 15.2, A8). Angezeigt wird sie dort als Auskunft, änderbar ist sie nur auf dem Projektblatt.
+- **AK-3d** Die GitHub-Kennung ist ein **Detail je Schüler** und bekommt keine eigene Karte – eine Spalte in der Schülerliste genügt.
+- **AK-4** Jeder Bereich trägt sein Arbeitsprinzip, und es steht in der Sicht: **Projekte** – ein Projekt zu einem Zeitpunkt (A2). **Tests** und **Notenauswertung** – ein Schüler zu einem Zeitpunkt (A3). Daraus folgen die Filter (FA-90, FA-92).
+- **AK-5** Die **vier Bereiche** sind jederzeit erreichbar, auch wenn der vorherige leer ist – die Reihenfolge ist eine Ordnung, keine Sperre.
+- **AK-5a** Die **drei Teile eines Sprints** – Sprintplanning, Daily, Sprintreview – sind dagegen **nur im Bereich Projekte sichtbar**, samt den Teilen selbst. Sie gehören zu einem Projekt; ohne Projekt sind sie ein Schritt ohne Gegenstand. Solange ein Teil offen ist, bleibt **Projekte** der gewählte Bereich. Die vier Stammdatenseiten erscheinen nach demselben Muster nur im Bereich Stammdaten. *Festlegung des Auftraggebers vom 13.09.2026; sie ersetzt die zunächst umgesetzte Fassung „von überall erreichbar".*
+- **AK-6** Die **Diplomarbeitsvorbereitung entfällt als eigener Bereich.** Eine Diplomarbeit ist ein Projekt eines Typs (FA-87 AK-2, Fachkonzept 15.1) und wird wie jedes andere Projekt geführt.
+- **AK-7** **Rubrik & Notenschlüssel** bleibt inhaltlich unverändert und wandert nur unter die Stammdaten. Der Umbau berührt die Bewertungslogik nicht.
+
+*Ersetzt die Fassung „Fünf Bereiche" vom 13.09.2026, die ihrerseits „Acht Bereiche" vom
+12.09.2026 ersetzt hat. Der Unterschied zur Fassung davor: Die Stammdaten sind nicht **eine**
+Seite, sondern vier – je Leistungsbereich eine, plus Schüler und Notenschlüssel. Festlegung des
+Auftraggebers vom 14.09.2026, nach Durchsicht der Attrappe.*
+
+### FA-87 Das Projekt als Ordnungsbegriff
+
+`Muss` · 0.8.0 · SH-1, SH-2 · teilweise umgesetzt (Schemastand 4)
+
+Als Lehrkraft
+möchte ich nach Projekt arbeiten statt nach Klasse,
+damit ich mich um eine Sache zu einem Zeitpunkt kümmere – auch wenn an ihr Schüler aus mehreren Klassen sitzen.
+
+
+**Fachliche Grundlage:** [Fachkonzept 15.1](fachkonzept-unterricht.md) (Gegenstände) sowie 15.2 **A2**, **A8** und **A9**.
+- **AK-1** Das bisherige **Team** heißt fachlich **Projekt**. Es gibt keine zweite Ebene daneben: Eine Gruppe arbeitet an genau einem Projekt (ADR-012).
+- **AK-2** Ein Projekt trägt eine **Art**: SYP/PRE-Projekt 4. Klasse, SYP/PRE-Projekt 5. Klasse, Diplomarbeit.
+- **AK-3** Die Klasse eines Projekts ist **freiwillig**. Leer bedeutet **gemischt** – Schüler mehrerer Klassen – und wird als solches angezeigt, nicht als fehlende Angabe. Es wird **keine** Sammelklasse „unklar" angelegt: Eine erfundene Klasse in den Stammdaten müsste in jeder Auswertung wieder herausgerechnet werden.
+- **AK-4** Ein **Abschnitt gehört zu einem Projekt**, nicht mehr zu einer Klasse. Damit ist der Sprint eines gemischten Teams zuordenbar.
+- **AK-5** Die Zugehörigkeit einer Person zu einem Projekt bleibt **je Abschnitt** erfasst (FA-58): Wer im dritten Sprint dazukommt, war im zweiten nicht dabei.
+- **AK-6** **Schemastand 4.** Die Änderung ist nicht additiv. Eine Migration weist jedem Abschnitt seine Projekte zu und verschiebt die Kennungen von `Team.kennungen` an die Person (FA-88 AK-3). Sie wird durch Tests belegt und ist an einem Bestand ohne Daten wirkungslos.
+- **AK-7** Der Umbau ändert **keine Rechenregel**: Kategoriegewichte, Zeitfaktor, Peer-Korrektur, gesetzte Werte und Notenfindung bleiben, wie sie sind. Wer das Gegenteil beobachtet, hat einen Fehler gefunden.
+
+*Festlegung des Auftraggebers vom 13.09.2026. Begründung, verworfene Wege und Folgen in
+[ADR-012](adr/0012-projekt-als-ordnungsachse.md).*
+
+**Stand der Umsetzung (14.09.2026).** Umgesetzt ist **Schemastand 4**: AK-1 (das Team heißt
+fachlich Projekt), AK-2 (der Typ), AK-5 in seiner neuen Fassung – die Zuordnung liegt am Projekt,
+ein Schüler darf in mehreren sein, die Überschneidung wird bestätigt – und die Kennung je Person
+(FA-88 AK-3). Dafür sind `Zugehoerigkeit`, `Person.teamId` und `Team.kennungen` entfallen.
+
+**Offen bleibt Schemastand 5** ([Solution-Design 5.0d](solution-design.md)): `Abschnitt.projektId`
+statt `klasseId`, das Verschmelzen von Abschnitt und Planung, der Wegfall von `Team.klasseId` und
+der Abschnittsart `diplomarbeit`. Bis dahin hängt ein Sprint technisch noch an der Klasse; fachlich
+ist das ohne Wirkung, weil die Zuordnung der Schüler schon am Projekt liegt. **„Gemischt" wird
+abgeleitet** – ein Projekt gilt als gemischt, sobald seine Mitglieder aus mehr als einer Klasse
+kommen. Das bleibt auch nach Stand 5 so: Ein Kennzeichen, das jemand pflegen muss, wäre neben der
+Mitgliederliste eine zweite Wahrheit.
+
+### FA-88 Stammdaten: Schüler und Klassen
+
+`Muss` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich eine schlichte Liste meiner Schüler mit ihren Kennungen pflegen,
+damit die Zuordnung von GitHub-Konten zu Personen an einer Stelle steht und nicht in jedem Projekt neu.
+
+
+**Fachliche Grundlage:** [Fachkonzept 15.1](fachkonzept-unterricht.md) (Schüler, Mitgliedschaft) und 15.2 **A8**.
+- **AK-1** Eine Liste je Schüler mit: **Klasse**, **Name**, **GitHub-Kennung**, **Schul-E-Mail**. Mehr nicht – Projekte, Teams und Bewertungen liegen woanders.
+- **AK-2** Schüler lassen sich einzeln anlegen und jederzeit **berichtigen**; eine falsch geschriebene Kennung ist der Normalfall, nicht die Ausnahme.
+- **AK-3** Die Kennung liegt an der **Person**, nicht mehr am Projekt. `Team.kennungen` entfällt (FA-81 AK-3 wird entsprechend neu gefasst). Eine Kennung je Schüler; wer ein zweites Konto benutzt, fällt in der Auswertung als **nicht zugeordnet** auf und wird dort benannt.
+- **AK-4** Eine Kennung darf **nicht zweimal** vergeben sein. Zwei Personen mit derselben Kennung machen jede Beitragsverteilung falsch, und zwar unbemerkt – deshalb wird es beim Eintragen gemeldet.
+- **AK-5** Die Schul-E-Mail ist eine Angabe der Lehrkraft. Die Anwendung **prüft nicht**, ob sie mit dem GitHub-Konto verknüpft ist: Sie ruft nichts ab (ADR-001), und GitHub verbirgt Adressen standardmäßig. Ein Abgleich mit den Adressen in den Commits ist Sache des Skripts und bleibt ein **Hinweis**, kein Nachweis.
+- **AK-6** Der Bereich steht **hinten** (FA-34 AK-1): Stammdaten werden dreimal im Jahr gepflegt, Projekte wöchentlich.
+
+### FA-89 Klasse aus einer Datei einlesen
+
+`Soll` · 0.8.0 · SH-1 · geplant
+
+Als Lehrkraft
+möchte ich eine ganze Klasse aus einer Datei einlesen,
+damit ich fünfundzwanzig Namen nicht abtippe.
+
+**Vor dem Bauen:** Es braucht eine **echte Exportdatei** aus dem Schulverwaltungssystem – zur Not nur die Kopfzeile. Ein erfundenes Spaltenformat sieht fertig aus und passt dann nicht; der Import wäre zweimal gebaut. Festgehalten am 14.09.2026, weil der Auftraggeber ihn vertagt hat („aber nicht heute, lass mich nicht vergessen“).
+
+
+**Fachliche Grundlage:** keine fachliche Grundlage – Arbeitserleichterung, Festlegung des Auftraggebers vom 13.09.2026.
+- **AK-1** Eingelesen wird **CSV mit Semikolon** in der Form, die Excel unter Windows schreibt, mit den Spalten `Klasse;Nachname;Vorname;GitHubKennung;SchulEmail`. Die Kopfzeile wird erkannt und übersprungen.
+- **AK-2** Die beiden hinteren Spalten dürfen **leer** sein: Namen zuerst, Kennungen später (FA-88 AK-2).
+- **AK-3** Vor dem Übernehmen steht eine **Vorschau**: wie viele Zeilen gelesen wurden, wie viele Schüler neu wären, wie viele schon existieren. Eingelesen wird erst auf ausdrückliche Handlung.
+- **AK-4** Bereits vorhandene Schüler werden **nicht verdoppelt**; erkannt wird an Klasse und Name. Was schon da ist, bleibt unverändert – ein Import überschreibt keine berichtigten Daten.
+- **AK-5** Zeilen, die nicht gelesen werden können, werden **einzeln benannt** und der Rest wird trotzdem eingelesen. Ein Abbruch wegen eines Semikolons in einem Namen wäre unbrauchbar.
+- **AK-6** Eine Beispieldatei liegt im Projekt und enthält **erfundene** Namen (DS-01).
+- **AK-7** Kein Netzwerk, keine neue Abhängigkeit: Die Datei wird lokal gewählt und im Browser gelesen (ADR-001, NFA-03).
+
+### FA-90 Filter in der Projektsicht
+
+`Muss` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich in der Projektsicht auf ein Projekt einschränken können,
+damit ich mich um eine Sache zu einem Zeitpunkt kümmere.
+
+
+**Fachliche Grundlage:** [Fachkonzept 15.2](fachkonzept-unterricht.md) **A2** und **A9**.
+- **AK-1** Drei Filter: **Jahrgang** (4. Klasse, 5. Klasse), **Klasse** und **Projekt**. Sie wirken zusammen und schränken einander ein.
+- **AK-2** Der Klassenfilter kennt den Wert **„gemischt"** für Projekte ohne Klasse (FA-87 AK-3). Ohne ihn wären die Diplomarbeitsteams unauffindbar.
+- **AK-3** Die Auswahl bleibt über einen Neustart erhalten (FA-35).
+- **AK-4** Führt eine Filterkombination zu nichts, steht das da, samt dem Filter, der es verursacht. Eine leere Liste ohne Erklärung liest sich wie ein Datenverlust.
+
+*Zu AK-1: Der dritte Filter „Projekt“ ist keine Einschränkung der Liste, sondern die Wahl des
+Projekts in der Liste selbst – ein Filter auf genau einen Eintrag wäre eine zweite Bedienung für
+dasselbe. Zu AK-3: Jahrgang und Klasse werden gemerkt, der **Suchtext nicht**. Ein nach dem Neustart
+wieder eingesetzter Suchbegriff sieht aus wie ein Datenverlust – genau das, was AK-4 vermeiden
+will.*
+
+### FA-91 Sprints je Projekt
+
+`Muss` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich zu einem Projekt alle Sprints sehen und einen neuen anlegen,
+damit ich den Verlauf an einer Stelle habe statt in acht Bereichen verteilt.
+
+
+**Fachliche Grundlage:** [Fachkonzept 15.2](fachkonzept-unterricht.md) **A4** (drei Schritte je Sprint) und **A7** (versetzte Sprints).
+- **AK-1** Zum gewählten Projekt erscheint eine Liste seiner Sprints mit **Nummer**, **von – bis** und **Sprintziel** (FA-66).
+- **AK-2** Aus der Liste heraus lässt sich ein **neuer Sprint** anlegen. Zeitraum und Kriterien folgen den bestehenden Regeln (FA-66 AK-8: keine Überschneidung; FA-67 AK-7: Kriterien des vorigen Sprints vorausgewählt).
+- **AK-3** Die Liste zeigt je Sprint seinen **Zustand** – Vorschlag, fixiert, abgeschlossen (FA-77) – und hebt den **laufenden** hervor, erkannt am Datum (FA-76 AK-1).
+- **AK-4** Ein Sprint führt zu seinen drei Teilen: **Sprintplanning**, **Daily**, **Sprintreview & Retrospektive**. Diese drei bleiben inhaltlich unverändert, sie liegen nur nicht mehr auf der obersten Ebene (FA-70 bis FA-72).
+- **AK-5** Die Übersicht aus FA-84 – welches Team steht in welchem Sprint – wird hier überflüssig, soweit sie ein einzelnes Projekt betrifft. Über **mehrere** Projekte hinweg bleibt sie nötig, weil die Sprints versetzt laufen (Zusammenarbeit mit KI, Kap. 11.6).
+
+### FA-92 Filter in Theorie-Tests und Notenauswertung
+
+`Muss` · 0.8.0 · SH-1 · geplant
+
+Als Lehrkraft
+möchte ich in Tests und Notenauswertung zuerst eine Klasse und dann einen Schüler wählen,
+damit ich mich um einen Schüler zu einem Zeitpunkt kümmere.
+
+
+**Fachliche Grundlage:** [Fachkonzept 15.2](fachkonzept-unterricht.md) **A3** und **A10**.
+- **AK-1** Zwei Filter in dieser Reihenfolge: **Klasse**, danach **Schüler**. Der Schülerfilter zeigt nur, was in der gewählten Klasse ist.
+- **AK-2** Kein Schülerfilter bedeutet **alle Schüler der Klasse** – für den Fall, dass ein ganzer Test eingetragen wird.
+- **AK-3** Die Auswahl bleibt über einen Neustart erhalten (FA-35), getrennt je Bereich: Wer in der Auswertung einen Schüler betrachtet, will bei den Tests nicht denselben Filter.
+- **AK-4** Die Klasse ist hier die richtige Einheit und bleibt es: Anders als beim Projekt (ADR-012) wird hier nach Person gearbeitet, und der Zugang führt über die Klasse.
+
+### FA-93 Hinweis auf ausstehende Überarbeitung
+
+`Soll` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich in den Sichten, deren Gestaltung noch offen ist, einen Hinweis darauf sehen,
+damit ich beim Bedienen weiß, dass ich einen Zwischenstand vor mir habe, und nicht dagegen anarbeite.
+
+
+**Fachliche Grundlage:** keine fachliche Grundlage – Zwischenstand der Umsetzung, betrifft nur die Oberfläche. Die offenen Fragen dahinter stehen als **A10** im Fachkonzept.
+- **AK-1** **Theorie-Tests** und **Notenauswertung** tragen einen sichtbaren, ruhigen Hinweis: Aufbau und Gestaltung sind noch nicht festgelegt; der gegenwärtige Stand ist übernommen und wird überarbeitet.
+- **AK-2** Der Hinweis nennt, **wo** die Entscheidung fällt – offener Punkt und Datum –, damit er nicht selbst zu Inventar wird.
+- **AK-3** Er sperrt nichts und verändert nichts: Die Sichten sind vollständig benutzbar.
+- **AK-4** Der Hinweis verschwindet mit der Entscheidung. Steht er länger als einen Durchgang, ist das selbst ein Befund (R-07).
+
+### FA-94 Stammdaten nur in den Stammdatenblättern, Löschen mit zwei Ausgängen
+
+`Muss` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich Stammdaten ausschließlich in den Stammdatenblättern anlegen, ändern und löschen, und dabei vorher wissen, ob ein Eintrag endgültig verschwindet oder nur ausgeblendet wird,
+damit ich das Aufräumen nicht aus Versehen an einer Stelle tue, an der ich eigentlich bewerte – und damit mir das Aufräumen keine Begründung einer schon gegebenen Note zerstört.
+
+**Fachliche Grundlage:** [Fachkonzept **A13**](fachkonzept-unterricht.md) – Stammdaten werden laufend berichtigt, eine gegebene Note bleibt trotzdem begründet; **G7** – jede Note ist rekonstruierbar; **A6** – Stammdaten werden dreimal im Jahr gepflegt, im Projekt wird wöchentlich gearbeitet: zwei Tätigkeiten, zwei Orte.
+
+- **AK-1** Angelegt, geändert und gelöscht wird **nur** in den sechs Stammdatenblättern (FA-34 AK-3 bis AK-3d). Die Leistungssichten zeigen Stammdaten an und verweisen auf das zuständige Blatt; sie bearbeiten sie nicht. **Ausgenommen** ist das Anlegen eines Sprints in der Projektsicht: Ein Sprint ist kein Stammdatum, sondern Leistungsdatum (Plan und Ist) – Festlegung des Auftraggebers vom 14.09.2026.
+- **AK-2** Das Löschen hat **zwei Ausgänge, und die Anwendung wählt selbst**: Hängt am Objekt nichts Bewertetes, wird es **endgültig** entfernt – ein Bestand, in dem jeder Tippfehler ewig mitläuft, wird unbenutzbar. Hängen Punkte, Peer-Urteile, ein gesetzter Wert, eine eingefrorene Rubrik oder ein Notenstand daran, wird es **logisch** gelöscht.
+- **AK-3** Der gewählte Ausgang steht **vor** der Bestätigung neben dem Schalter, als Satz und nicht als Abkürzung. Dass die Anwendung entscheidet, heißt nicht, dass sie es für sich behält (ergänzt FA-36 AK-3).
+- **AK-4** Ein logisch gelöschtes Objekt verschwindet aus **allen** Listen, Auswahlfeldern, Filtern und Auswertungen. In bestehenden Bewertungen und Belegfassungen bleibt es lesbar – sonst wäre die Note nicht mehr rekonstruierbar (G7).
+- **AK-5** Jedes Stammdatenblatt zeigt auf Wunsch seine gelöschten Einträge und stellt jeden davon mit einem Klick wieder her. Ohne diesen Weg wäre „logisch gelöscht" nur eine unsichtbare Falle.
+- **AK-6** Die **Vorgaberubrik** bleibt in jedem Fall erhalten: Ohne sie hätte ein neuer Abschnitt keine Kriterien (FA-55 AK-2). Sie trägt deshalb keinen Löschschalter.
+- **AK-7** Beim endgültigen Löschen wird **mitgelöscht, was ohne das Objekt keinen Sinn mehr hat** – Mitgliedschaften, verwaiste Notenstände zu einem Stichtag –, damit keine Verweise auf Kennungen zurückbleiben, die es nicht mehr gibt.
+
+### FA-95 Ein Klassenfilter für die ganze Anwendung
+
+`Muss` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich die Klasse an einer Stelle einstellen und diese Einstellung auf jeder Sicht sehen und ändern können,
+damit ich nicht auf einer Sicht in eine gefilterte Liste schaue, ohne den Filter zu kennen – und damit ich nicht auf jeder Sicht dieselbe Klasse neu einstellen muss.
+
+**Fachliche Grundlage:** [Fachkonzept **A14**](fachkonzept-unterricht.md) – mehrere Klassen zugleich, Sprünge zwischen den Sichten; **A2** und **A3** – im Projekt wird je Projekt gearbeitet, bei Tests und Noten je Schüler, und beides betrifft dieselben Klassen.
+
+- **AK-1** Es gibt **genau einen** Klassenfilter, nicht einen je Sicht. Er steht in der Kopfleiste und ist damit auf jeder Sicht sichtbar und änderbar.
+- **AK-2** Er kennt **„alle Klassen"**. Das ist die Vorgabe und nicht ein Randfall: Wer wissen will, wo welches Projekt steht, will das über alle Klassen sehen.
+- **AK-3** Er wirkt auf **jede Liste, in der eine Klasse vorkommt**: Schüler, Projekte (über die Klassen ihrer Mitglieder), Tests, Notenauswertung, die Projektleiste der Sprintsichten. Ein Bedienelement, das sichtbar ist, aber nichts bewirkt, ist die Umkehrung desselben Fehlers.
+- **AK-3a** Nicht gefiltert wird, wo die Klasse gepflegt wird oder gar nicht vorkommt: Klassenblatt, Rubrik & Notenschlüssel, Stichtage.
+- **AK-4** Eine Sicht darf denselben Filter ein zweites Mal anbieten, wenn er dort zu den Filtern der Sicht gehört (Projektsicht, Test-Stammdaten) – er bleibt derselbe Wert und nicht eine zweite Einstellung.
+- **AK-5** Ist ein Gegenstand gewählt, der selbst eine Klasse hat – ein Test, ein Projekt –, gilt **dessen** Klasse und nicht der Filter: Die Schüler zu einem Test kommen aus der Klasse des Tests, die Sprints eines Projekts aus dem Projekt. Sonst zeigte „alle Klassen" alle Schüler der Schule zu einem Test einer einzigen Klasse.
+- **AK-6** Steht der Filter auf einer Klasse, sagt die Sicht das dort, wo die gefilterte Liste steht – eine Liste, die weniger zeigt als vorhanden, erklärt sich nicht von selbst (wie FA-90 AK-4).
+- **AK-7** Verschwindet die gefilterte Klasse, fällt der Filter auf **„alle Klassen"** zurück und nicht auf die nächstbeste: Wer eine Klasse gelöscht hat, arbeitet danach nicht stillschweigend in einer anderen weiter.
+- **AK-8** „Alle Klassen" zeigt nur, was zu einer **sichtbaren** Klasse gehört: Eine logisch gelöschte Klasse blendet ihre Schüler, Tests und Projekte weiter aus (FA-94 AK-4).
+- **AK-10** **Eine Sicht ohne Inhalt behält ihre Auswahlleisten.** Wo ein Filter oder eine Auswahl entscheidet, *was* zu sehen ist, muss sie auch dann erreichbar sein, wenn nichts zu sehen ist – sonst ist die Sicht eine Sackgasse. Aufgefallen ist das an einem Projekt ohne Sprint: Die Leermeldung stand allein, und die Projektleiste, mit der man zu einem anderen Projekt käme, war genau dort verschwunden.
+- **AK-11** Eine leere Sicht sagt, **ob sie leer oder gefiltert ist**, und bietet im zweiten Fall den Weg zurück zu „alle Klassen" an. „Noch kein Test angelegt" ist eine andere Aussage als „kein Test in dieser Klasse" – die erste schickt zum Anlegen, die zweite zum Filter.
+- **AK-9** **Den Filter stellt nur der Benutzer.** Keine andere Handlung ändert ihn: Eine neu angelegte Klasse, ein neuer Test, ein geöffnetes Projekt stellen ihn nicht auf sich. Wer drei Klassen hintereinander anlegt, säße sonst im Filter der letzten und fände seine Schüler nicht mehr; und ein Klick auf ein Projekt hätte jede andere Sicht enger gestellt, ohne dass es jemand wollte. Was ein Anlegeformular als Ziel braucht – in welche Klasse der neue Schüler, der neue Test kommt –, wird **dort** gewählt und nicht über den Filter mitgeteilt.
+
+### FA-96 Geplante und umgesetzte Anforderungen je Sprint
+
+`Soll` · 0.8.0 · SH-1 · umgesetzt
+
+Als Lehrkraft
+möchte ich im Sprintplanning festhalten, welche Anforderungen sich das Team vornimmt, und im Sprintreview, welche davon umgesetzt sind,
+damit im Review die erste Frage beantwortbar ist – ist entstanden, was vereinbart war – und damit ich das später noch nachlesen kann.
+
+**Fachliche Grundlage:** [Fachkonzept **A15**](fachkonzept-unterricht.md) – im Planning werden Anforderungen vereinbart, im Review wird nachgesehen; **A4** – der Sprint hat drei Schritte, und was im Review festgestellt wird, entsteht im Planning.
+
+- **AK-1** Im **Sprintplanning** gibt es ein Feld für die geplanten Anforderungen, im **Sprintreview** eines für die umgesetzten.
+- **AK-2** Beide sind **Freitext**, eine Zeile je Anforderung – Festlegung des Auftraggebers vom 14.09.2026. Keine Liste mit Kennungen und kein Status je Zeile, solange nicht erkennbar ist, wie damit gearbeitet wird (OP-F38).
+- **AK-3** Im Review stehen **beide nebeneinander**. Einzeln sagt keiner von beiden etwas; erst der Vergleich trägt die Aussage.
+- **AK-4** Beide hängen an der **Planung des Teams** und nicht am Abschnitt: Zwei Teams im selben Sprint nehmen sich Verschiedenes vor (Fachkonzept 15.1).
+- **AK-5** Beide gehen in **keine Rechnung** ein (G9). Dass eine Anforderung offen blieb, ist eine Feststellung; ob sie dem Team anzulasten ist, entscheidet die Lehrkraft und schreibt es in die Sprintnotiz (FA-16). Eine umpriorisierte Anforderung ist etwas anderes als eine liegengebliebene.
+- **AK-6** Der Plantext bleibt im Review **lesbar, aber unverändert**: Geändert wird er im Planning. Sonst wäre der Vergleich wertlos – man kann einen Plan nicht nachträglich an das Ergebnis anpassen und ihn dann vergleichen.
 
 ### FA-35 Auswahl merken
 
@@ -979,6 +1750,11 @@ Als Lehrkraft
 möchte ich, dass Löschvorgänge eine zweite Bestätigung verlangen,
 damit ein Fehlklick keine Bewertungen vernichtet.
 
+- **AK-1** Der erste Klick schärft nur; erst der zweite löscht.
+- **AK-2** Die Schärfung verfällt von selbst, wenn sie nicht genutzt wird.
+- **AK-3** Beim Löschen eines Abschnitts wird **benannt, was daran hängt** – Planungen, Punktewerte, gesetzte Werte, Rückmeldungen, Verstehensnachweise, Reflexionen, Peer-Urteile, Notizen –, jeweils mit Anzahl. Ist nichts erfasst, wird auch das gesagt. Eine Frage „wirklich?“ beantwortet jeder mit Ja; sie schützt vor der verrutschten Maus, nicht vor der falschen Entscheidung.
+- **AK-4** Der Hinweis nennt außerdem, dass eine vorherige Sicherung die Daten noch enthält (FA-33).
+
 ### FA-37 Deutschsprachige Oberfläche
 
 `Muss` · 0.1.0 · SH-1 · umgesetzt
@@ -989,7 +1765,7 @@ damit ich sie im Anlassfall auch Eltern zeigen kann.
 
 ### FA-38 Tastaturbedienung
 
-`Soll` · 0.4.0 · SH-1 · geplant
+`Soll` · 0.7.0 · SH-1 · geplant
 
 Als Lehrkraft
 möchte ich die Erfassung vollständig mit der Tastatur bedienen können,
@@ -997,6 +1773,39 @@ damit das Eintragen vieler Punkte zügig geht.
 
 - **AK-1** Von Feld zu Feld führt die Tabulatortaste in der Lesereihenfolge.
 - **AK-2** Jedes Bedienelement ist mit sichtbarem Fokus erreichbar.
+
+---
+
+### FA-84 Übersicht: welches Team steht in welchem Sprint
+
+`Soll` · 0.6.0 · SH-1 · geplant
+
+Als Lehrkraft
+möchte ich vor einer Einheit auf einen Blick sehen, welches Team gerade in welchem Sprint steht und wo ein Review fällig ist,
+damit ich bei versetzt laufenden Sprints nicht erst suchen muss, wer heute dran ist.
+
+- **AK-1** Eine Übersicht **über die Abschnitte hinweg**, je Klasse: eine Zeile pro Team mit dem **laufenden** Sprint (am Datum erkannt, FA-76 AK-1), seinem Zustand (FA-77 AK-1), dem Zeitraum des Teams (FA-66) und dem Fortschritt als Tag x von y.
+- **AK-2** Je Zeile steht, ob der **Abschluss fällig** ist (FA-77 AK-5) und ob die Fixierung des Folgesprints noch wartet (FA-77 AK-3, AK-4). Das ist der Zweck der Sicht: vor der Einheit zu wissen, wer dran ist.
+- **AK-3** Läuft für ein Team **kein** Sprint – Lücke zwischen zwei Sprints (FA-76 AK-1a) –, steht genau das da. Der zuletzt gelaufene und der nächste geplante werden **benannt**, aber als solche und nicht so, als liefe einer davon.
+- **AK-4** Von jeder Zeile führt ein Weg **in das Sprintreview dieses Teams**: ein Bedienelement, das Abschnitt und Team auswählt. Ohne das wäre die Sicht eine Anzeige, die man von Hand abschreibt.
+- **AK-5** Die Übersicht **sortiert nach Fälligkeit**: Wer dran ist, steht oben; danach die laufenden, danach die Teams ohne laufenden Sprint.
+- **AK-6** Die Übersicht **sperrt und öffnet nichts**. Was bearbeitbar ist, entscheidet weiter allein das Datum (FA-76 AK-1); sie ist Orientierung, nicht Steuerung. Zwei Stellen, die über dasselbe entscheiden, wären im Unterricht nicht mehr durchschaubar (vgl. FA-77 AK-7).
+- **AK-7** Sie **rechnet nichts** und speichert nichts: Jeder gezeigte Zustand folgt aus dem Bestand und wird von den bestehenden Funktionen in `zuordnung.ts` gebildet (NFA-06: Komponenten rechnen nicht).
+- **AK-8** Sie liegt im Bereich **Sprintreview**, oberhalb der Auswahl. Ein neunter Bereich entsteht **nicht** – die acht Bereiche aus FA-34 AK-1 bleiben unverändert; das Sprintreview ist der Fixpunkt jedes Blocks und damit der Ort, an dem diese Frage gestellt wird.
+- **AK-9** Kein neues Feld im Datenbestand. Die Sicht ist eine Ableitung; der Schemastand bleibt 3.
+
+*Warum `Soll` und nicht `Muss`: Ohne diese Sicht ist nichts falsch, nur mühsam – der
+Schreibschutz nach FA-76 verhindert bereits, dass in einem abgelaufenen Sprint eingetragen
+wird. Sie spart Suchzeit und verhindert Irrtümer, sie sichert aber keine Richtigkeit.*
+
+*Anlass: Festlegung des Auftraggebers vom 13.09.2026. Bei **einem Block pro Woche** (drei
+Einheiten) trägt eine Einheit genau ein volles Review samt Retrospektive und Planning. Die
+Reviewzeit skaliert mit der Zahl der Teams, die Unterrichtszeit nicht – deshalb laufen die
+Sprints der Teams **versetzt**, und die Sprintlänge in Wochen entspricht der Zahl der Teams.
+Das Datenmodell trägt das ohne Änderung, weil der Zeitraum am Team hängt (FA-66, Schemastand
+3); was fehlt, ist der Überblick darüber. Der Versatz entsteht einmal, indem der **erste**
+Sprint je Team unterschiedlich lang ist. Einzelheiten in
+[Zusammenarbeit mit KI, Kap. 11](zusammenarbeit-mit-ki.md).*
 
 ---
 
@@ -1057,7 +1866,7 @@ Kein Stand gelangt auf `main`, der Linting, Typprüfung oder Tests nicht besteht
 
 ### NFA-08 Barrierefreiheit
 
-`Soll` · 0.4.0 · SH-1 · geplant
+`Soll` · 0.5.0 · SH-1 · geplant
 
 Farbkontraste erfüllen WCAG 2.1 AA; Information wird nie allein über Farbe vermittelt.
 **Prüfung:** Kontrastwerkzeug, Sichtprüfung der Notenanzeige ohne Farbe.
@@ -1084,7 +1893,7 @@ Die ausgelieferte Anwendung ist ohne Medien kleiner als 500 kB (gzip).
 
 `Muss` · 0.1.0 · SH-7 · umgesetzt
 
-Gespeichert werden ausschließlich Name, Klassen- und Teamzuordnung sowie Bewertungsdaten. Keine Kontaktdaten, keine Geburtsdaten, keine Kennungen aus Schulsystemen.
+Gespeichert werden ausschließlich Name, Klassen- und Teamzuordnung, Bewertungsdaten sowie – wo die GitHub-Auswertung benutzt wird (FA-81) – die GitHub-Kennung und der Repopfad des Teams. Keine Kontaktdaten, keine Geburtsdaten, keine Kennungen aus Schulsystemen. Die GitHub-Kennung dient allein der Zuordnung eingelesener Zahlen zu einer Person; ohne Auswertung bleibt das Feld leer.
 **Prüfung:** Durchsicht des Datenmodells in `src/domain/types.ts` bei jeder Schemaänderung.
 
 ### DS-02 Verbleib der Daten
@@ -1172,4 +1981,28 @@ Leser den Aufwand nicht für unbegründet hält und abbaut.
 | OP-4 | Mitarbeitsnote außerhalb der Sprints berücksichtigen? | Auftraggeber | **entschieden 2026-09-10: nein – kein Beurteilungsanteil ohne Abschnitt und ohne Kriterien (Fachkonzept 3.5)** |
 | OP-5 | Export in ein von der Schule genutztes Format? | Auftraggeber | offen |
 | OP-F16 | Soll ein „ja“ auf die Nachfrage (FA-53) auch für **später angelegte** Abschnitte gelten, also die Vorgabe aus FA-52 AK-1 für diese Klasse umdrehen? Derzeit nein: Ein „ja“ wirkt nur auf bereits angelegte Abschnitte, sonst ist von Hand zu schalten | Auftraggeber | offen |
+| OP-F17 | Dürfen Teams eine **unterschiedliche Anzahl** Sprints haben? | Auftraggeber | **entschieden 2026-09-12: ja. Jedes Team hat seine eigenen Sprints. Die Hälften des Zeitfaktors werden deshalb über die Abschnitte gebildet, die die jeweilige Person tatsächlich hatte – nicht über die der Klasse. Belegt durch TF-N und TF-O** |
+| OP-F18 | Was geschieht mit einem Sprint, der **über einen Zeugnisstichtag hinausläuft**? Heute zählt das Enddatum, er fiele also ganz in den nächsten Zeitraum. Bei einem Sprint, der zu vier Fünfteln im ersten liegt, ist das eine Entscheidung und keine Selbstverständlichkeit (§ 20 LBVO: Leistungsstand am Ende des Beurteilungszeitraums) | Auftraggeber, nötigenfalls Schulleitung | offen |
+| OP-F19 | Reicht bei abweichenden Kriterien (FA-67) ein **Hinweis**, oder muss die Notenverteilung über die Klasse entfallen? Die Fortschreibung verschärft die Frage: Kleine Anpassungen wirken fort, die Teams driften über das Jahr auseinander | Auftraggeber | offen |
+| OP-F20 | Soll die Anwendung **melden**, wenn die Kriteriensätze der Teams zu weit auseinanderlaufen? Ein Maß dafür gibt es nicht von selbst; denkbar wäre ein Hinweis ab n unterschiedlichen Kriterien | Auftraggeber | offen |
+| OP-F21 | **KO-Kriterien**: Werden bestimmte Kriterien nicht geliefert, ist der Sprint negativ zu beurteilen. Vom Auftraggeber am 12.09.2026 angekündigt und ausdrücklich vertagt. Betrifft die Struktur eines Kriteriums und ist deshalb bis zur Umsetzung von 0.4.0 fast kostenlos, danach ein weiterer Schemastand | Auftraggeber | offen, vertagt |
+| OP-F22 | Die **einseitige Bewertung des Daily** – „eigentlich nur negativ, wenn nichts überlegt wurde“. Ein Kriterium, das nur nach unten wirkt, ist etwas anderes als ein unbewertetes, das aus der Gewichtung fällt (ADR-004). Verwandt mit OP-F21: beides wirkt nur in eine Richtung | Auftraggeber | offen, vom Auftraggeber am 12.09.2026 ausdrücklich vertagt |
+| OP-F23 | Wie wird die **ganzjährige Diplomarbeitsvorbereitung im Zeitfaktor** behandelt? Sie hat keine zweite Hälfte. Denkbar: fester Faktor, oder Zuordnung zu der Hälfte, in der ihr Ende liegt (so die vorläufige Regel in FA-73 AK-4) | Auftraggeber | offen |
+| OP-F24 | Ist eine **Reiterleiste bei acht Bereichen** noch die richtige Form? Vier passen in eine Zeile, acht nicht ohne Weiteres | Auftraggeber | offen |
+| OP-F25 | Bleibt **„Abschnitt“ als Oberbegriff in der Oberfläche**, wenn Sprints, Tests und Diplomarbeitsvorbereitung getrennte Sichten haben? Im Datenmodell bleibt er in jedem Fall (FA-56 AK-2) | Auftraggeber | offen |
+| OP-F26 | **Punktezahl des Kriteriums „Eigene Spur“** im individuellen Beitrag und Abgrenzung zu `i4` | Auftraggeber | **entschieden 2026-09-12: 6 Punkte; „Code Reviews“ entfällt aus der Beschreibung von `i4`, damit gegebene Reviews nicht zweimal zählen (FA-78 AK-5, AK-5a)** |
+| OP-F27 | **Schwelle für den Befund** (FA-79 AK-4) | Auftraggeber | **entschieden 2026-09-12: beides – die Regel „mindestens zwei von drei Signalen“ und für das erste Signal eine einstellbare Schwelle mit der Vorgabe 15 Prozentpunkte (FA-79 AK-4a, AK-4b)** |
+| OP-F28 | **Zugriff vom Handy.** Die Anwendung öffnet dort schon heute, aber der Bestand liegt je Browser im `localStorage` – am Handy also leer. Wege, in aufsteigendem Preis: (a) eine Nur-Lese-Ausgabe „Klassenstand“ als HTML, wie Belegfassung und Kriterienblatt, über den schulischen Speicher; (b) Sicherungsdatei tragen, funktioniert ohne Codeänderung, erzeugt aber zwei Kopien; (c) Fernzugriff auf den Laptop, ohne Eingriff in die Anwendung; (d) PWA – löst das Datenproblem **nicht** und bringt einen Service Worker samt veralteten Auslieferungen; (e) echte Synchronisierung, hebt RB-05, RB-06, ADR-001 und DS-02 auf und verlangt eine Auftragsverarbeitung mit dem Schulerhalter. **Zwei Hürden vor jeder Wahl:** Sobald zwei Geräte schreiben, braucht es eine Konfliktregel – bei Noten ist ein stilles Zusammenführen schlimmer als kein Handyzugriff; und die Oberfläche hat einen einzigen Umbruchpunkt bei 920 px, für Handybreite ist nichts vorgesehen (NFA-05 nennt Browser, aber keine Bildschirmbreite). Empfehlung für den Fall einer Entscheidung: Lesen und Schreiben trennen – Lesen braucht keine Konfliktregel, Schreiben bekäme eine eigene schmale Sicht (Daily-Notiz und Spur), und der Laptop bleibt die Wahrheit | Auftraggeber | offen, am 12.09.2026 erwogen, keine Änderung |
+| OP-F29 | **Darf die Rückmeldung je Person in den Teamkanal?** Der Auftraggeber möchte das bestimmen können (12.09.2026). Eine Leistungsbeurteilung ist ein personenbezogenes Datum und wird der Person und den Erziehungsberechtigten mitgeteilt; für die Offenlegung gegenüber Mitschülern fehlt aus unserer Sicht die Rechtsgrundlage. Dazu kommt die Dauerhaftigkeit: Ein Kanal ist ein durchsuchbares Archiv, und ein Entwicklungsfeld liest sich dort ein halbes Jahr lang anders als im Gespräch. **Vor der Klärung mit der Schulleitung wird kein Baustein dafür gebaut** (FA-83 AK-4); das freie Textfeld bleibt frei, die Entscheidung im Einzelfall liegt bei der Lehrkraft. Zu klären wie OP-F1 und OP-F10 | Schulleitung | offen |
+| OP-F30 | **Was bedeutet `p2` „Daily Standup“ bei einem Block pro Woche?** Bei drei Einheiten am Stück gibt es genau ein Treffen je Woche; ein Daily ist das nicht | Auftraggeber | **entschieden 2026-09-13: Das Kriterium heißt „Standup“ und ist eine Gelegenheit, keine Pflicht. Findet eines statt, wird es bewertet; findet keines statt, bleibt es leer und fällt aus der Gewichtung (FA-21, ADR-004). Die ID bleibt `p2`, der Erfassungszeitpunkt bleibt `daily` (FA-75 AK-4). Dass es an der Gelegenheit lag und nicht am Team, gehört in die Sprintnotiz (FA-16) – „nicht beobachtet“ ist nicht „nicht geleistet“. Weggelassen wird es für das ganze Team, nicht für einzelne Personen** |
+| OP-F31 | **Zählt ein längerer erster Sprint mehr?** Der Versatz der Teams entsteht dadurch, dass der **erste** Sprint je Team unterschiedlich lang ist (drei, vier, fünf Wochen – [Zusammenarbeit mit KI, Kap. 11.6](zusammenarbeit-mit-ki.md)). Der Faktor nach FA-04 gilt je Abschnitt für alle Teams gleich, die Dauer geht nirgends ein. Nach **G11** ist das zulässig – die Dauer ist eine Bedingung, nicht der Maßstab –, aber es ist zu **entscheiden** und nicht zu unterlassen. Empfehlung: gleich gewichten, weil die Kriterien den erreichten Stand messen und nicht die aufgewendete Zeit; mehr Zeit für dasselbe Ergebnis ist kein Mehrwert. Gegenargument: Im ersten Sprint entsteht bei fünf Wochen mehr Substanz als bei drei, und das Team mit dem kurzen Sprint hat weniger Gelegenheit, Kriterien überhaupt zu erfüllen | Auftraggeber | offen |
+| OP-F32 | **Aufbau der Sicht „Theorie-Tests".** Der Auftraggeber hat am 13.09.2026 festgehalten, dass die Gestaltung noch zu überlegen ist; vorerst wird der bestehende Stand übernommen und trägt einen Hinweis (FA-93). Zu klären: Erfassung je Test über alle Schüler oder je Schüler über alle Tests – das Arbeitsprinzip („ein Schüler zu einem Zeitpunkt", FA-34 AK-4) spricht für das Zweite, das Eintragen eines frisch korrigierten Tests für das Erste | Auftraggeber | offen |
+| OP-F33 | **Aufbau der Sicht „Notenauswertung".** Ebenso offen (FA-93). Zu klären ist vor allem, was zuerst zu sehen ist: der Stand **einer** Person über alle Abschnitte, oder die Klasse im Überblick. Beides gibt es heute, aber ohne Entscheidung, was der Einstieg ist | Auftraggeber | offen |
+| OP-F34 | **Woher kommt der Jahrgang?** Er lässt sich aus der Projektart ableiten (SYP/PRE 4. Klasse → 4, SYP/PRE 5. Klasse → 5, Diplomarbeit → 5). Das setzt voraus, dass eine Diplomarbeit immer in der 5. Klasse läuft. Stimmt das nicht, braucht das Projekt ein eigenes Feld statt einer Ableitung (FA-90 AK-1) | Auftraggeber | offen |
+| OP-F35 | **Was bleibt von FA-84?** Die Übersicht „welches Team steht in welchem Sprint" wird innerhalb eines Projekts überflüssig, sobald die Sprintliste da ist (FA-91 AK-5). Über mehrere Projekte hinweg bleibt sie nötig, weil die Sprints versetzt laufen. Zu entscheiden: eigene Sicht, Teil der Projektliste, oder entfallen | Auftraggeber | offen |
+| OP-F36 | **Projekttyp und Jahrgang sind vermischt.** Die Typwerte `syp-pre-4` und `syp-pre-5` bezeichnen denselben Typ – ein SYP/PRE-Projekt – und unterscheiden sich nur im Jahrgang. Sauberer wären zwei Typen (SYP/PRE-Projekt, Diplomarbeit) und der Jahrgang als eigenes Attribut; dann hinge der Jahrgangsfilter am Jahrgang und die typspezifischen Attribute (ab November, F9) am richtigen Ding. **Der Auftraggeber kennt die fehlende Normalisierung und löst sie bewusst nicht auf** – vorerst kein Anlass, die drei Werte bleiben. Auf der Merkliste, falls die Typattribute es später erzwingen | Auftraggeber | **offen, am 14.09.2026 bewusst zurückgestellt** |
+| OP-F37 | **Fehlt ein Komponententest-Aufbau?** Mit der Straffung der Durchstiche am 14.09.2026 (Solution-Design 8.1) sind zehn E2E-Fälle auf die tiefere Ebene gezogen worden. Fünf Aussagen prüft damit niemand mehr maschinell – sie betreffen nicht die Rechnung, sondern die Verdrahtung: ob ein Umschalter wirklich umschaltet, ob ein gesperrtes Feld wirklich gesperrt ist, ob ein Absatz wirklich dasteht. `vitest.config.ts` läuft mit `environment: 'node'`; jsdom und Testing Library sind nicht eingerichtet. Zu entscheiden: Aufbau einrichten, bei den elf Durchstichen belassen, oder diese fünf Aussagen bewusst dem Augenschein überlassen. Empfehlung: **belassen** – sie fallen beim Bedienen sofort auf, ein falsch gelesener Zahlenwert nicht | Auftraggeber | offen |
+| OP-F38 | **Bleiben die Anforderungen Freitext?** FA-96 hält geplante und umgesetzte Anforderungen als Text fest – Festlegung des Auftraggebers vom 14.09.2026. Eine Liste mit Kennung und Status je Anforderung wäre auswertbar (welche Anforderung wurde über drei Sprints geschoben?) und würde die Nachschau der Retrospektive (FA-80) spiegeln, kostet aber Erfassungsaufwand in jedem Planning. Zu entscheiden, sobald erkennbar ist, wie mit dem Text tatsächlich gearbeitet wird. **Vorher nicht bauen**: Eine Struktur, die niemand füllt, ist teurer als ein Textfeld, das jemand benutzt | Auftraggeber | offen |
+| OP-F39 | **Der Probelauf mit echten Daten steht aus.** `docs/probelauf/probedaten.json` liegt bereit, ist aber nie durch die Anwendung gelaufen. Bis dahin ist unbekannt, wie sich fünfundzwanzig Schüler und drei Projekte in den Listen anfühlen – Platzverteilung, Ladezeit, Lesbarkeit. Beide Fehler vom 14.09.2026 (halb wirkender Filter, Sackgasse ohne Sprint) wären dabei aufgefallen. Zu entscheiden ist nichts, zu tun schon | Auftraggeber | offen |
+| OP-F40 | **`Team` heißt fachlich `Projekt`.** Der Code sagt `Team`, `teamId`, `teamsVon`; das Fachkonzept sagt seit 15.1 Projekt. Die Übersetzung kostet bei jedem Lesen und hat Fehler erzeugt: `teamsVon` filterte über das bedeutungslose Altfeld `Team.klasseId`. Umbenannt wird mit Schemastand 5 (Solution-Design 5.0d), in einem Zug und ohne weitere Änderung im selben Commit | Auftraggeber | offen |
 | OP-M3 | Aufwandsschätzung je Anforderung führen? Priorität ohne Aufwand ist die halbe Entscheidungsgrundlage. | Auftraggeber | **entschieden 2026-09-10: nein, nicht erforderlich. Die Reihenfolge ergibt sich aus dem Bedarfszeitpunkt (Kap. 3.1), nicht aus dem Aufwand** |

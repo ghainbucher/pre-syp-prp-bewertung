@@ -6,7 +6,558 @@ Alle nennenswerten Änderungen an der PRE/SYP-PRP-Bewertung. Format angelehnt an
 
 ## [Unveröffentlicht]
 
+### Geplant
+
+- **Schemastand 5** ([ADR-012](adr/0012-projekt-als-ordnungsachse.md), Schritt 2,
+  [Solution-Design 5.0d](solution-design.md)): `Abschnitt.projektId` statt `Abschnitt.klasseId`,
+  `Abschnitt` und `Teamabschnitt` verschmelzen, `Team.klasseId` entfällt. Dabei wird **`Team` zu
+  `Projekt` umbenannt** (OP-F40) – in einem Zug, ohne weitere Änderung im selben Commit
+
+- **Klasse aus einer Datei einlesen** (FA-89) – vorher braucht es eine echte Exportdatei aus dem
+  Schulverwaltungssystem, sonst wird der Import zweimal gebaut – und **Klassen-/Schülerfilter in
+  Theorie-Tests und Notenauswertung** (FA-92). Letzteres bewusst erst, wenn der Aufbau dieser
+  beiden Sichten entschieden ist (OP-F32, OP-F33)
+
+- **Probelauf mit `docs/probelauf/probedaten.json`** (OP-F39). Die Anwendung ist nie mit
+  fünfundzwanzig Schülern und drei Projekten gelaufen
+
+---
+
+## [0.8.0] – 2026-09-15 · „Ordnen“
+
+**Die erste Fassung, die einen ganzen Durchgang trägt.** Bis hierher konnte die Anwendung
+bewerten und rechnen; sie konnte aber nicht ordnen, was dabei anfällt. Das Projekt war eine
+Ansammlung von Abschnitten einer Klasse, Stammdaten lagen auf einem Blatt zusammen, und ein
+Filter wirkte auf vier von zehn Sichten. Mit dieser Fassung ist das Projekt die Ordnungsachse,
+jedes Stammdatum hat sein Blatt, und der Klassenfilter gilt für die ganze Anwendung.
+
+**Bekannte Einschränkungen**, damit sie nicht beim ersten Einsatz überraschen:
+
+- Klassenlisten müssen **von Hand** eingetippt werden; der Dateiimport (FA-89) fehlt.
+- Der Aufbau der Sichten **Theorie-Tests** und **Notenauswertung** ist noch nicht entschieden
+  (OP-F32, OP-F33); beide tragen einen sichtbaren Hinweis darauf.
+- Die Anwendung ist noch **nie mit echten Daten** gelaufen (OP-F39).
+
+### Hinzugefügt
+
+- **Ein Klassenfilter für die ganze Anwendung** (FA-95, fachliche Grundlage **A14**). Die
+  Klassenwahl in der Kopfleiste kennt jetzt **„alle Klassen"** und *wirkt* auf jeder Sicht: auf
+  der Schülerliste, auf beiden Projektlisten, auf Tests, auf der Notenauswertung und auf der
+  Projektleiste der Sprintsichten. Bisher stand sie überall, tat aber nur auf vier von zehn
+  Sichten etwas – und auf der Projektsicht standen zwei Bedienelemente namens „Klasse"
+  nebeneinander, mit verschiedener Bedeutung. Der eigene Klassenfilter jener Sicht ist darin
+  aufgegangen; „nur gemischte" bleibt als eigener Schalter, weil „gemischt" kein Klassenwert
+  ist, sondern eine Eigenschaft – beides zusammen ergibt „gemischte Projekte, an denen die
+  4AHIF beteiligt ist".
+
+  Zwei Regeln machen das erst brauchbar. **Ist ein Gegenstand gewählt, gilt seine Klasse und
+  nicht der Filter**: Die Schüler zu einem Test kommen aus der Klasse des Tests, die Sprints
+  eines Projekts aus dem Projekt – sonst zeigte „alle Klassen" alle Schüler der Schule zu einem
+  Test einer einzigen Klasse. Und **ein Projekt gehört zu der Klasse, aus der seine Mitglieder
+  kommen** (Fachkonzept 15.1), nicht zu einem Feld am Projekt; ein gemischtes Projekt steht
+  damit in beiden Klassen. Ein frisch angelegtes Projekt ohne Mitglieder bleibt in der Klasse
+  sichtbar, in der es angelegt wurde – sonst wäre der nächste Schritt, die Schüler zuzuordnen,
+  nicht mehr erreichbar.
+
+  Verschwindet die gefilterte Klasse, fällt der Filter auf „alle Klassen" zurück und nicht auf
+  die nächstbeste: Wer eine Klasse gelöscht hat, arbeitet danach nicht stillschweigend in einer
+  anderen weiter.
+
+  **Behoben, vom Auftraggeber gemeldet:** Ein Projekt ohne Sprint war eine Sackgasse. Die
+  Sprintsicht zeigte nur die Leermeldung – die Projektleiste, mit der man zu einem anderen
+  Projekt käme, stand erst über dem *gefüllten* Inhalt und fehlte damit genau dort, wo man sie
+  braucht (FA-95 AK-10). Sie steht jetzt vor der Leermeldung. Aus derselben Ursache sagen die
+  leeren Sichten jetzt auch, **ob sie leer oder gefiltert sind**: „Kein Test in dieser Klasse"
+  mit einem Schalter „Alle Klassen zeigen" ist eine andere Auskunft als „Noch kein Test
+  angelegt" (AK-11).
+
+- **Geplante und umgesetzte Anforderungen je Sprint** (FA-96, fachliche Grundlage **A15**). Im
+  Sprintplanning steht jetzt neben dem Ziel ein Feld für die geplanten Anforderungen, im
+  Sprintreview eines für die umgesetzten – und dort stehen **beide nebeneinander**. Einzeln
+  sagt keiner von beiden etwas; erst der Vergleich beantwortet die erste Frage des Reviews.
+  Vorerst Freitext, eine Zeile je Anforderung (OP-F38).
+
+  Beide Texte gehen in **keine Rechnung** ein (G9): Dass eine Anforderung offen blieb, ist eine
+  Feststellung. Ob sie dem Team anzulasten ist – falsch geschätzt, umpriorisiert oder
+  liegengeblieben –, entscheidet die Lehrkraft und schreibt es in die Sprintnotiz. Eine Software,
+  die Zeilen zählt und daraus eine Note ableitet, verlöre genau diese Unterscheidung.
+
+- **Stammdaten werden nur noch in den Stammdatenblättern gepflegt, und Löschen hat zwei
+  Ausgänge** (FA-94, fachliche Grundlage **A13** und **G7**). Anlegen, Ändern und Löschen eines
+  Projekts ist aus der Projektsicht verschwunden; sie zeigt Typ und Repository nur noch an und
+  verweist auf „Stammdaten · Projekte". Geblieben ist dort das **Anlegen eines Sprints** – ein
+  Sprint ist kein Stammdatum, sondern Leistungsdatum (Plan und Ist), Festlegung des
+  Auftraggebers vom 14.09.2026.
+
+  Beim Löschen entscheidet jetzt die Anwendung, **wie** gelöscht wird: **endgültig**, solange
+  nichts Bewertetes am Objekt hängt – ein Bestand, in dem jeder Tippfehler ewig mitläuft, wird
+  unbenutzbar –, und **logisch**, sobald Punkte, Peer-Urteile, ein gesetzter Wert, eine
+  eingefrorene Rubrik oder ein Notenstand daran hängen. Logisch gelöscht heißt: aus allen
+  Listen, Auswahlfeldern und Auswertungen verschwunden, in bestehenden Bewertungen und
+  Belegfassungen aber weiterhin lesbar. Anders wäre eine Note nicht mehr rekonstruierbar (G7).
+
+  Welcher der beiden Ausgänge greift, steht **vor** der Bestätigung neben dem Schalter. Dass die
+  Anwendung entscheidet, heißt nicht, dass sie es für sich behält. Jedes Blatt zeigt auf Wunsch
+  seine gelöschten Einträge und stellt jeden davon mit einem Klick wieder her; ohne diesen Weg
+  wäre „logisch gelöscht" nur eine unsichtbare Falle. Die Vorgaberubrik bleibt in jedem Fall –
+  ohne sie hätte ein neuer Abschnitt keine Kriterien (FA-55 AK-2).
+
+- **Einzelne Stichtage anlegen** (FA-48): Bisher gab es nur die Vorlage für den ganzen Durchgang
+  – drei Zeitpunkte, alles oder nichts. Eine zweite Frühwarnung war damit nicht erfassbar,
+  obwohl das Datenmodell sie seit je erlaubt
+
+- **`npm run ausmustern -- <datei>`**: legt eine Datei mit `yyyymmdd_hhmmss_`-Präfix nach
+  `_temp/` und löscht das Original. Der Grund ist nicht Bequemlichkeit: Eine KI kann in diesem
+  Aufbau auf dem Rechner des Auftraggebers lesen und schreiben, aber nicht löschen – und die
+  Freigabe dafür gälte für einen **ganzen Ordner und die restliche Sitzung**. Für drei
+  ausgemusterte Dateien ist das eine Reichweite ohne Verhältnis. Also macht es der Rechner
+  selbst, auf ausdrücklichen Aufruf. `_temp/` ist von Git ausgenommen; `--nur-anzeigen` zeigt
+  vorher, was geschähe, und ein Fehler bricht ab, bevor irgendetwas verändert wurde
+
+- **Stammdaten: sechs Blätter statt einem** (FA-34 AK-3 bis AK-3d). Bisher trug eine einzige
+  Sicht Klassen, Projekte, Schüler, Abschnitte, Teamzuordnung und Stichtage nebeneinander.
+  Jetzt: **Klassen**, **Schüler**, **Projekte**, **Tests**, **Rubrik & Notenschlüssel**,
+  **Stichtage** – ein Blatt je Sache. Die Klasse wird **beim Schüler** zugeordnet, die
+  Projektzuordnung **beim Projekt**; auf dem Schülerblatt steht sie nur noch als Auskunft. Die
+  GitHub-Kennung bleibt dort, wo sie hingehört – als Spalte in der Schülerliste, ohne eigene
+  Karte
+
+- **Die Diplomarbeit ist ein Projekt eines Typs** (FA-73 neu gefasst): keine eigene Sicht und
+  keine eigene Abschnittsart mehr. Sie wird geführt wie jedes Projekt – mit Mitgliedern,
+  Sprints und Bewertungen. Bestehende Abschnitte der alten Art bleiben erreichbar, bis
+  Schemastand 5 sie umhängt
+
+- **`Team.kennungen` ist entfallen.** Die GitHub-Kennung liegt seit Schemastand 4 an der
+  Person (FA-88 AK-3); sie am Projekt ein zweites Mal führen zu können war eine zweite
+  Wahrheit. Die eingelesene Auswertung löst Kennungen jetzt über den Schüler auf
+
+- **Teststrategie 8.1: welche Durchstiche es geben soll** – fünf, in der Sprache des
+  Unterrichts, jeder mit seiner fachlichen Grundlage aus Fachkonzept 15.2. Das Kapitel sagte
+  seit jeher „wenige Durchstiche" und nannte genau einen; es sind 21 geworden, Anforderung für
+  Anforderung. Die Durchsicht dagegen steht aus und ist als Befund vermerkt
+
+- **Schemastand 4: Schüler gehören zu Projekten, nicht zu Sprints.** Die Zuordnung ist eine
+  eigene Größe (`Mitgliedschaft`) und gilt für alle Sprints eines Projekts. Damit entfallen
+  `Zugehoerigkeit`, die Vorbelegung `Person.teamId` und `Team.kennungen` – die GitHub-Kennung
+  liegt an der Person. **Ein Schüler darf in mehreren Projekten sein** (im 5. Jahrgang laufen
+  SYP/PRE-Projekt und Diplomarbeit nebeneinander); die Anwendung warnt und verlangt eine
+  Bestätigung, die mit Datum an der Mitgliedschaft festgehalten wird. Eine Migration hebt
+  bestehende Bestände; **die Rechnung ändert sich dabei nicht** – wer durchgehend in einem Team
+  war, ist danach Mitglied genau dieses Projekts. Verloren geht nur der Fall „wechselt im
+  dritten Sprint das Team", eine ausdrückliche Festlegung des Auftraggebers
+  ([Fachkonzept 15.2](fachkonzept-unterricht.md), A8)
+
+- **Fachliches Modell** als [Fachkonzept, Kapitel 15](fachkonzept-unterricht.md): die
+  Gegenstände des Unterrichts samt Beziehungen (15.1) und die Arbeitsweise damit (15.2, A1 bis
+  A12). Es ist der Maßstab, gegen den sich das technische Modell und der Zuschnitt der Sichten
+  prüfen lassen. Jede Aussage nennt ihre Wirkung aufs Produkt; „ohne Produktwirkung" ist eine
+  gültige Antwort, weil das Fachkonzept den Unterricht beschreibt und nicht die Software
+
+- **Vier Bereiche statt fünf** (FA-34 neu gefasst): **Projekte**, **Tests**,
+  **Notenauswertung**, **Stammdaten**. Die ersten beiden sind die getrennten Leistungsbereiche,
+  der dritte führt sie zusammen, der vierte trägt vier Unterseiten – Schüler & Klassen,
+  Projekte, Tests, Rubrik & Notenschlüssel. Je Leistungsbereich also eine eigene
+  Stammdatenseite; Schüler und Notenschlüssel gelten für beide und stehen daneben
+
+- **Stammdaten · Projekte**: alle Projekte als Liste, zum gewählten Name, Typ, Repository,
+  Zeitraum, Beschreibung und die Schülerzuordnung mit der Überschneidungswarnung. Die Klasse
+  steht **nicht** am Projekt – die Spalte „Klasse(n)" wird aus den Mitgliedern abgeleitet, und
+  „gemischt" ist dadurch kein Zustand, den jemand pflegt
+
+- **Stammdaten · Tests**: Ankündigung nach § 8 LBVO, Arbeitszeit, Termin – und der Hinweis,
+  dass die **Fragen die Rubrik dieses Tests sind**, mit dem Weg dorthin
+
+- **Fünf Bereiche statt acht** (FA-34 neu gefasst): **Projekt**, Theorie-Tests, Notenauswertung,
+  Schüler & Klassen, Rubrik & Notenschlüssel. Die Reihenfolge folgt jetzt der **Häufigkeit der
+  Benutzung** und nicht mehr dem Ablauf. Der Ablauf ist nicht verschwunden – Sprintplanning,
+  Daily, Sprintreview und Diplomarbeitsvorbereitung stehen in einer zweiten, untergeordneten
+  Zeile. Diese Zeile ist **nur im Bereich Projekt** sichtbar (AK-5a): Ein Sprintteil gehört zu
+  einem Projekt, und ohne Projekt ist er ein Schritt ohne Gegenstand. Solange ein Teil offen ist,
+  bleibt „Projekt" der gewählte Bereich
+
+- **Bereich „Projekt"** als Einstieg (FA-90, FA-91, FA-84): Filter nach Jahrgang und Klasse –
+  einschließlich **„gemischt"** für Projekte über Klassengrenzen –, eine Liste aller Projekte mit
+  dem Sprint, in dem jedes gerade steht, und darunter die Sprintliste des gewählten Projekts mit
+  Nummer, Zeitraum, Ziel und Zustand. Von dort geht es in Planning, Daily und Review; ein neuer
+  Sprint lässt sich hier anlegen. Das **Repository** steht am Projekt, damit für ein Gespräch ohne
+  Suchen ein vorübergehender Klon möglich ist. **„Gemischt" wird abgeleitet**, nicht erfasst: aus
+  den Klassen der Mitglieder. Ein Kennzeichen, das jemand setzen muss, wäre neben der
+  Mitgliederliste eine zweite Wahrheit
+
+- **Bereich „Schüler & Klassen"** (FA-88): eine schlichte Liste je Schüler mit Klasse, Name,
+  **GitHub-Kennung** und **Schul-E-Mail**, durchsuchbar. Dieselbe Kennung zweimal wird gemeldet –
+  zwei Personen mit einer Kennung machen jede Beitragsverteilung falsch, und zwar unbemerkt. Die
+  Kennung liegt damit an der **Person** statt am Projekt. Ob die Adresse zum GitHub-Konto gehört,
+  kann die Anwendung nicht feststellen: Sie ruft nichts ab (ADR-001), und GitHub verbirgt Adressen
+  standardmäßig – der Abgleich im Skript bleibt ein Hinweis und ist kein Nachweis
+
+- **Projektart** am Projekt (FA-87 AK-2): SYP/PRE 4. Jahrgang, SYP/PRE 5. Jahrgang, Diplomarbeit.
+  Der **Jahrgang** wird daraus abgeleitet; ein Projekt ohne Art fällt aus dem Jahrgangsfilter
+  heraus und wird keinem Jahrgang zugeschlagen (dieselbe Regel wie ADR-004: was fehlt, zählt nicht
+  als Null)
+
+- **Hinweis auf ausstehende Überarbeitung** (FA-93) in Theorie-Tests und Notenauswertung. Er nennt
+  den offenen Punkt, unter dem entschieden wird (OP-F32, OP-F33), sperrt nichts und verschwindet
+  mit der Entscheidung. Steht er länger als einen Durchgang, ist das selbst ein Befund (R-07)
+
+- **`npm run deutung`** (`scripts/auswertung-deuten.mjs`): macht aus der JSON-Auswertung einen
+  Bericht mit drei Teilen – **Zahlen**, **Interpretation der Auswertung** und **Fragen für das
+  Gespräch**. Die Interpretation ist *gerechnet*: feste Regeln, für jedes Team dieselben (G11,
+  R-14), und jede Aussage nennt, was sie nicht sagt. Erkannt werden unter anderem: hoher
+  PR-Anteil ohne ein einziges Review (R-13), schiefe Beteiligung und das Muster „designierter
+  Ingenieur" (E1a), Arbeit in den Ferien (G4, R-09), Schubarbeit, lange Pausen, Kennungen ohne
+  Person. Optional dazu: **Wissensinseln** aus einer Arbeitskopie (`--klon`) sowie **Issues,
+  Board und rote Pipeline-Phasen** über `gh` (`--repo`). Kein Punktevorschlag – den rechnet die
+  Anwendung (FA-81 AK-5)
+
+- **Team-Repositories kommen aus der Sicherungsdatei** (`--bestand`): Die Adresse wird nur in
+  der Anwendung gepflegt (FA-81 AK-3), die Skripte lesen sie von dort. Damit erkennt der
+  Bericht auch **Kennungen, die keiner Person zugeordnet sind** – ein Schul- oder gemeinsames
+  Konto verschiebt die ganze Verteilung, und das steht dann im Bericht
+
+- **Vor dem Versand an ein KI-Werkzeug** ersetzt der Bericht alle Kennungen und Namen durch
+  Pseudonyme. Die Zuordnung bleibt auf dem Gerät – dieselbe Regel wie in den beiden anderen
+  Skripten
+
+### Geändert
+
+- **Durchstiche gestrafft: von 21 E2E-Fällen auf elf** (Solution-Design 8.1). Die Testdatei war
+  Anforderung für Anforderung gewachsen, weil ein E2E-Test bequem alles zugleich beweist. Zehn
+  Fälle prüften in Wahrheit ein Einzelkriterium und sind auf die tiefere Ebene gezogen: FA-51,
+  FA-64 AK-7, FA-73, FA-76, FA-78/79, FA-80, FA-81, FA-82/83, FA-88 und FA-93.
+
+  Bei vier davon ging das nur, weil **zuerst die Entscheidung umgezogen ist** – sie steckte in
+  einer Komponente und war damit nur über den Browser erreichbar (NFA-06): die
+  Überschneidungsprüfung bei der Projektzuordnung (`zuordnungBrauchtBestaetigung`), die Prüfung
+  auf doppelt vergebene GitHub-Kennungen (`kennungDoppelt`), das Lesen der
+  GitHub-Auswertungsdatei (neues Modul `domain/repoauswertung.ts`) und die Regel, was vom
+  Sichtzustand dauerhaft gemerkt wird (`dauerhafterTeil`, neues Modul `ui/uizustand.ts` ohne
+  React). Die Tests dazu prüfen jetzt Fälle, die im Browser kaum herzustellen waren: eine
+  abgeschnittene Auswertungsdatei, eine aus einer älteren Fassung des Skripts, ein Browser ohne
+  IndexedDB.
+
+  **Was dabei verloren geht, steht in Solution-Design 8.1 und als OP-F37 in den Anforderungen:**
+  Fünf Aussagen über die Verdrahtung – ob ein Umschalter umschaltet, ob ein gesperrtes Feld
+  gesperrt ist, ob ein Absatz dasteht – prüft maschinell niemand mehr. Sie fallen beim Bedienen
+  sofort auf; ein falsch gelesener Zahlenwert nicht. Ein Komponententest-Aufbau (jsdom) würde
+  sie zurückholen und ist bewusst nicht eingerichtet.
+
+- **Platzverteilung auf den Stammdatenblättern.** Die Blätter „Projekte" und „Tests" gaben der
+  Liste – vier schmale Spalten – die ganze Breite und quetschten die Felder des gewählten
+  Objekts in 320 px; jetzt ist es umgekehrt. Die Feldraster (`.feldgitter`) und die
+  Schülerzuordnung (`.schuelerliste`) hatten bis dahin **gar keine Gestaltung** und liefen als
+  eine Spalte hinunter: Eine Klasse mit dreißig Namen war drei Bildschirme hoch. „Klassen" und
+  „Stichtage" sind kurze Listen und bekommen keine 1180 px mehr, sondern 860
+
+- **Die Dokumentenprüfung prüft die fachliche Kette in beide Richtungen** (W3, W4): Jede
+  Anforderung nennt eine fachliche Grundlage, jede fachliche Aussage ihre Wirkung aufs Produkt.
+  Beides warnt zunächst nur – am 14.09.2026 nannten 29 von 109 Anforderungen eine Grundlage,
+  und alle übrigen auf einmal nachzuziehen wäre ein Tag Buchführung ohne Fortschritt. Neue und
+  geänderte Anforderungen bekommen sie sofort. Das Skript prüft, dass ein Verweis **da** ist,
+  nicht dass er stimmt
+
+- **Die drei `docs/entwurf-*.md` sind stillgelegt** und tragen oben einen Zeiger auf das
+  Dokument, in dem ihr Ergebnis jetzt steht. Ein Entwurf, der neben dem gültigen Dokument
+  weiterlebt, ist die zweite Wahrheit, gegen die dieses Repository gebaut ist
+
+- **Das ERD im Solution-Design war seit Schemastand 3 falsch** – es zeigte noch
+  `KLASSE ||--o{ SPRINT` und `TEAM ||--o{ PERSON`. Kapitel 5 ist neu und trennt jetzt das
+  technische Modell vom fachlichen, mit einer Zuordnungstabelle dazwischen
+
+- **Auswertungen landen in `scripts/Review-Auswertungen/JJJJ-MM/`** statt im aktuellen
+  Verzeichnis – ein Ordner je Monat, über alle Teams hinweg, damit sie sich vergleichen
+  lassen. Der Monat kommt vom **Ende** des Zeitraums: Ein Sprint über den Monatswechsel gehört
+  in den Monat, in dem er abgeschlossen wurde (dieselbe Regel wie FA-48 AK-6). Die Dateinamen
+  tragen den Repository-Namen. `--aus` schreibt weiterhin genau dorthin, wo es sagt.
+  **Der Ordner ist von Git ausgenommen:** Die Berichte enthalten GitHub-Kennungen und damit
+  personenbezogene Daten; sie gehören in den schulischen Speicher (DS-06) und nicht in ein
+  Repository auf GitHub. Versioniert ist nur die Erklärung darin
+
 ### Behoben
+
+- **`--repo` nimmt jetzt auch eine URL.** `https://github.com/htl/projekt`, die SSH-Form und
+  sogar die Adresse eines Pull Requests werden auf `eigentuemer/name` zurückgeführt. Vorher
+  wurde der Wert unverändert in den API-Pfad gesetzt, und `gh` meldete „unsupported protocol
+  scheme" – eine Meldung über die Adresse statt über den Aufruf, die an der falschen Stelle
+  suchen lässt. Was weiterhin nicht passt, wird mit den erlaubten Formen erklärt
+
+- **Hinweis bei einem Zeitraum in der Zukunft.** Ein künftiger Beginn ist fast immer ein
+  Vertipper; ohne Hinweis sieht das leere Ergebnis wie ein Team ohne Beiträge aus
+
+- **Zwei literale NUL-Bytes in `github-auswertung.mjs`** durch die Escape-Schreibweise ersetzt.
+  Sie machten die Datei für `grep`, `diff` und manche Editoren zu einer Binärdatei
+
+### Hinzugefügt
+
+- **`scripts/hilfen.mjs`**: die drei Skripte teilen sich Aufrufparameter, Abbruch,
+  Anonymisierung, Repo-Umsetzung und Zeitraumprüfung, statt sie zu kopieren – „Gibt es das
+  schon?" gilt auch für die eigenen Werkzeuge
+
+- **`npm run pullrequests`** (`scripts/pull-requests-auswerten.mjs`): wertet die Pull Requests
+  eines Zeitraums **im Nachhinein** aus, in zwei getrennten Teilen. Erst die **zählbaren**
+  Größen ohne KI – gab es ein Review einer anderen Person, wie lange lag zwischen dem letzten
+  Commit *vor* der Genehmigung und der Genehmigung, wie groß war der Pull Request, wurde
+  danach noch nachgeschoben, wer hat wen begutachtet –, dann die vier Fragen je Pull Request
+  mit KI. Die Trennung ist der Zweck: Der erste Teil ist reproduzierbar und im Widerspruchsfall
+  zeigbar, der zweite nicht. Holt alles über `gh`, **ohne Klon**; Personen erscheinen als
+  Pseudonyme, die Zuordnung steht nur im Bericht. Ohne `--werkzeug` entstehen nur die
+  Kennzahlen und kein Diff verlässt den Rechner
+
+- **`npm run reviewzettel`** (`scripts/review-vorbereitung.mjs`): erzeugt aus dem Git-Diff eines
+  Teamrepositorys einen Zettel für das Sprintreview – was sich fachlich geändert hat, welche
+  Akzeptanzkriterien ohne Test geblieben sind, wo verdoppelt statt wiederverwendet wurde, und
+  **drei Fragen mit Datei und Zeile**. Läuft lokal mit **einer** Lizenz für alle Teamrepos,
+  braucht im Schülerrepo keine Einrichtung und funktioniert mit `--nur-prompt` auch ganz ohne
+  Zugang. In den Prompt geht der Diff **ohne Commit-Autoren und ohne Adressen**; mit
+  `--mit-verlauf` erscheinen Beitragende als Pseudonyme, und die Zuordnung steht nur im Zettel.
+  Der Zettel ist ein **Vorschlag** und enthält keine Bewertung (G9). Steht außerhalb der
+  Anwendung, ADR-001 und NFA-03 bleiben unberührt
+
+- **`scripts/repo-einrichten.ps1 -Schutz` setzt die fünf Schutzeinstellungen für `main`**:
+  Pull Request Pflicht, Prüfungen müssen grün sein, Zweig muss aktuell sein, Genehmigungen
+  verfallen bei neuen Commits, kein Force-Push und kein Löschen. Bisher stand das nur als
+  Handanweisung in `CONTRIBUTING.md` – und was von Hand zu tun ist, wird pro Projekt
+  vergessen. `-Genehmigungen 1 -AdminsEingeschlossen` für ein Schülerteam; die Vorgabe 0
+  passt zum Einpersonenprojekt, weil man den eigenen Pull Request nicht genehmigen kann.
+  Scheitert der Aufruf am Tarif (geschützte Zweige gibt es in privaten Repositories nur mit
+  Pro, Team oder Enterprise), sagt das Skript das im Klartext
+
+### Geändert
+
+- **Vorgaben für KI-Werkzeuge liegen jetzt in `AGENTS.md`.** Der Inhalt des bisherigen
+  `CLAUDE.md` ist dorthin gewandert; `CLAUDE.md` und das neue
+  `.github/copilot-instructions.md` sind **Zeiger** von drei Zeilen. Grund: Jedes Werkzeug
+  sucht eine andere Datei – Claude Code `CLAUDE.md`, Copilot `.github/copilot-instructions.md`,
+  Codex und Cursor `AGENTS.md`. Eine Quelle, mehrere Türen; auseinanderlaufende Vorgaben wären
+  schlimmer als keine. Zeiger statt Symlinks wegen Windows. Einzelheiten und die Grenze der
+  Wirkung in [Zusammenarbeit mit KI, Kap. 6.1](zusammenarbeit-mit-ki.md)
+
+- **`p2` heißt „Standup“ statt „Daily Standup“** (OP-F30). Bei drei Wocheneinheiten als Block
+  gibt es ein Treffen je Woche, kein tägliches. Das Kriterium ist damit eine **Gelegenheit,
+  keine Pflicht**: Findet ein Standup statt, wird es bewertet; findet keines statt, bleibt es
+  leer und fällt aus der Gewichtung (FA-21, ADR-004). Die Kriterien-ID bleibt `p2`, der
+  Erfassungszeitpunkt bleibt `daily` (FA-75 AK-4) – erfasste Punkte behalten ihren Bezug.
+  Betroffen sind beide Sprintvorlagen; bestehende Bestände bleiben unverändert, weil ihre
+  Rubriken Kopien sind (FA-65)
+
+### Hinzugefügt
+
+- **Sprintwert je Team** (FA-82). Ein Wert je Sprint und Team, den die Lehrkraft **setzt** –
+  mit Begründung, und er tritt neben die Rechnung statt sie zu ersetzen. Vorgeschlagen wird
+  der Team-Anteil: Team-Ergebnis und Scrum-Prozess zusammen, auf 100 % umgerechnet; der
+  individuelle Beitrag bleibt draußen, weil er Personen betrifft und in einem Dreierteam auf
+  die Werte der übrigen zurückrechenbar wäre. Geht in **keine Note** ein und steht mit Datum
+  in der Belegfassung
+
+- **Rückmeldung an das Team für den Teams-Kanal** (FA-83). Ein Textvorschlag aus dem, was
+  erfasst ist – Ziel und Zeitraum, Sprintwert, was gelungen ist, woran die Einzelnen
+  gearbeitet haben (aus den Spuren), Maßnahmen für den nächsten Sprint. Jeder Baustein
+  einzeln zuschaltbar, der Text vor dem Kopieren **frei änderbar**, dann in die Zwischenablage.
+  Die Anwendung versendet nichts: Was in den Kanal gelangt, stellt die Lehrkraft dort selbst
+  hinein und sieht es vorher (ADR-001, NFA-03). Namentliche Beiträge nennen **Tätigkeit ohne
+  Bewertung** – keine Prozentwerte je Person, keine Stärken, keine Entwicklungsfelder. Für die
+  Rückmeldung je Person gibt es denselben Weg als eigener Text fürs Einzelgespräch, aber
+  **keinen Baustein**, der sie in den Teamtext einsetzt: Eine Leistungsbeurteilung gehört der
+  Person und den Erziehungsberechtigten, nicht den Mitschülern (OP-F29, zur Klärung mit der
+  Schulleitung)
+
+- **Die Spur je Person** (FA-78). Je Person und Sprint eine Stelle, an der sie ihren Beitrag
+  zeigt – ein Commit, ein Pull Request, im Vorbereitungssprint ein Dokument. Erfasst im
+  Sprintreview neben dem Verstehensnachweis, weil dort darüber gesprochen wird. Erwartet, nicht
+  erzwungen; **kein Punktewert** – eine einzige Stelle kann viel oder wenig Arbeit sein. Der
+  Verweis wird gespeichert und angezeigt, **nie abgerufen**. Dazu ein neues Kriterium „Eigene
+  Spur“ (6 Punkte) im individuellen Beitrag; „Code Reviews“ ist dafür aus „Beitrag zum Team“
+  entfallen, damit ein gegebenes Review nicht zweimal zählt
+
+- **Der Befund: agiert das Team als Team?** (FA-79). Im Sprintreview steht zuerst eine Aussage
+  über das Team, darunter die Werte, die sie tragen. Drei Muster, die Verschiedenes bedeuten:
+  zusammen; zusammen und schwach (ein fachliches Problem, kein Teamproblem); auseinander.
+  Auffällig ist, wo zwei von drei Signalen in dieselbe Richtung zeigen – Abstand zum Median der
+  Mitglieder, Peer-Wert gegenüber den übrigen, fehlende Spuren –, oder wo der Abstand allein
+  mindestens das Doppelte der Schwelle beträgt. Die Abweichung zählt **in beide Richtungen**:
+  Wer das Team trägt, ist derselbe Befund wie wer mitläuft. Rechnet nichts in die Note, nennt
+  Tatsachen und kein Etikett, und funktioniert ab dem ersten Sprint. Schwelle einstellbar,
+  Vorgabe 15 Prozentpunkte
+
+- **Maßnahmen aus der Retrospektive** (FA-80). Zwei bis drei Sätze am Ende des Sprintreviews;
+  im Folgesprint stehen sie mit Herkunft wieder da und werden abgehakt: umgesetzt, teilweise,
+  nicht. Damit hat das Prozesskriterium „Retrospektive“ endlich etwas, worauf es sich bezieht –
+  bisher bewertete es „im Folgesprint sichtbar umgesetzt“, ohne dass irgendwo stand, was
+  vorgenommen war
+
+- **Kennzahlen zur Zusammenarbeit im Repository** (FA-81). `npm run github -- --repo … --von …
+  --bis …` fragt über die GitHub-CLI ab und schreibt eine Datei; die Anwendung **liest sie ein
+  und ruft selbst nichts ab** – ADR-001, NFA-03 und DS-02 bleiben unverändert gültig, und es
+  liegt kein Zugriffstoken im Browser. Vier Größen, alle als Verteilung auf Teamebene: Anteile
+  der Mitglieder, wer wessen Pull Requests begutachtet, Anteil über Pull Requests gegenüber
+  direkten Pushes, zeitliche Verteilung. Daraus ein **Vorschlag** für „Versionsverwaltung“, der
+  nur den mechanischen Teil deckt und nichts überschreibt; für jedes andere Kriterium gibt es
+  keinen. Repopfad und GitHub-Kennungen liegen am Team, eine Person darf mehrere Kennungen
+  haben
+
+- **Vorschlag, fixiert, abgeschlossen** (FA-77). Der Abschluss steht **innerhalb** des Schreibschutzes (AK-5a): Nach dem Enddatum braucht das Review eine ausdrückliche Freigabe – ein Klick mehr, dafür eine Sicht, die nicht halb erreichbar ist. Ein Team kann beliebig viele Sprints
+  vorausplanen; bis zur Fixierung sind sie **Vorschläge** – vorausgeplant, aber nicht der
+  geltende Sprint. **Fixiert** wird mit einer Handlung, und erst dann, wenn der vorige Sprint
+  mit dem Sprintreview **abgeschlossen** ist; geht es nicht, steht der Grund da samt dem
+  Sprint, der noch auf sein Review wartet. Abgeschlossen wird im Sprintreview, ebenfalls mit
+  einer Handlung: Vorgeschlagen wird sie, sobald alles erfasst ist, aber ein bewusst leeres
+  Feld hält die Kette nicht auf. Der Abschluss ist zurücknehmbar, ohne den Folgesprint zu
+  entfixieren. Der Zustand sperrt nichts – erfassen lässt sich auch in einem Vorschlag
+- **Die Sprints eines Teams überschneiden sich zeitlich nicht** (FA-66 AK-8). Überlappen zwei
+  Zeiträume desselben Teams, steht das beim Planen da – mit den Namen der betroffenen Sprints.
+  Endet einer am Tag, an dem der nächste beginnt, ist das keine Überschneidung, sondern der
+  übliche Übergabetag. Ein Ende vor dem Beginn wird ebenso benannt. Gemeldet, nicht verhindert:
+  Ein hartes Verbot verlangte, die Zeiträume in einer bestimmten Reihenfolge zu berichtigen
+
+- **Schreibschutz für abgeschlossene Abschnitte** (FA-76). Geschrieben wird im **laufenden**
+  Sprint eines Teams – dem, in dessen Zeitraum das heutige Datum liegt. Andere sind
+  vollständig zu sehen, aber gesperrt, damit im Gespräch mit einem Team nichts im falschen
+  Sprint landet. Mit einer
+  ausdrücklichen Handlung lässt sich ein alter Sprint öffnen; die Freigabe gilt nur für diese
+  Sitzung und nur für diesen Abschnitt. Schutz gegen Versehen, nicht gegen Absicht – ein harter
+  Schreibschutz sperrte auch die Berichtigung aus, und Tippfehler fallen später auf als am
+  selben Tag
+
+- **Löschen sagt, was verlorengeht** (FA-36 AK-3). Vor dem Löschen eines Abschnitts stehen die
+  Posten mit Anzahl da: Punktewerte, gesetzte Werte, Rückmeldungen, Verstehensnachweise,
+  Reflexionen, Peer-Urteile, Notizen, Planungen. Ist nichts erfasst, wird auch das gesagt. Eine
+  Frage „wirklich?“ schützt vor der verrutschten Maus, nicht vor der falschen Entscheidung
+- **Ein Sprint lässt sich für ein einzelnes Team entfernen** (FA-70 AK-8) – dort, wo er
+  entstanden ist. Andere Teams behalten ihn; bleibt kein Team übrig, verschwindet der Abschnitt
+  ganz. Ein Teamwechsel setzt die Sprintwahl auf den letzten Sprint dieses Teams zurück
+
+### Geändert
+
+- **Der laufende Sprint wird am Datum erkannt** (FA-76 AK-1, neu gefasst). Bisher galt der
+  letzte in der Reihe. Das war falsch, sobald künftige Sprints geplant sind: Ein Sprint, der im
+  Februar beginnt, wäre im Oktober der beschreibbare gewesen. Liegt heute in keinem Zeitraum –
+  Ende vorbei, Review offen, oder Ferien –, ist nichts ohne Weiteres beschreibbar; es steht
+  dann da, welcher Sprint zuletzt lief. Gesperrt ist dabei die **Bewertung**: Die Planung eines
+  Sprints, der noch nicht begonnen hat, bleibt änderbar, sonst wäre kein Vorschlag anlegbar
+
+- **Der Sprint gehört dem Team** (FA-70 AK-6, OP-F17). Die Sprintleiste zeigt nur, wofür das
+  gewählte Team eine Planung hat, und das Team steht in der Bedienung vor dem Sprint. Ein neu
+  angelegter Sprint wird sofort für dieses Team geplant. Ein Abschnitt, den kein Team geplant
+  hat, gilt weiterhin für die ganze Klasse – sonst wäre ein älterer Bestand unlesbar
+- **Der Zeitfaktor bezieht sich auf die eigenen Abschnitte der Person** (FA-54 AK-7). Das ist
+  die einzige Änderung dieses Schritts, die Noten verschiebt, und sie berichtigt einen stillen
+  Fehler: Lagen alle Sprints eines Teams in derselben Hälfte der Klassenliste, trugen sie alle
+  denselben Faktor – und ein gemeinsamer Faktor kürzt sich aus dem gewichteten Mittel heraus.
+  Der Zeitfaktor fiel damit **ganz aus**. Ein Team, das sich von 55 auf 95 steigerte, stand auf
+  demselben Wert wie eines, das von 95 auf 55 abfiel: 75,0 %, beide Note 3. Richtig gerechnet
+  sind es 80,0 % (Note 2) und 70,0 % (Note 3). Als TF-N und TF-O in den Testfällen hinterlegt
+  und als Regressionstest gebaut
+- **Das Kürzel zählt je Team** (FA-04 AK-5): Keplers dritter Sprint heißt S3, auch wenn Doppler
+  schon bei fünf ist. Wo für die ganze Klasse beschriftet wird – in der Auswertung –, zählt
+  weiterhin die Klasse
+
+- **Acht Bereiche statt vier (FA-34).** Die Oberfläche folgt jetzt dem Unterricht:
+  Klassen & Teams · Sprintplanning · Daily · Sprintreview · Diplomarbeitsvorbereitung ·
+  Tests · Auswertung · Rubrik & Notenschlüssel. „Bewerten“ entfällt als Bereich; seine
+  Inhalte liegen in den fünf neuen. Grundlage ist die Festlegung des Auftraggebers vom
+  12.09.2026: Planning, Daily und Review finden zu verschiedenen Zeiten statt und gehören
+  deshalb nicht in ein Formular – „diese bauen aufeinander auf“
+- **FA-70 Sprintplanning.** Ein Sprint **entsteht hier**, nicht mehr vorab unter
+  „Klassen & Teams“ – die Reihenfolge in der Anwendung entspricht damit der im Unterricht.
+  Ziel, Zeitraum und Kriterienauswahl je Team stehen hier, ebenso das Kriterienblatt für die
+  Klasse: Es gehört an den Anfang eines Sprints, nicht an sein Ende
+- **FA-71 Daily.** Was während des Sprints auffällt, samt den Notizen je Team und je Person.
+  Nicht abschaltbar, aber ein leeres Feld bleibt „nicht bewertet“ – das Daily wird oft nicht
+  beurteilt, und das ist kein Mangel
+- **FA-72 Sprintreview.** Der Abschluss: Punkte, Peer-Werte, Verstehensnachweis, Reflexion,
+  Rückmeldung und die Nachfrage zur Peer-Bewertung. Was in Planning oder Daily erfasst wurde,
+  steht hier unter „Früher erfasst“ **nur zur Ansicht** – zwei Eingabestellen für denselben
+  Wert sind eine Fehlerquelle, keine Bequemlichkeit
+- **FA-73 Diplomarbeitsvorbereitung.** Eigene Sicht, ganzjährig neben den Sprints statt als
+  Glied ihrer Reihe. Der Auftraggeber hat am selben Tag berichtigt, dass sie wegen der
+  Themensuche das ganze Jahr läuft; erst ihre Aufbereitung erfolgt nach dem Projekt. Ihr
+  „Ziel“ ist das gesuchte Thema
+- **FA-74 Tests.** Eigene Sicht; sie stehen nicht mehr in derselben Leiste wie die Sprints.
+  Inhaltlich unverändert
+- **FA-75 Erfassungszeitpunkt je Kriterium.** Ein Kriterium trägt, wann es beobachtet wird:
+  Planning, Daily oder Review; ohne Angabe Review. Das bestimmt **nur den Ort der Erfassung**,
+  nie die Rechnung. Ohne dieses Feld müssten die Sichten die Kennungen `p1` und `p2` fest
+  verdrahten – und das bräche, sobald ein Team andere Kriterien führt, was seit FA-67 der
+  Normalfall ist. Das Feld ist innerhalb von Schemastand 3 additiv: Ein Bestand ohne es wird
+  nicht verändert
+
+- **Schemastand 3: Der Sprint gehört dem Team.** Bisher war ein Abschnitt ein gemeinsames
+  Zeitfenster der Klasse. Der Auftraggeber hat am 12.09.2026 festgehalten, dass Dauer und Ziel
+  eines Sprints je Team beim Planning entstehen – damit fällt diese Annahme. Der Abschnitt
+  behält Nummer, Reihenfolge, Art, Strang und Faktor; alles Zeitliche und Inhaltliche liegt
+  beim Team (FA-66 bis FA-69)
+- **FA-66 Sprintplanung je Team.** Ziel, Beginn und Ende je Abschnitt und Team, anlegbar
+  **bevor** ein einziger Punkt erfasst ist. Der Zeitraum am Abschnitt ist nur noch ein Rahmen
+  (FA-04 AK-2); ohne Planung gilt er weiter, damit ein ungeplanter Sprint nicht aus jeder
+  Stichtagsauswertung fällt. Das Ziel erscheint in Belegfassung und Rückmeldung: Es ist keine
+  Bewertung, sondern ihr Gegenstand – ohne es steht in der Aufzeichnung ein Prozentwert ohne
+  Bezug. Ein Test wird nicht geplant; dort gilt der Zeitpunkt für alle
+- **Die Stichtagszuordnung entscheidet sich am Teamende** (FA-48 AK-6a). Endet Sprint 3 bei
+  einem Team am 28.01. und beim anderen am 03.02., zählt er für das eine ins Semesterzeugnis
+  und für das andere nicht. Das ist die Folge unterschiedlicher Enddaten und keine
+  Ungenauigkeit – die Auswertung macht es erkennbar, weil danach gefragt werden wird
+- **FA-67 Kriterien je Team.** Beim Planen stehen **alle** Kriterien da, und angehakt wird,
+  was in diesem Abschnitt gilt. Im Vorrat liegen: die zugeordnete Rubrik, alles, was dieses
+  Team in einem früheren Abschnitt derselben Art verwendet hat, bei einem Sprint zusätzlich
+  die Vorlage „Vorbereitungssprint“, und was hier neu angelegt wird. Ein abgewähltes Kriterium
+  ist nicht dasselbe wie ein unbewertetes: Es zählt in seiner Kategorie gar nicht mit, während
+  ein unbewertetes aus der Gewichtung fällt und als offen gemeldet wird. Nach dem ersten Punkt
+  stehen die Kriterien fest
+- **Fortgeschrieben wird der Satz des vorigen Sprints**, nicht die Rubrik (AK-7). Damit ist
+  eine Rubrik nur noch **Saatgut**: Sie belegt die erste Planung vor, danach trägt die Kette.
+  Die Rubrikansicht ist damit nicht mehr der Ort, an dem die geltenden Kriterien stehen –
+  sie sagt das jetzt auch (FA-55 AK-7)
+- **Die Kette läuft nur von Sprint zu Sprint** (AK-10). Ein Test und die
+  Diplomarbeitsvorbereitung entstehen aus keinem Sprint und geben an keinen weiter: Ihre
+  Auswahl beginnt bei der zugeordneten Rubrik. Die erste Umsetzung hatte die
+  Diplomarbeitsvorbereitung in die Kette gestellt – vom Auftraggeber am selben Tag berichtigt
+- Ebenfalls nach Durchsicht berichtigt: Statt einzelne Kriterien zu streichen und zu ergänzen,
+  wird aus dem vollständigen Vorrat **ausgewählt**. Ein eigener Weg „aus einer Vorlage neu
+  beginnen“ entfällt damit ersatzlos – wenn alles sichtbar ist, ist ein Satzwechsel eine Frage
+  von Häkchen
+- **Wo Teams verglichen werden, wird die Abweichung ausgewiesen** (AK-6): Auswertung,
+  Notenverteilung und CSV-Export nennen die Abschnitte, in denen nach verschiedenen Kriterien
+  beurteilt wurde. Verglichen wird dabei der rechnende Teil – eine andere Beschreibung
+  desselben Kriteriums ändert keinen Prozentwert und ist keine Abweichung
+- **FA-65 Einfrieren wandert** vom Abschnitt auf das Team und vom ersten Punkteintrag auf das
+  Festhalten der Planung. Das ist zugleich die pädagogisch richtige Reihenfolge: Die Kriterien
+  stehen fest, bevor gearbeitet wird, und nicht erst, wenn beurteilt wird. Für einen Test
+  bleibt die Kopie am Abschnitt – dort gibt es kein Team
+- **FA-47 Angleichen wirkt je Team** und rührt nur an, was aus der Rubrik stammt. Ein
+  fortgeschriebener oder geänderter Satz ist eine Entscheidung des Teams und wird nicht
+  eingeebnet. Die Anforderung verliert damit an Bedeutung: Der übliche Weg einer
+  Kriterienänderung ist ab jetzt der nächste Sprint, nicht das Korrigieren des vorigen
+- **FA-69 Vorlage „Vorbereitungssprint“.** Sechs Ergebnisse mit zusammen 50 Punkten –
+  Fachliches Konzept, Anforderungsspezifikation, Solution-Design, CI/CD, Stakeholderanalyse,
+  Versionsverwaltung –, vom Auftraggeber am 12.09.2026 festgelegt. Prozess, individueller
+  Beitrag und Peer sind **wörtlich** die der Sprint-Rubrik: Sie werden in den zweiten Sprint
+  mitgenommen, und eine abweichende Benennung machte den Verlauf über das Jahr unlesbar.
+  Gewichtung 50/15/35, weil der Prozess im ersten Sprint erst entsteht
+
+### Hinzugefügt
+
+- **FA-68 Migration auf Schemastand 3.** Aus jeder Paarung von Abschnitt und Team mit
+  Bewertung oder Zugehörigkeit entsteht eine Planung mit dem Zeitraum des Abschnitts und
+  leerem Ziel; eine eingefrorene Rubrik wird samt Zeitpunkt an jedes Team übernommen. Der
+  bisherige Stand wird vorher gesichert. **Ein migrierter Bestand ergibt dieselben
+  Prozentwerte, Notenvorschläge und Sperren wie vorher** – das ist nicht Nebeneffekt, sondern
+  Bedingung: Eine Umstellung, die Noten verschiebt, wäre eine stille Neubewertung. Geprüft am
+  Probebestand aus dem Testlauf, zwölf Personen über acht Abschnitte, alle Werte gleich
+
+### Behoben
+
+- **`npm run e2e` prüfte einen veralteten Build.** Das Skript rief nur
+  `playwright test` auf; der Vorschauserver liefert aus, was in `dist` liegt, und sagt nicht
+  dazu, wie alt das ist. Gebaut hat bisher nur `npm run pruefen` – solange man beides
+  hintereinander laufen ließ, fiel es nicht auf. Einmal nur `npm run e2e` genügte, um eine
+  bereits behobene Ursache zweimal als offen erscheinen zu lassen. Das Skript baut jetzt selbst
+
+- **Die Diplomarbeitsvorbereitung bekam die Sprint-Rubrik** statt ihrer eigenen (FA-56 AK-3,
+  FA-73 AK-2). Beim Anlegen eines Abschnitts galt die Vorgaberubrik für alles außer einem
+  Test; die mitgelieferte Rubrik „Diplomarbeitsvorbereitung“ wurde damit nie zugeordnet. Der
+  Fehler ist älter als Release 0.5.0 und fiel erst auf, als die Vorbereitung eine eigene Sicht
+  bekam und ein Durchstich nach „Themenqualität“ suchte. Die Art schlägt jetzt ihre Rubrik
+  vor; fehlt sie im Bestand, gilt weiterhin die Vorgabe
 
 - **Der Deploy-Workflow schob auch für einen Tag nach GitHub Pages** und scheiterte dort an der
   Schutzregel der Umgebung `github-pages`, die nur `main` zulässt. Weil das Release am

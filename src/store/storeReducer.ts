@@ -19,20 +19,32 @@ import {
   strukturKopie,
   vorlageStichtage,
 } from '../domain/defaults';
+import { nurLogischLoeschbar, type Stammdatenart } from '../domain/loeschen';
 import { bewertungsSchluessel } from '../domain/scoring';
-import { rubrikVon, teamIn } from '../domain/zuordnung';
+import {
+  fixierbarkeit,
+  kriterienVorrat,
+  kriterienVorschlag,
+  planungVon,
+  punkteErfasst,
+  rubrikVon,
+} from '../domain/zuordnung';
 import type {
   Abschnitt,
   Bewertung,
   Datenbestand,
   GesetzterWert,
+  GithubAuswertung,
   Id,
   KategorieSchluessel,
   Kriterium,
   PeerEntscheidung,
+  Projekttyp,
   Rubrik,
   Stichtag,
   Strang,
+  Teamabschnitt,
+  Umsetzungsstand,
   Verstehensstufe,
 } from '../domain/types';
 
@@ -41,19 +53,141 @@ export type PunkteKategorie = Extract<KategorieSchluessel, 'team' | 'prozess'>;
 export type Aktion =
   | { art: 'klasse/anlegen'; id: Id; name: string }
   | { art: 'klasse/umbenennen'; id: Id; name: string }
-  | { art: 'klasse/loeschen'; id: Id }
+  | { art: 'klasse/loeschen'; id: Id; jetzt?: string }
   | { art: 'team/anlegen'; id: Id; klasseId: Id; name: string }
   | { art: 'team/umbenennen'; id: Id; name: string }
-  | { art: 'team/loeschen'; id: Id }
+  | { art: 'team/loeschen'; id: Id; jetzt?: string }
   | { art: 'person/anlegen'; klasseId: Id; teamId: Id | null; namen: Array<{ id: Id; name: string }> }
   | { art: 'person/umbenennen'; id: Id; name: string }
+  | {
+      /**
+       * Klasse eines Schülers ändern (Fachkonzept 15.1).
+       *
+       * Die Klasse hängt am Schüler und nur dort; sie muss änderbar sein, weil
+       * ein Schüler die Klasse wechselt oder beim Anlegen falsch zugeordnet
+       * wurde. Die Mitgliedschaften in Projekten bleiben davon unberührt.
+       */
+      art: 'person/klasse';
+      id: Id;
+      klasseId: Id;
+    }
   | { art: 'person/teamSetzen'; id: Id; teamId: Id | null }
-  | { art: 'person/loeschen'; id: Id }
-  | { art: 'zugehoerigkeit/setzen'; abschnittId: Id; personId: Id; teamId: Id | null }
+  | {
+      /** Schüler einem Projekt zuordnen oder daraus entfernen (FA-87 AK-5). */
+      art: 'mitgliedschaft/setzen';
+      projektId: Id;
+      personId: Id;
+      dabei: boolean;
+      /** Gesetzt, wenn eine Überschneidung bewusst bestätigt wurde. */
+      bestaetigtAm?: string;
+    }
+  | { art: 'person/loeschen'; id: Id; jetzt?: string }
   | { art: 'abschnitt/anlegen'; abschnitt: Abschnitt; rubrik?: Rubrik }
   | { art: 'abschnitt/aendern'; id: Id; aenderung: Partial<Omit<Abschnitt, 'id' | 'klasseId'>> }
-  | { art: 'abschnitt/loeschen'; id: Id }
+  | { art: 'abschnitt/loeschen'; id: Id; jetzt?: string }
   | { art: 'abschnitt/angleichen'; rubrikId: Id }
+  | {
+      /** Planung eines Teams anlegen oder festhalten (FA-66). */
+      art: 'planung/festhalten';
+      abschnittId: Id;
+      teamId: Id;
+      ziel?: string;
+      von?: string;
+      bis?: string;
+    }
+  | {
+      art: 'planung/aendern';
+      abschnittId: Id;
+      teamId: Id;
+      aenderung: Partial<
+        Pick<
+          Teamabschnitt,
+          'ziel' | 'von' | 'bis' | 'geplanteAnforderungen' | 'umgesetzteAnforderungen'
+        >
+      >;
+    }
+  | {
+      art: 'planung/kriteriumHinzufuegen';
+      abschnittId: Id;
+      teamId: Id;
+      kategorie: KategorieSchluessel;
+      kriterium: Kriterium;
+    }
+  | {
+      /** Ein Kriterium des Vorrats für diesen Abschnitt an- oder abwählen (FA-67 AK-2). */
+      art: 'planung/kriteriumWaehlen';
+      abschnittId: Id;
+      teamId: Id;
+      kategorie: KategorieSchluessel;
+      kriteriumId: Id;
+      gewaehlt: boolean;
+    }
+  | {
+      /**
+       * Aus dem Vorschlag den geltenden Sprint machen (FA-77 AK-3).
+       *
+       * Bleibt wirkungslos, solange der vorige Sprint desselben Teams sein
+       * Review nicht hat. Die Oberfläche zeigt das vorher an (AK-4); die Prüfung
+       * steht trotzdem hier, damit die Regel nicht an einer Schaltfläche hängt.
+       */
+      art: 'planung/fixieren';
+      abschnittId: Id;
+      teamId: Id;
+    }
+  | {
+      /** Sprintreview: den Sprint abschließen oder den Abschluss zurücknehmen (FA-77 AK-5, AK-6). */
+      art: 'planung/abschliessen';
+      abschnittId: Id;
+      teamId: Id;
+      /** Falsch nimmt den Abschluss zurück. */
+      abgeschlossen: boolean;
+    }
+  | {
+      /**
+       * Eine Maßnahme aus der Retrospektive anlegen, ändern oder – mit leerem
+       * Text – entfernen (FA-80 AK-1).
+       *
+       * Die Kennung kommt von der Ansicht, wie bei `team/anlegen`: Der Reducer
+       * erzeugt keine Kennungen, sonst läge die Zufälligkeit in der Domäne.
+       */
+      art: 'planung/massnahme';
+      abschnittId: Id;
+      teamId: Id;
+      massnahmeId: Id;
+      text: string;
+    }
+  | { art: 'planung/massnahmeEntfernen'; abschnittId: Id; teamId: Id; massnahmeId: Id }
+  | {
+      /** Umsetzungsstand einer Maßnahme des vorigen Sprints (FA-80 AK-4). */
+      art: 'planung/nachschau';
+      abschnittId: Id;
+      teamId: Id;
+      massnahmeId: Id;
+      /** `null` entfernt den Eintrag wieder. */
+      stand: Umsetzungsstand | null;
+      notiz?: string;
+    }
+  | {
+      /** Kennzahlen zur Zusammenarbeit einlesen (FA-81 AK-1). */
+      art: 'planung/auswertungEinlesen';
+      abschnittId: Id;
+      teamId: Id;
+      auswertung: GithubAuswertung;
+    }
+  | { art: 'planung/loeschen'; abschnittId: Id; teamId: Id }
+  | {
+      /**
+       * Einen Abschnitt für **ein Team** wegnehmen (FA-70 AK-8).
+       *
+       * Der Sprint gehört dem Team; ihn aus der Leiste eines Teams zu entfernen
+       * darf ihn den anderen nicht wegnehmen. Bleibt danach kein Team mehr
+       * übrig, verschwindet der Abschnitt ganz – ein Abschnitt ohne Team hätte
+       * keinen Träger.
+       */
+      art: 'abschnitt/vonTeamEntfernen';
+      abschnittId: Id;
+      teamId: Id;
+    }
   | {
       art: 'bewertung/punkte';
       abschnittId: Id;
@@ -82,6 +216,15 @@ export type Aktion =
     }
   | { art: 'bewertung/reflexion'; abschnittId: Id; teamId: Id | null; personId: Id; text: string }
   | {
+      /** Woran eine Person ihren Beitrag zeigt (FA-78 AK-1). */
+      art: 'bewertung/spur';
+      abschnittId: Id;
+      teamId: Id | null;
+      personId: Id;
+      bezeichnung: string;
+      verweis?: string;
+    }
+  | {
       art: 'bewertung/rueckmeldung';
       abschnittId: Id;
       teamId: Id | null;
@@ -101,7 +244,7 @@ export type Aktion =
   | { art: 'bewertung/notiz'; abschnittId: Id; teamId: Id | null; notiz: string }
   | { art: 'rubrik/anlegen'; rubrik: Rubrik }
   | { art: 'rubrik/umbenennen'; rubrikId: Id; name: string }
-  | { art: 'rubrik/loeschen'; rubrikId: Id }
+  | { art: 'rubrik/loeschen'; rubrikId: Id; jetzt?: string }
   | { art: 'rubrik/kriteriumAendern'; rubrikId: Id; kategorie: KategorieSchluessel; index: number; aenderung: Partial<Kriterium> }
   | { art: 'rubrik/kriteriumHinzufuegen'; rubrikId: Id; kategorie: KategorieSchluessel; kriterium: Kriterium }
   | { art: 'rubrik/kriteriumLoeschen'; rubrikId: Id; kategorie: KategorieSchluessel; index: number }
@@ -113,11 +256,40 @@ export type Aktion =
   | { art: 'strang/gewicht'; strang: Strang; wert: number }
   | { art: 'peerDeckelung'; wert: number }
   | { art: 'verstehensAnteil'; wert: number }
+  | { art: 'befundSchwelle'; wert: number }
+  | { art: 'team/repository'; id: Id; repository: string }
+  | {
+      /** Zeitraum des Projekts – Information, keine Rechnung (Fachkonzept 15.1). */
+      art: 'team/zeitraum';
+      id: Id;
+      von?: string;
+      bis?: string;
+    }
+  | { art: 'team/beschreibung'; id: Id; text: string }
+  | {
+      /** Art des Projekts setzen (FA-87 AK-2). `null` macht sie wieder unbekannt. */
+      art: 'team/art';
+      id: Id;
+      projektart: Projekttyp | null;
+    }
+  | {
+      /**
+       * GitHub-Kennung und Schul-E-Mail eines Schülers (FA-88 AK-1).
+       *
+       * Beide liegen an der **Person** und nicht am Projekt: Eine Kennung
+       * gehört einem Menschen, nicht einer Gruppe (AK-3). Ein leerer Wert
+       * löscht das Feld, statt einen leeren Text abzulegen.
+       */
+      art: 'person/stammdaten';
+      id: Id;
+      githubKennung?: string;
+      schulEmail?: string;
+    }
   | { art: 'zeitfaktor'; wert: number }
   | { art: 'sperre'; wert: boolean }
   | { art: 'stichtag/anlegen'; stichtag: Stichtag }
   | { art: 'stichtag/aendern'; id: Id; aenderung: Partial<Omit<Stichtag, 'id'>> }
-  | { art: 'stichtag/loeschen'; id: Id }
+  | { art: 'stichtag/loeschen'; id: Id; jetzt?: string }
   | { art: 'stichtag/vorlage'; startjahr: number }
   | {
       art: 'gesetzt/kategorie';
@@ -137,6 +309,19 @@ export type Aktion =
       begruendung?: string;
     }
   | {
+      /**
+       * Der Sprintwert eines Teams (FA-82 AK-1).
+       *
+       * `null` nimmt ihn zurück – ohne gesetzten Wert gibt es keinen, er wird
+       * nicht stillschweigend aus der Rechnung eingesetzt (AK-6).
+       */
+      art: 'gesetzt/sprintwert';
+      abschnittId: Id;
+      teamId: Id | null;
+      wert: number | null;
+      begruendung?: string;
+    }
+  | {
       art: 'gesetzt/gesamt';
       stichtagId: Id | null;
       personId: Id;
@@ -150,6 +335,17 @@ export type Aktion =
       /** `null` entfernt den Notenstand. */
       note: 1 | 2 | 3 | 4 | 5 | null;
       begruendung?: string;
+    }
+  | {
+      /**
+       * Ein logisch gelöschtes Stammdatenobjekt wieder sichtbar machen (FA-94).
+       *
+       * Kein eigener Ablauf je Art: Wiederherstellen heißt in allen Fällen, das
+       * Löschdatum zu entfernen.
+       */
+      art: 'stammdaten/wiederherstellen';
+      was: Stammdatenart;
+      id: Id;
     }
   | { art: 'daten/ersetzen'; daten: Datenbestand }
   | { art: 'daten/loeschen' };
@@ -174,17 +370,103 @@ function bewertungHolen(daten: Datenbestand, abschnittId: Id, teamId: Id | null)
 }
 
 /**
- * Friert die Rubrik eines Abschnitts ein (FA-65).
+ * Holt die Planung eines Teams oder legt sie an (FA-66).
  *
- * Aufgerufen beim ersten gesetzten Punktewert. Ab diesem Moment gilt für
- * diesen Abschnitt die Kopie – spätere Änderungen an der Rubrik wirken nur
- * noch auf Abschnitte, die noch keine Kopie tragen.
+ * Ohne Angaben übernimmt sie den Rahmen des Abschnitts – das ist besser als
+ * ein leeres Datum, weil ein ungeplanter Sprint sonst aus jeder
+ * Stichtagsauswertung fiele (FA-66 AK-3).
  */
-function einfrierenFallsNoetig(daten: Datenbestand, abschnittId: Id): void {
+/**
+ * Eine gelöschte Maßnahme aus jeder Nachschau entfernen (FA-80).
+ *
+ * Die Nachschau steht am Folgesprint und verweist über die Kennung auf die
+ * Maßnahme. Verschwindet die Maßnahme, bliebe sonst ein Umsetzungsstand ohne
+ * Bezug stehen – unsichtbar, aber in der Sicherungsdatei.
+ */
+function nachschauAufraeumen(daten: Datenbestand, massnahmeId: Id): void {
+  for (const planung of daten.teamabschnitte ?? []) {
+    if (!planung.nachschau?.[massnahmeId]) continue;
+    delete planung.nachschau[massnahmeId];
+    if (Object.keys(planung.nachschau).length === 0) delete planung.nachschau;
+  }
+}
+
+function planungHolen(daten: Datenbestand, abschnittId: Id, teamId: Id): Teamabschnitt {
+  daten.teamabschnitte ??= [];
+  const vorhanden = daten.teamabschnitte.find(
+    (tp) => tp.abschnittId === abschnittId && tp.teamId === teamId,
+  );
+  if (vorhanden) return vorhanden;
   const abschnitt = daten.abschnitte.find((a) => a.id === abschnittId);
-  if (!abschnitt || abschnitt.rubrikKopie) return;
-  abschnitt.rubrikKopie = strukturKopie(rubrikVon(daten, abschnitt));
-  abschnitt.eingefrorenAm = new Date().toISOString();
+  const neu: Teamabschnitt = {
+    abschnittId,
+    teamId,
+    ziel: '',
+    von: abschnitt?.von ?? '',
+    bis: abschnitt?.bis ?? '',
+  };
+  daten.teamabschnitte.push(neu);
+  return neu;
+}
+
+/**
+ * Friert die geltenden Kriterien ein (FA-65, FA-67 AK-1).
+ *
+ * Ab Schemastand 3 geschieht das je **Team**: Seit FA-67 können sich die
+ * Kriterien von Team zu Team unterscheiden, und eine Kopie am Abschnitt könnte
+ * diesen Unterschied nicht tragen. Vorbelegt wird mit dem Satz des vorigen
+ * Sprints desselben Teams (FA-67 AK-7), nicht mit der Rubrik.
+ *
+ * Für einen Test bleibt die Kopie am Abschnitt: Dort gibt es kein Team.
+ */
+function einfrierenFallsNoetig(daten: Datenbestand, abschnittId: Id, teamId: Id | null): void {
+  const abschnitt = daten.abschnitte.find((a) => a.id === abschnittId);
+  if (!abschnitt) return;
+
+  if (teamId === null || abschnitt.art === 'test') {
+    if (abschnitt.rubrikKopie) return;
+    abschnitt.rubrikKopie = strukturKopie(rubrikVon(daten, abschnitt));
+    abschnitt.eingefrorenAm = new Date().toISOString();
+    return;
+  }
+
+  const planung = planungHolen(daten, abschnittId, teamId);
+  if (planung.rubrikKopie) return;
+  const vorschlag = kriterienVorschlag(daten, abschnitt, teamId);
+  planung.rubrikKopie = vorschlag.rubrik;
+  planung.herkunft = vorschlag.herkunft;
+  planung.eingefrorenAm = new Date().toISOString();
+}
+
+/** Die Kriterienliste einer Planung, sofern sie geändert werden darf. */
+function kriterienZumAendern(
+  daten: Datenbestand,
+  abschnittId: Id,
+  teamId: Id,
+  kategorie: KategorieSchluessel,
+): Kriterium[] | null {
+  if (punkteErfasst(daten, abschnittId, teamId)) return null;
+  const planung = planungHolen(daten, abschnittId, teamId);
+  if (!planung.rubrikKopie) {
+    const abschnitt = daten.abschnitte.find((a) => a.id === abschnittId);
+    if (!abschnitt) return null;
+    const vorschlag = kriterienVorschlag(daten, abschnitt, teamId);
+    planung.rubrikKopie = vorschlag.rubrik;
+    planung.herkunft = vorschlag.herkunft;
+  }
+  return planung.rubrikKopie[kategorie];
+}
+
+/** Hält fest, dass der Satz in diesem Abschnitt geändert wurde (FA-67 AK-9). */
+function alsGeaendertVermerken(planung: Teamabschnitt): void {
+  const bisher = planung.herkunft;
+  const quelle =
+    bisher?.art === 'uebernommen'
+      ? bisher.ausAbschnittId
+      : bisher?.art === 'geaendert'
+        ? bisher.ausAbschnittId
+        : null;
+  planung.herkunft = { art: 'geaendert', ausAbschnittId: quelle };
 }
 
 /** Baut einen gesetzten Wert; die Begründung ist freiwillig (FA-50 AK-5). */
@@ -231,7 +513,11 @@ function leereBewertungenEntfernen(daten: Datenbestand): void {
         eintrag.notiz.trim() === '' &&
         eintrag.rueckmeldung === undefined &&
         eintrag.verstehen === undefined &&
-        eintrag.reflexion === undefined;
+        eintrag.reflexion === undefined &&
+        // FA-78: Eine Spur ist Inhalt. Sie steht oft **vor** den Punkten – im
+        // Review wird zuerst gezeigt und erklärt, dann bewertet. Fiele sie
+        // hier heraus, wäre sie bis zum ersten Punkt nicht speicherbar.
+        eintrag.spur === undefined;
       if (leer) delete bewertung.individuell[personId];
     }
   }
@@ -252,25 +538,30 @@ function rubrikSuchen(daten: Datenbestand, rubrikId: Id): Rubrik | undefined {
   return daten.rubriken.find((r) => r.id === rubrikId);
 }
 
-/**
- * Überträgt die Teamzuordnung auf einen neu angelegten Abschnitt (FA-58 AK-2).
- *
- * Grundlage ist der zuletzt angelegte Abschnitt derselben Klasse; gibt es
- * keinen, die Vorbelegung an der Person. Für Tests entfällt das – dort gibt es
- * kein Team.
+/*
+ * `zugehoerigkeitenUebernehmen` ist mit Schemastand 4 entfallen: Die Zuordnung
+ * liegt am Projekt und gilt damit für alle Abschnitte zugleich (Fachkonzept
+ * 15.2, A8). Ein neuer Abschnitt muss nichts mehr übernehmen.
  */
-function zugehoerigkeitenUebernehmen(daten: Datenbestand, neu: Abschnitt): void {
-  if (neu.art === 'test') return;
-  const vorherige = daten.abschnitte
-    .filter((a) => a.klasseId === neu.klasseId && a.id !== neu.id && a.art !== 'test')
-    .sort((a, b) => a.nummer - b.nummer)
-    .pop();
 
-  for (const person of daten.personen) {
-    if (person.klasseId !== neu.klasseId) continue;
-    const teamId = vorherige ? teamIn(daten, vorherige.id, person.id) : person.teamId;
-    daten.zugehoerigkeiten.push({ abschnittId: neu.id, personId: person.id, teamId });
-  }
+/**
+ * Löschen eines Stammdatenobjekts (FA-94).
+ *
+ * Gibt `true` zurück, wenn **logisch** gelöscht wurde – dann hat der Aufrufer
+ * nichts weiter zu tun. Bei `false` ist nichts Bewertetes daran, und der
+ * Aufrufer räumt physisch auf wie bisher.
+ */
+function logischGeloescht(
+  daten: Datenbestand,
+  art: Stammdatenart,
+  objekt: { geloeschtAm?: string } | undefined,
+  id: Id,
+  jetzt = new Date().toISOString(),
+): boolean {
+  if (!objekt) return true;
+  if (!nurLogischLoeschbar(daten, art, id)) return false;
+  objekt.geloeschtAm = jetzt;
+  return true;
 }
 
 export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand {
@@ -294,15 +585,32 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'klasse/loeschen': {
+      if (
+        logischGeloescht(
+          daten,
+          'klasse',
+          daten.klassen.find((k) => k.id === aktion.id),
+          aktion.id,
+          aktion.jetzt,
+        )
+      ) {
+        break;
+      }
       const abschnittIds = daten.abschnitte
         .filter((a) => a.klasseId === aktion.id)
         .map((a) => a.id);
       daten.klassen = daten.klassen.filter((k) => k.id !== aktion.id);
       daten.teams = daten.teams.filter((t) => t.klasseId !== aktion.id);
+      // Die Mitgliedschaften der gelöschten Schüler verschwinden mit ihnen –
+      // **vor** dem Entfernen der Personen ermittelt, sonst ist die Liste leer.
+      const wegPersonen = new Set(
+        daten.personen.filter((pe) => pe.klasseId === aktion.id).map((pe) => pe.id),
+      );
+      daten.mitgliedschaften = daten.mitgliedschaften.filter((m) => !wegPersonen.has(m.personId));
       daten.personen = daten.personen.filter((p) => p.klasseId !== aktion.id);
       daten.abschnitte = daten.abschnitte.filter((a) => a.klasseId !== aktion.id);
-      daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter(
-        (z) => !abschnittIds.includes(z.abschnittId),
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter(
+        (tp) => !abschnittIds.includes(tp.abschnittId),
       );
       daten.bewertungen = daten.bewertungen.filter((b) => !abschnittIds.includes(b.abschnittId));
       daten.peerEntscheidungen = daten.peerEntscheidungen.filter(
@@ -322,15 +630,23 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'team/loeschen':
-      // Personen bleiben erhalten und sind danach „ohne Team“ (FA-03).
+      if (
+        logischGeloescht(
+          daten,
+          'projekt',
+          daten.teams.find((t) => t.id === aktion.id),
+          aktion.id,
+          aktion.jetzt,
+        )
+      ) {
+        break;
+      }
+      // Personen bleiben erhalten und sind danach ohne Projekt (FA-03).
       daten.teams = daten.teams.filter((t) => t.id !== aktion.id);
-      daten.personen = daten.personen.map((p) =>
-        p.teamId === aktion.id ? { ...p, teamId: null } : p,
-      );
-      daten.zugehoerigkeiten = daten.zugehoerigkeiten.map((z) =>
-        z.teamId === aktion.id ? { ...z, teamId: null } : z,
-      );
+      daten.mitgliedschaften = daten.mitgliedschaften.filter((m) => m.projektId !== aktion.id);
       daten.bewertungen = daten.bewertungen.filter((b) => b.teamId !== aktion.id);
+      // Die Planung gehört dem Team; ohne Team hat sie keinen Träger mehr.
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter((tp) => tp.teamId !== aktion.id);
       break;
 
     case 'person/anlegen':
@@ -338,9 +654,13 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         daten.personen.push({
           id: eintrag.id,
           klasseId: aktion.klasseId,
-          teamId: aktion.teamId,
           name: eintrag.name,
         });
+        // Eine Vorbelegung an der Person gibt es nicht mehr; sie wird sofort
+        // Mitglied des gewählten Projekts (Fachkonzept 15.2, A8).
+        if (aktion.teamId) {
+          daten.mitgliedschaften.push({ projektId: aktion.teamId, personId: eintrag.id });
+        }
       }
       break;
 
@@ -350,15 +670,62 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       break;
     }
 
-    case 'person/teamSetzen': {
+    case 'person/klasse': {
       const person = daten.personen.find((p) => p.id === aktion.id);
-      if (person) person.teamId = aktion.teamId;
+      if (person && daten.klassen.some((k) => k.id === aktion.klasseId)) {
+        person.klasseId = aktion.klasseId;
+      }
+      break;
+    }
+
+    case 'person/teamSetzen': {
+      // Ein Schüler kann in mehreren Projekten sein (FA-87 AK-5). Diese Aktion
+      // setzt **ein** Projekt und ersetzt dabei kein anderes.
+      daten.mitgliedschaften = daten.mitgliedschaften.filter(
+        (m) => !(m.personId === aktion.id && m.projektId === aktion.teamId),
+      );
+      if (aktion.teamId) {
+        daten.mitgliedschaften.push({ projektId: aktion.teamId, personId: aktion.id });
+      }
+      break;
+    }
+
+    case 'mitgliedschaft/setzen': {
+      const vorhanden = daten.mitgliedschaften.find(
+        (m) => m.personId === aktion.personId && m.projektId === aktion.projektId,
+      );
+      if (!aktion.dabei) {
+        daten.mitgliedschaften = daten.mitgliedschaften.filter(
+          (m) => !(m.personId === aktion.personId && m.projektId === aktion.projektId),
+        );
+        break;
+      }
+      if (vorhanden) {
+        if (aktion.bestaetigtAm) vorhanden.ueberschneidungBestaetigtAm = aktion.bestaetigtAm;
+        break;
+      }
+      daten.mitgliedschaften.push({
+        projektId: aktion.projektId,
+        personId: aktion.personId,
+        ...(aktion.bestaetigtAm ? { ueberschneidungBestaetigtAm: aktion.bestaetigtAm } : {}),
+      });
       break;
     }
 
     case 'person/loeschen':
+      if (
+        logischGeloescht(
+          daten,
+          'person',
+          daten.personen.find((p) => p.id === aktion.id),
+          aktion.id,
+          aktion.jetzt,
+        )
+      ) {
+        break;
+      }
       daten.personen = daten.personen.filter((p) => p.id !== aktion.id);
-      daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter((z) => z.personId !== aktion.id);
+      daten.mitgliedschaften = daten.mitgliedschaften.filter((m) => m.personId !== aktion.id);
       for (const bewertung of daten.bewertungen) {
         delete bewertung.individuell[aktion.id];
         delete bewertung.peer[aktion.id];
@@ -368,22 +735,10 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       }
       for (const jeStichtag of Object.values(daten.gesamtstand)) delete jeStichtag[aktion.id];
       for (const jeStichtag of Object.values(daten.notenstaende)) delete jeStichtag[aktion.id];
+      // Die GitHub-Kennung liegt seit Schemastand 4 an der Person und
+      // verschwindet mit ihr (FA-88 AK-3); am Projekt ist nichts aufzuräumen.
       leereBewertungenEntfernen(daten);
       break;
-
-    case 'zugehoerigkeit/setzen': {
-      const vorhanden = daten.zugehoerigkeiten.find(
-        (z) => z.abschnittId === aktion.abschnittId && z.personId === aktion.personId,
-      );
-      if (vorhanden) vorhanden.teamId = aktion.teamId;
-      else
-        daten.zugehoerigkeiten.push({
-          abschnittId: aktion.abschnittId,
-          personId: aktion.personId,
-          teamId: aktion.teamId,
-        });
-      break;
-    }
 
     /* ------------------------------------------------------------------ */
     /* Abschnitte (FA-04, FA-56, FA-58, FA-60)                             */
@@ -394,7 +749,6 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       }
       const neu = strukturKopie(aktion.abschnitt);
       daten.abschnitte.push(neu);
-      zugehoerigkeitenUebernehmen(daten, neu);
       break;
     }
 
@@ -420,13 +774,222 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         abschnitt.rubrikKopie = strukturKopie(aktuell);
         abschnitt.angeglichenAm = jetzt;
       }
+      // FA-47 AK-6: Angeglichen wird nur, was aus dieser Rubrik stammt. Ein
+      // fortgeschriebener oder geänderter Satz ist eine Entscheidung des Teams
+      // und wird nicht eingeebnet.
+      for (const planung of daten.teamabschnitte ?? []) {
+        if (planung.herkunft?.art !== 'vorlage') continue;
+        if (planung.herkunft.rubrikId !== aktion.rubrikId || !planung.rubrikKopie) continue;
+        planung.rubrikKopie = strukturKopie(aktuell);
+        planung.angeglichenAm = jetzt;
+      }
+      break;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Sprintplanung je Team (FA-66, FA-67)                                */
+    /* ------------------------------------------------------------------ */
+    case 'planung/festhalten': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.abschnittId);
+      // Ein Test wird nicht geplant: Zeitpunkt und Fragen gelten für alle
+      // (FA-66 AK-6).
+      if (!abschnitt || abschnitt.art === 'test') break;
+      const planung = planungHolen(daten, aktion.abschnittId, aktion.teamId);
+      if (aktion.ziel !== undefined) planung.ziel = aktion.ziel;
+      if (aktion.von !== undefined) planung.von = aktion.von;
+      if (aktion.bis !== undefined) planung.bis = aktion.bis;
+      planung.geplantAm = new Date().toISOString();
+      // FA-65 AK-1a: Mit dem Festhalten stehen die Kriterien fest – nicht erst
+      // mit dem ersten Punkt. Das ist auch die pädagogisch richtige Reihenfolge.
+      einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
+      break;
+    }
+
+    case 'planung/fixieren': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.abschnittId);
+      if (!abschnitt) break;
+      if (!fixierbarkeit(daten, abschnitt, aktion.teamId).erlaubt) break;
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung) break;
+      planung.fixiertAm = new Date().toISOString();
+      // Ein fixierter Sprint gilt – seine Kriterien stehen damit fest, auch
+      // wenn die Planung nie ausdrücklich festgehalten wurde (FA-65 AK-1a).
+      einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
+      break;
+    }
+
+    case 'planung/abschliessen': {
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung) break;
+      if (aktion.abgeschlossen) {
+        planung.abgeschlossenAm = new Date().toISOString();
+        // Wer abschließt, hat den Sprint geführt – ein Abschluss ohne
+        // Fixierung wäre eine Lücke in der Aufzeichnung (FA-77 AK-9).
+        if (!planung.fixiertAm) planung.fixiertAm = planung.abgeschlossenAm;
+      } else {
+        delete planung.abgeschlossenAm;
+      }
+      break;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Retrospektive und Auswertung (FA-80, FA-81)                         */
+    /* ------------------------------------------------------------------ */
+    case 'planung/massnahme': {
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung) break;
+      const text = aktion.text.trim();
+      const liste = (planung.massnahmen ??= []);
+      const vorhanden = liste.find((m) => m.id === aktion.massnahmeId);
+      // Leerer Text entfernt die Maßnahme: eine Maßnahme ohne Satz ist keine.
+      if (text === '') {
+        planung.massnahmen = liste.filter((m) => m.id !== aktion.massnahmeId);
+        nachschauAufraeumen(daten, aktion.massnahmeId);
+      } else if (vorhanden) {
+        vorhanden.text = text;
+      } else {
+        liste.push({ id: aktion.massnahmeId, text });
+      }
+      if (planung.massnahmen?.length === 0) delete planung.massnahmen;
+      break;
+    }
+
+    case 'planung/massnahmeEntfernen': {
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung?.massnahmen) break;
+      planung.massnahmen = planung.massnahmen.filter((m) => m.id !== aktion.massnahmeId);
+      if (planung.massnahmen.length === 0) delete planung.massnahmen;
+      nachschauAufraeumen(daten, aktion.massnahmeId);
+      break;
+    }
+
+    case 'planung/nachschau': {
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung) break;
+      if (aktion.stand === null) {
+        if (planung.nachschau) {
+          delete planung.nachschau[aktion.massnahmeId];
+          if (Object.keys(planung.nachschau).length === 0) delete planung.nachschau;
+        }
+        break;
+      }
+      const nachschau = (planung.nachschau ??= {});
+      nachschau[aktion.massnahmeId] = {
+        stand: aktion.stand,
+        notiz: aktion.notiz ?? nachschau[aktion.massnahmeId]?.notiz ?? '',
+      };
+      break;
+    }
+
+    case 'planung/auswertungEinlesen': {
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung) break;
+      // FA-81 AK-4: Die Zahlen sind ein Stand. Ein erneutes Einlesen ersetzt
+      // ihn vollständig – Teile zusammenzuführen würde einen Stand erzeugen,
+      // den es nie gegeben hat.
+      planung.auswertung = aktion.auswertung;
+      break;
+    }
+
+    case 'planung/aendern': {
+      const planung = planungVon(daten, aktion.abschnittId, aktion.teamId);
+      if (!planung) break;
+      if (aktion.aenderung.ziel !== undefined) planung.ziel = aktion.aenderung.ziel;
+      if (aktion.aenderung.von !== undefined) planung.von = aktion.aenderung.von;
+      if (aktion.aenderung.bis !== undefined) planung.bis = aktion.aenderung.bis;
+      // FA-96: Plan- und Ist-Text der Anforderungen. Beide sind additiv – ein
+      // Bestand ohne sie bleibt gültig, und keine Rechnung hängt daran (G9).
+      if (aktion.aenderung.geplanteAnforderungen !== undefined) {
+        planung.geplanteAnforderungen = aktion.aenderung.geplanteAnforderungen;
+      }
+      if (aktion.aenderung.umgesetzteAnforderungen !== undefined) {
+        planung.umgesetzteAnforderungen = aktion.aenderung.umgesetzteAnforderungen;
+      }
+      break;
+    }
+
+    case 'planung/kriteriumHinzufuegen': {
+      const liste = kriterienZumAendern(daten, aktion.abschnittId, aktion.teamId, aktion.kategorie);
+      if (!liste) break;
+      liste.push(strukturKopie(aktion.kriterium));
+      alsGeaendertVermerken(planungHolen(daten, aktion.abschnittId, aktion.teamId));
+      break;
+    }
+
+    /*
+     * FA-67 AK-2: Gewählt wird aus dem vollständigen Vorrat, statt einzelne
+     * Kriterien zu streichen und zu ergänzen. Die Auswahl wird aus dem Vorrat
+     * neu aufgebaut – so bleibt die Reihenfolge stabil, statt beim Anhaken
+     * ans Ende zu springen.
+     */
+    case 'planung/kriteriumWaehlen': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.abschnittId);
+      const liste = kriterienZumAendern(daten, aktion.abschnittId, aktion.teamId, aktion.kategorie);
+      if (!abschnitt || !liste) break;
+
+      const vorrat = kriterienVorrat(daten, abschnitt, aktion.teamId);
+      const gewaehlt = new Set(liste.map((k) => k.id));
+      if (aktion.gewaehlt) gewaehlt.add(aktion.kriteriumId);
+      else gewaehlt.delete(aktion.kriteriumId);
+
+      const planung = planungHolen(daten, aktion.abschnittId, aktion.teamId);
+      planung.rubrikKopie![aktion.kategorie] = vorrat[aktion.kategorie]
+        .filter((k) => gewaehlt.has(k.id))
+        .map((k) => strukturKopie(k));
+      alsGeaendertVermerken(planung);
+      break;
+    }
+
+    case 'planung/loeschen': {
+      if (punkteErfasst(daten, aktion.abschnittId, aktion.teamId)) break;
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter(
+        (tp) => !(tp.abschnittId === aktion.abschnittId && tp.teamId === aktion.teamId),
+      );
+      break;
+    }
+
+    case 'abschnitt/vonTeamEntfernen': {
+      const abschnitt = daten.abschnitte.find((a) => a.id === aktion.abschnittId);
+      if (!abschnitt) break;
+
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter(
+        (tp) => !(tp.abschnittId === aktion.abschnittId && tp.teamId === aktion.teamId),
+      );
+      daten.bewertungen = daten.bewertungen.filter(
+        (b) => !(b.abschnittId === aktion.abschnittId && b.teamId === aktion.teamId),
+      );
+      // Mitgliedschaften bleiben: Sie gehören dem Projekt, nicht dem Abschnitt.
+
+      // Niemand mehr da: Der Abschnitt geht mit. Sonst stünde er in jeder
+      // Leiste, weil ein Abschnitt ohne Planung für die ganze Klasse gilt
+      // (FA-70 AK-7).
+      const nochGeplant = (daten.teamabschnitte ?? []).some(
+        (tp) => tp.abschnittId === aktion.abschnittId,
+      );
+      const nochBewertet = daten.bewertungen.some((b) => b.abschnittId === aktion.abschnittId);
+      if (!nochGeplant && !nochBewertet) {
+        return storeReducer(daten, { art: 'abschnitt/loeschen', id: aktion.abschnittId });
+      }
       break;
     }
 
     case 'abschnitt/loeschen': {
+      if (
+        logischGeloescht(
+          daten,
+          'abschnitt',
+          daten.abschnitte.find((a) => a.id === aktion.id),
+          aktion.id,
+          aktion.jetzt,
+        )
+      ) {
+        break;
+      }
       const abschnitt = daten.abschnitte.find((a) => a.id === aktion.id);
       daten.abschnitte = daten.abschnitte.filter((a) => a.id !== aktion.id);
-      daten.zugehoerigkeiten = daten.zugehoerigkeiten.filter((z) => z.abschnittId !== aktion.id);
+      daten.teamabschnitte = (daten.teamabschnitte ?? []).filter(
+        (tp) => tp.abschnittId !== aktion.id,
+      );
       daten.bewertungen = daten.bewertungen.filter((b) => b.abschnittId !== aktion.id);
       daten.peerEntscheidungen = daten.peerEntscheidungen.filter(
         (e) => e.abschnittId !== aktion.id,
@@ -445,7 +1008,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     /* Bewertung (FA-12 bis FA-16, FA-65)                                  */
     /* ------------------------------------------------------------------ */
     case 'bewertung/punkte': {
-      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       punktSetzen(bewertung[aktion.kategorie], aktion.kriteriumId, aktion.wert);
       leereBewertungenEntfernen(daten);
@@ -453,7 +1016,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'bewertung/individuell': {
-      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
       punktSetzen(eintrag.punkte, aktion.kriteriumId, aktion.wert);
@@ -482,7 +1045,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
         };
         // Der Nachweis fließt in die Rechnung ein – also gilt hier dieselbe
         // Regel wie beim ersten Punkt: Die Rubrik wird eingefroren (FA-65).
-        einfrierenFallsNoetig(daten, aktion.abschnittId);
+        einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       }
       leereBewertungenEntfernen(daten);
       break;
@@ -494,6 +1057,20 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
       if (aktion.text.trim() === '') delete eintrag.reflexion;
       else eintrag.reflexion = aktion.text;
+      leereBewertungenEntfernen(daten);
+      break;
+    }
+
+    // FA-78: Die Spur je Person. Eine leere Bezeichnung entfernt sie – ein
+    // leerer Eintrag zählte sonst als erfasst und fiele aus der Meldung
+    // offener Spuren heraus (AK-2).
+    case 'bewertung/spur': {
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
+      const eintrag = (bewertung.individuell[aktion.personId] ??= { punkte: {}, notiz: '' });
+      const bezeichnung = aktion.bezeichnung.trim();
+      const verweis = aktion.verweis?.trim() ?? eintrag.spur?.verweis?.trim() ?? '';
+      if (bezeichnung === '' && verweis === '') delete eintrag.spur;
+      else eintrag.spur = verweis ? { bezeichnung, verweis } : { bezeichnung };
       leereBewertungenEntfernen(daten);
       break;
     }
@@ -518,7 +1095,7 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'bewertung/peer': {
-      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId);
+      if (aktion.wert !== null) einfrierenFallsNoetig(daten, aktion.abschnittId, aktion.teamId);
       const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
       const zeile = (bewertung.peer[aktion.bewerterId] ??= {});
       const urteil = (zeile[aktion.bewerteterId] ??= {});
@@ -549,6 +1126,16 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
       const kategorien = (zweig.kategorie ??= {});
       if (aktion.wert === null) delete kategorien[aktion.kategorie];
       else kategorien[aktion.kategorie] = gesetzterWert(aktion.wert, aktion.begruendung);
+      gesetztAufraeumen(bewertung);
+      leereBewertungenEntfernen(daten);
+      break;
+    }
+
+    case 'gesetzt/sprintwert': {
+      const bewertung = bewertungHolen(daten, aktion.abschnittId, aktion.teamId);
+      const zweig = (bewertung.gesetzt ??= {});
+      if (aktion.wert === null) delete zweig.sprintwert;
+      else zweig.sprintwert = gesetzterWert(aktion.wert, aktion.begruendung);
       gesetztAufraeumen(bewertung);
       leereBewertungenEntfernen(daten);
       break;
@@ -604,9 +1191,23 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
 
     case 'rubrik/loeschen': {
       // FA-55 AK-3: Eine Rubrik, nach der bereits bewertet wurde, bleibt.
-      const inVerwendung = daten.abschnitte.some(
-        (a) => a.rubrikId === aktion.rubrikId && a.rubrikKopie,
+      // Seit Schemastand 3 liegt die Kopie beim Team; eine Rubrik ist also auch
+      // dann in Verwendung, wenn nur eine Planung sie festgehalten hat.
+      const abschnitteDerRubrik = new Set(
+        daten.abschnitte.filter((a) => a.rubrikId === aktion.rubrikId).map((a) => a.id),
       );
+      const inVerwendung =
+        daten.abschnitte.some((a) => a.rubrikId === aktion.rubrikId && a.rubrikKopie) ||
+        (daten.teamabschnitte ?? []).some(
+          (tp) => tp.rubrikKopie && abschnitteDerRubrik.has(tp.abschnittId),
+        );
+      const rubrik = daten.rubriken.find((r) => r.id === aktion.rubrikId);
+      // Die Vorgaberubrik bleibt in jedem Fall: Ohne sie hätte ein neuer
+      // Abschnitt keine Kriterien (FA-55 AK-2).
+      if (inVerwendung && rubrik && aktion.rubrikId !== daten.vorgabeRubrikId) {
+        rubrik.geloeschtAm = aktion.jetzt ?? new Date().toISOString();
+        break;
+      }
       if (!inVerwendung && aktion.rubrikId !== daten.vorgabeRubrikId) {
         daten.rubriken = daten.rubriken.filter((r) => r.id !== aktion.rubrikId);
         for (const abschnitt of daten.abschnitte) {
@@ -721,6 +1322,68 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
 
     // FA-40 AK-2: einstellbar. 0 nimmt den Nachweis aus der Rechnung, ohne ihn
     // aus den Aufzeichnungen zu entfernen.
+    case 'befundSchwelle':
+      daten.befundSchwelle = Math.max(0, Math.min(100, aktion.wert));
+      break;
+
+    case 'team/repository': {
+      const team = daten.teams.find((t) => t.id === aktion.id);
+      if (!team) break;
+      const pfad = aktion.repository.trim();
+      if (pfad === '') delete team.repository;
+      else team.repository = pfad;
+      break;
+    }
+
+    case 'team/zeitraum': {
+      const team = daten.teams.find((t) => t.id === aktion.id);
+      if (!team) break;
+      // Leer heißt „nicht festgelegt" und wird nicht als leerer Text abgelegt.
+      if (aktion.von !== undefined) {
+        if (aktion.von.trim() === '') delete team.von;
+        else team.von = aktion.von;
+      }
+      if (aktion.bis !== undefined) {
+        if (aktion.bis.trim() === '') delete team.bis;
+        else team.bis = aktion.bis;
+      }
+      break;
+    }
+
+    case 'team/beschreibung': {
+      const team = daten.teams.find((t) => t.id === aktion.id);
+      if (!team) break;
+      if (aktion.text.trim() === '') delete team.beschreibung;
+      else team.beschreibung = aktion.text;
+      break;
+    }
+
+    case 'team/art': {
+      const team = daten.teams.find((t) => t.id === aktion.id);
+      if (!team) break;
+      // Kein Ersatzwert: „unbekannt" ist ein eigener Zustand und keine Vorgabe
+      // (FA-87 AK-2). Wer die Art nie gesetzt hat, hat sie nicht gesetzt.
+      if (aktion.projektart === null) delete team.typ;
+      else team.typ = aktion.projektart;
+      break;
+    }
+
+    case 'person/stammdaten': {
+      const person = daten.personen.find((pe) => pe.id === aktion.id);
+      if (!person) break;
+      if (aktion.githubKennung !== undefined) {
+        const kennung = aktion.githubKennung.trim();
+        if (kennung === '') delete person.githubKennung;
+        else person.githubKennung = kennung;
+      }
+      if (aktion.schulEmail !== undefined) {
+        const adresse = aktion.schulEmail.trim();
+        if (adresse === '') delete person.schulEmail;
+        else person.schulEmail = adresse;
+      }
+      break;
+    }
+
     case 'verstehensAnteil':
       daten.verstehensAnteil = Math.max(0, Math.min(100, aktion.wert));
       break;
@@ -733,6 +1396,20 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
 
     // FA-61 AK-6: abschaltbar für einen Gegenstand ohne wesentliche Bereiche
     // in diesem Sinn. Vorgabe eingeschaltet.
+    case 'stammdaten/wiederherstellen': {
+      const listen: Record<Stammdatenart, Array<{ id: Id; geloeschtAm?: string }>> = {
+        klasse: daten.klassen,
+        person: daten.personen,
+        projekt: daten.teams,
+        abschnitt: daten.abschnitte,
+        stichtag: daten.stichtage,
+        rubrik: daten.rubriken,
+      };
+      const eintrag = listen[aktion.was].find((e) => e.id === aktion.id);
+      if (eintrag) delete eintrag.geloeschtAm;
+      break;
+    }
+
     case 'sperre':
       daten.sperreAktiv = aktion.wert;
       break;
@@ -753,7 +1430,22 @@ export function storeReducer(vorher: Datenbestand, aktion: Aktion): Datenbestand
     }
 
     case 'stichtag/loeschen':
+      if (
+        logischGeloescht(
+          daten,
+          'stichtag',
+          daten.stichtage.find((s) => s.id === aktion.id),
+          aktion.id,
+          aktion.jetzt,
+        )
+      ) {
+        break;
+      }
       daten.stichtage = daten.stichtage.filter((s) => s.id !== aktion.id);
+      // Ohne diese beiden Zeilen blieben gesetzte Stände und Notenstände als
+      // Karteileichen unter einer Kennung stehen, die es nicht mehr gibt.
+      delete daten.gesamtstand[aktion.id];
+      delete daten.notenstaende[aktion.id];
       break;
 
     // Legt nur an, was noch fehlt – bestehende Stichtage bleiben mit ihren

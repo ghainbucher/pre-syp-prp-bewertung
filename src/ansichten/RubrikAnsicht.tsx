@@ -14,6 +14,9 @@ import {
   RUBRIK_SPRINT,
   VORLAGE_RUBRIK_SPRINT,
   strukturKopie,
+  ZEITPUNKTE,
+  ZEITPUNKT_BEZEICHNUNG,
+  zeitpunktVon,
 } from '../domain/defaults';
 import {
   angleichungAendertWerte,
@@ -21,11 +24,18 @@ import {
   genuegendGrenze,
   zeitfaktorWeichtAb,
 } from '../domain/scoring';
+import { loeschhinweis, nurAktive } from '../domain/loeschen';
 import { bewertungsIndex } from '../store/storeReducer';
 import { rubrikMitId } from '../domain/zuordnung';
-import type { KategorieSchluessel, Rubrik } from '../domain/types';
+import type { Erfassungszeitpunkt, KategorieSchluessel, Rubrik } from '../domain/types';
 import { neueId } from '../ui/auswahl';
-import { BestaetigenSchalter, Karte, Prozent, Textfeld } from '../ui/bausteine';
+import {
+  BestaetigenSchalter,
+  GeloeschteSchalter,
+  Karte,
+  Prozent,
+  Textfeld,
+} from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
 
 const KATEGORIEN: Array<{
@@ -74,6 +84,11 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
   // Zweite Bestätigung, wenn sich Prozentwerte ändern (FA-47 AK-3). Sie zwingt
   // dazu, die Vorschau anzusehen – ein zweiter Klick allein täte das nicht.
   const [gesehen, setGesehen] = useState(false);
+  const [zeigeGeloeschte, setZeigeGeloeschte] = useState(false);
+  // Logisch gelöschte Rubriken stehen in keiner Auswahl mehr, bleiben in
+  // bestehenden Belegfassungen aber lesbar (FA-94).
+  const sichtbareRubriken = nurAktive(daten.rubriken);
+  const geloeschteRubriken = daten.rubriken.filter((r) => r.geloeschtAm);
   const rubrik =
     (ui.rubrikId ? rubrikMitId(daten, ui.rubrikId) : undefined) ??
     rubrikMitId(daten, daten.vorgabeRubrikId) ??
@@ -91,7 +106,14 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
     0,
   );
   // Eine Rubrik, nach der schon bewertet wurde, bleibt erhalten (FA-55 AK-3).
-  const inVerwendung = daten.abschnitte.some((a) => a.rubrikId === rubrik.id && a.rubrikKopie);
+  const abschnitteDerRubrik = new Set(
+    daten.abschnitte.filter((a) => a.rubrikId === rubrik.id).map((a) => a.id),
+  );
+  const inVerwendung =
+    daten.abschnitte.some((a) => a.rubrikId === rubrik.id && a.rubrikKopie) ||
+    (daten.teamabschnitte ?? []).some(
+      (tp) => tp.rubrikKopie && abschnitteDerRubrik.has(tp.abschnittId),
+    );
 
   function rubrikAnlegen() {
     const id = neueId('r');
@@ -108,9 +130,10 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
         <div>
           <h2>Rubrik &amp; Notenschlüssel</h2>
           <p>
-            Kriterien, Punkte und Gewichtung gehören zur Rubrik; jedem Abschnitt ist eine zugeordnet
-            (FA-55). Sobald in einem Abschnitt der erste Punkt erfasst ist, rechnet er mit einer
-            eingefrorenen Kopie – Änderungen hier wirken dann nur noch auf neue Abschnitte (FA-65).
+            Eine Rubrik ist <b>Saatgut</b>, kein Maßstab (FA-55 AK-7): Sie belegt die erste Planung
+            eines Teams vor. Danach schreibt jedes Team seine eigenen Kriterien fort, und wonach ein
+            Team in einem Sprint beurteilt wird, steht in dessen Planung – nicht hier. Änderungen
+            wirken nur auf noch nicht geplante Sprints.
           </p>
         </div>
         <span className="dehnen" />
@@ -125,7 +148,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
 
       <div className="auswahlzeile">
         <span className="etikett">Rubrik</span>
-        {daten.rubriken.map((eintrag) => (
+        {sichtbareRubriken.map((eintrag) => (
           <button
             key={eintrag.id}
             type="button"
@@ -140,7 +163,33 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
         <button type="button" className="schalter klein" onClick={rubrikAnlegen}>
           + Rubrik
         </button>
+        <span className="dehnen" />
+        <GeloeschteSchalter
+          anzahl={geloeschteRubriken.length}
+          offen={zeigeGeloeschte}
+          onUmschalten={setZeigeGeloeschte}
+        />
       </div>
+
+      {zeigeGeloeschte && geloeschteRubriken.length > 0 ? (
+        <div className="auswahlzeile">
+          <span className="etikett">gelöscht</span>
+          {geloeschteRubriken.map((eintrag) => (
+            <span key={eintrag.id} className="zeile">
+              <span className="anmerkung">{eintrag.name}</span>
+              <button
+                type="button"
+                className="schalter schlicht klein"
+                onClick={() =>
+                  dispatch({ art: 'stammdaten/wiederherstellen', was: 'rubrik', id: eintrag.id })
+                }
+              >
+                wiederherstellen
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       <div className="zweispaltig">
         <div>
@@ -155,19 +204,27 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                     dispatch({ art: 'rubrik/umbenennen', rubrikId: rubrik.id, name })
                   }
                 />
-                {daten.rubriken.length > 1 && !inVerwendung ? (
+                {sichtbareRubriken.length > 1 && rubrik.id !== daten.vorgabeRubrikId ? (
                   <BestaetigenSchalter
                     beschriftung="Rubrik löschen"
+                    frage={inVerwendung ? 'obwohl schon bewertet?' : 'wirklich löschen?'}
                     onBestaetigt={() => dispatch({ art: 'rubrik/loeschen', rubrikId: rubrik.id })}
                   />
                 ) : null}
               </div>
-              {inVerwendung ? (
+              {rubrik.id === daten.vorgabeRubrikId ? (
                 <p className="anmerkung" style={{ margin: '10px 0 0' }}>
-                  Nach dieser Rubrik wurde bereits bewertet – sie lässt sich nicht mehr löschen
-                  (FA-55 AK-3).
+                  Das ist die <b>Vorgaberubrik</b>. Sie bleibt in jedem Fall – ohne sie hätte ein
+                  neuer Abschnitt keine Kriterien (FA-55 AK-2).
                 </p>
-              ) : null}
+              ) : (
+                <p className="anmerkung" style={{ margin: '10px 0 0' }}>
+                  {loeschhinweis(daten, 'rubrik', rubrik.id)}
+                  {inVerwendung
+                    ? ' Die eingefrorenen Kopien in den Planungen bleiben unberührt: Nach ihnen wurde beurteilt (FA-55 AK-3).'
+                    : ' Abschnitte, die auf sie zeigen, fallen auf die Vorgaberubrik zurück.'}
+                </p>
+              )}
             </div>
           </Karte>
 
@@ -176,7 +233,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
           {vorschau.length > 0 ? (
             <Karte
               titel="Auf bewertete Abschnitte übertragen"
-              hinweis={`${vorschau.length} ${vorschau.length === 1 ? 'Abschnitt' : 'Abschnitte'} betroffen`}
+              hinweis={`${vorschau.length} ${vorschau.length === 1 ? 'Eintrag' : 'Einträge'} betroffen · fortgeschriebene Kriterien bleiben unberührt`}
               buendig
             >
               <div className="tabellenrahmen">
@@ -193,9 +250,10 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                     {vorschau.flatMap((eintrag) =>
                       eintrag.folgen.length === 0
                         ? [
-                            <tr key={eintrag.abschnitt.id}>
+                            <tr key={`${eintrag.abschnitt.id}-${eintrag.teamId ?? '-'}`}>
                               <td>
                                 <b>{eintrag.abschnitt.name}</b>
+                                {eintrag.teamname ? <> · {eintrag.teamname}</> : null}
                               </td>
                               <td colSpan={3} className="anmerkung">
                                 keine erfassten Ergebnisse
@@ -208,8 +266,17 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                               folge.nachher !== null &&
                               Math.abs(folge.vorher - folge.nachher) <= 0.0001;
                             return (
-                              <tr key={`${eintrag.abschnitt.id}-${folge.person.id}`}>
-                                <td>{i === 0 ? <b>{eintrag.abschnitt.name}</b> : null}</td>
+                              <tr
+                                key={`${eintrag.abschnitt.id}-${eintrag.teamId ?? '-'}-${folge.person.id}`}
+                              >
+                                <td>
+                                  {i === 0 ? (
+                                    <>
+                                      <b>{eintrag.abschnitt.name}</b>
+                                      {eintrag.teamname ? <> · {eintrag.teamname}</> : null}
+                                    </>
+                                  ) : null}
+                                </td>
                                 <td>{folge.person.name}</td>
                                 <td className="zahl">
                                   <Prozent wert={folge.vorher} stellen={1} />
@@ -293,6 +360,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                       <tr>
                         <th>Kriterium</th>
                         <th>Beschreibung</th>
+                        {kategorie.mitPunkten ? <th>erfasst im</th> : null}
                         {kategorie.mitPunkten ? <th className="zahl">max.</th> : null}
                         <th />
                       </tr>
@@ -300,7 +368,7 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                     <tbody>
                       {kriterien.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="anmerkung">
+                          <td colSpan={5} className="anmerkung">
                             keine Kriterien
                           </td>
                         </tr>
@@ -338,6 +406,32 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                                 }
                               />
                             </td>
+                            {/* FA-75: Wann wird das Kriterium beobachtet? Das
+                                bestimmt nur den Ort der Erfassung, nie die
+                                Rechnung. */}
+                            {kategorie.mitPunkten ? (
+                              <td>
+                                <select
+                                  value={zeitpunktVon(kriterium)}
+                                  aria-label={`Erfassungszeitpunkt für ${kriterium.name}`}
+                                  onChange={(e) =>
+                                    dispatch({
+                                      art: 'rubrik/kriteriumAendern',
+                                      rubrikId: rubrik.id,
+                                      kategorie: kategorie.schluessel,
+                                      index,
+                                      aenderung: { zeitpunkt: e.target.value as Erfassungszeitpunkt },
+                                    })
+                                  }
+                                >
+                                  {ZEITPUNKTE.map((wert) => (
+                                    <option key={wert} value={wert}>
+                                      {ZEITPUNKT_BEZEICHNUNG[wert]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            ) : null}
                             {kategorie.mitPunkten ? (
                               <td className="zahl">
                                 <input
@@ -480,6 +574,28 @@ export function RubrikAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
                 <span>{gewichtssumme === 100 ? 'passt' : 'wird intern auf 100 % umgerechnet'}</span>
               </div>
               <span className="prozent">{gewichtssumme} %</span>
+            </div>
+
+            {/* FA-79 AK-4a: Schwelle des Befunds. Sie rechnet in keine Note –
+                sie entscheidet, ab wann ein Abstand im Review benannt wird. */}
+            <div className="uebersichtszeile">
+              <div className="bezeichnung">
+                <b>Befundschwelle</b>
+                <span>Abstand zum Team, ab dem ein Signal anspricht – rechnet nicht mit</span>
+              </div>
+              <input
+                type="number"
+                className="schmal"
+                min={0}
+                max={100}
+                step={1}
+                value={daten.befundSchwelle}
+                aria-label="Befundschwelle in Prozentpunkten"
+                onChange={(e) =>
+                  dispatch({ art: 'befundSchwelle', wert: Number(e.target.value) || 0 })
+                }
+              />
+              <span className="maximum">PP</span>
             </div>
           </div>
 

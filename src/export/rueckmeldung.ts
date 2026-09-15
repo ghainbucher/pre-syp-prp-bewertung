@@ -25,6 +25,13 @@ export interface RueckmeldungEingabe {
   stand: number | null;
   staerken: string;
   entwicklung: string;
+  /**
+   * Das Sprint-Ziel des Teams (FA-66 AK-5).
+   *
+   * Es ist keine Bewertung, sondern ihr Gegenstand – und damit das Einzige aus
+   * der Planung, das hierher gehört.
+   */
+  ziel?: string;
   zeitraum?: string;
   stand_datum?: Date;
 }
@@ -52,6 +59,7 @@ export function einordnung(stand: number | null): string {
 
 export function rueckmeldungHtml(eingabe: RueckmeldungEingabe): string {
   const { personenname, abschnittsname, stand, staerken, entwicklung, zeitraum } = eingabe;
+  const ziel = eingabe.ziel?.trim() ?? '';
   const datum = eingabe.stand_datum ?? new Date();
 
   return `<!doctype html>
@@ -67,6 +75,7 @@ export function rueckmeldungHtml(eingabe: RueckmeldungEingabe): string {
   h2 { font-size: 1rem; margin: 26px 0 6px; }
   p.kopf { margin: 0 0 22px; color: #555; font-size: 0.88rem; }
   p.stand { font-size: 1.05rem; margin: 0 0 4px; }
+  p.ziel { margin: 0; }
   ul { margin: 0; padding-left: 1.2em; }
   li { margin-bottom: 4px; }
   p.offen { color: #777; font-style: italic; margin: 0; }
@@ -79,7 +88,10 @@ export function rueckmeldungHtml(eingabe: RueckmeldungEingabe): string {
   <h1>Rückmeldung zu ${maskiert(abschnittsname)}</h1>
   <p class="kopf">${maskiert(personenname)}${zeitraum ? ` · ${maskiert(zeitraum)}` : ''} · ${datumDeutsch(datum)}</p>
 
-  <h2>Wo du stehst</h2>
+${ziel ? `  <h2>Woran ihr gearbeitet habt</h2>
+  <p class="ziel">${maskiert(ziel)}</p>
+
+` : ''}  <h2>Wo du stehst</h2>
   <p class="stand">${maskiert(einordnung(stand))}</p>
 
   <h2>Das ist dir gelungen</h2>

@@ -12,9 +12,24 @@
  *       Abdeckungsbericht), befreit von H1 – aber es muss dastehen.
  *   H4  Jedes Risiko nennt mindestens eine Maßnahme mit Verweis.
  *
- * Weiche Prüfungen (nur Warnung) betreffen Fristen:
+ * Weiche Prüfungen (nur Warnung) betreffen Fristen und die fachliche Kette:
  *   W1  Dokument steht auf einem älteren Softwarestand als package.json.
  *   W2  „Zuletzt geprüft“ liegt länger zurück als ein Sprint.
+ *   W3  Anforderung nennt keine fachliche Grundlage (Fachkonzept-Kapitel, eine
+ *       Aussage A1..An, ein Grundsatz G1..Gn – oder den ausdrücklichen Vermerk,
+ *       dass es keine gibt).
+ *   W4  Fachliche Aussage in Fachkonzept 15.2 nennt keine Wirkung aufs Produkt.
+ *
+ * **W3 gilt vorwärts, nicht rückwärts** (AGENTS.md, Arbeitsweise-Regel 5). Ab
+ * **FA-87** – also ab dem Tag, an dem die Regel aufgeschrieben wurde – ist eine
+ * fehlende fachliche Grundlage ein **Fehler**. Für die älteren Anforderungen
+ * bleibt es eine Warnung: Achtzig auf einmal nachzuziehen wäre ein Tag
+ * Buchführung ohne eine Zeile Fortschritt, und eine Warnung, die achtzig Mal
+ * erscheint, erzieht zum Wegsehen. Sie bekommen ihre Grundlage, wenn sie
+ * ohnehin angefasst werden; fällt die Zahl auf null, wird die Grenze gelöscht
+ * und W3 gilt für alle.
+ *
+ * Beide Prüfungen sehen nur, **dass** ein Verweis da ist, nicht dass er stimmt.
  *
  * Aufruf:  node scripts/dokumente-pruefen.mjs [--nur-warnen]
  */
@@ -107,6 +122,20 @@ function leseAnforderungen(text) {
       status: meta ? meta[4].trim() : null,
       hatNutzen: /^damit /m.test(block),
       hatPruefverfahren: /\*\*Prüfung:\*\*/.test(block),
+      // Fachliche Grundlage: ein Kapitelverweis, eine Aussage A1..An, ein
+      // Grundsatz G1..Gn – oder der ausdrückliche Vermerk, dass es keine gibt.
+      hatGrundlage:
+        /Fachkonzept/i.test(block) ||
+        /\bA\d+\b/.test(block) ||
+        /\bG\d+\b/.test(block) ||
+        /keine fachliche Grundlage/i.test(block),
+      /*
+       * Für die harte Prüfung ab FA-87 genügt ein beiläufiges „Fachkonzept“
+       * irgendwo im Block **nicht**: Verlangt wird die ausdrückliche Zeile.
+       * Die lockere Erkennung oben bleibt für die Warnung der Altbestände –
+       * sie soll erinnern, nicht aufhalten.
+       */
+      hatGrundlageZeile: /\*\*Fachliche Grundlage:\*\*/.test(block),
       andersGeprueft: /\*\*Prüfung:\*\*.*(manuell|Zeitmessung|Sichtprüfung|Kontrastwerkzeug|Offline|Matrix|Abdeckungsbericht|Branch Protection|Größenprüfung|Durchsicht)/i.test(block),
     };
   });
@@ -177,7 +206,60 @@ function pruefeAnforderungen(anforderungen, testIds) {
     if (istUmgesetzt && !testIds.has(a.id) && !a.andersGeprueft) {
       meldeFehler(`${a.id} ist als umgesetzt geführt, wird aber von keinem Test genannt`);
     }
+
+    // W3 fachliche Grundlage – ab GRUNDLAGE_AB ein Fehler, davor eine Warnung.
+    if (!a.hatGrundlage) {
+      meldeWarnung(
+        `${a.id}: nennt keine fachliche Grundlage (Fachkonzept-Kapitel, A1..An oder G1..Gn)`,
+      );
+    }
+    if (abGrenze(a.id) && !a.hatGrundlageZeile) {
+      meldeFehler(
+        `${a.id} nennt keine Zeile „**Fachliche Grundlage:**“ – ab FA-87 ist sie Pflicht ` +
+          '(AGENTS.md, Arbeitsweise-Regel 5)',
+      );
+    }
   }
+}
+
+/**
+ * Ab welcher Anforderung die fachliche Grundlage Pflicht ist (Regel 5).
+ *
+ * FA-87 ist die erste, die nach der Festlegung vom 14.09.2026 entstanden ist.
+ * Alles davor ist benannter Rückstand, nicht Nachlässigkeit von heute.
+ */
+const GRUNDLAGE_AB = 87;
+
+/** Liegt diese Kennung an oder über der Grenze? Nur FA-Nummern haben eine. */
+function abGrenze(id) {
+  const treffer = /^FA-(\d+)$/.exec(id.trim());
+  return treffer !== null && Number(treffer[1]) >= GRUNDLAGE_AB;
+}
+
+/**
+ * W4 – jede fachliche Aussage in Fachkonzept 15.2 nennt ihre Wirkung.
+ *
+ * Die Aussagen stehen als `**A1 …**` und tragen am Ende `*Wirkung: …*`.
+ * „ohne Produktwirkung“ ist eine gültige Wirkung: Das Fachkonzept beschreibt den
+ * Unterricht und nicht die Software.
+ */
+function pruefeFachlicheAussagen(text) {
+  const kapitel = text.split('### 15.2 Arbeitsweise')[1];
+  if (!kapitel) {
+    meldeWarnung('Fachkonzept: Kapitel 15.2 „Arbeitsweise“ nicht gefunden');
+    return 0;
+  }
+  const bloecke = kapitel.split(/\*\*(A\d+)\s/);
+  let gezaehlt = 0;
+  for (let i = 1; i < bloecke.length; i += 2) {
+    const id = bloecke[i];
+    const block = bloecke[i + 1] ?? '';
+    gezaehlt += 1;
+    if (!/Wirkung:/.test(block)) {
+      meldeWarnung(`Fachkonzept ${id}: nennt keine Wirkung aufs Produkt (auch „ohne Produktwirkung“ wäre eine)`);
+    }
+  }
+  return gezaehlt;
 }
 
 function pruefeRisiken(text) {
@@ -233,6 +315,7 @@ const testIds = idsAusTests();
 
 pruefeAnforderungen(anforderungen, testIds);
 pruefeRisiken(lies('docs/risiken.md'));
+const fachlicheAussagen = pruefeFachlicheAussagen(lies('docs/fachkonzept-unterricht.md'));
 pruefeAktualitaet(paket.version);
 
 const umgesetzt = anforderungen.filter((a) => a.status?.toLowerCase().startsWith('umgesetzt'));
@@ -243,6 +326,8 @@ console.log('─'.repeat(60));
 console.log(`Anforderungen gesamt      ${anforderungen.length}`);
 console.log(`davon umgesetzt           ${umgesetzt.length}`);
 console.log(`davon durch Tests belegt  ${mitTest.length}`);
+console.log(`mit fachlicher Grundlage  ${anforderungen.filter((a) => a.hatGrundlage).length}`);
+console.log(`fachliche Aussagen        ${fachlicheAussagen}`);
 console.log(`Softwarestand             ${paket.version}`);
 console.log('');
 
@@ -265,5 +350,5 @@ if (fehler.length > 0) {
 if (fehler.length === 0 && warnungen.length === 0) {
   console.log('Alle Ketten geschlossen, alle Dokumente aktuell.');
 } else if (fehler.length === 0) {
-  console.log('Keine gerissenen Ketten. Die Warnungen betreffen nur Fristen.');
+  console.log('Keine gerissenen Ketten. Die Warnungen betreffen Fristen und offene fachliche Grundlagen.');
 }

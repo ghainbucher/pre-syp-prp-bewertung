@@ -4,12 +4,12 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung |
 | **Dokument** | Risikoanalyse |
-| **Version** | 0.12 |
-| **Datum** | 2026-09-10 |
+| **Version** | 0.14 |
+| **Datum** | 2026-09-13 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.3.0 |
-| **Zuletzt geprüft** | 2026-09-11 |
+| **Gültig für Softwarestand** | 0.8.0 |
+| **Zuletzt geprüft** | 2026-09-15 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Rahmenbedingung** | RB-08 |
 
@@ -31,6 +31,8 @@
 | 0.10 | 2026-09-10 | G. Hainbucher | R-01: automatische Sicherung als Maßnahme M-01f aufgenommen, Restrisiko neu bewertet | Entwurf |
 | 0.11 | 2026-09-10 | G. Hainbucher | R-12 mit festgelegter Rückfallebene neu bewertet; R-10 nach der Entscheidung zu FA-55/FA-56 neu bewertet; Einstufungen von R-10 bis R-12 an die Skala aus Kapitel 2 angeglichen | Entwurf |
 | 0.12 | 2026-09-10 | G. Hainbucher | R-06 behandelt: Die Rubrik wird beim ersten Eintrag eingefroren (FA-65). OP-R1 entschieden | Entwurf |
+| 0.13 | 2026-09-12 | G. Hainbucher | R-13 aufgenommen: Sobald die Versionsverwaltung an Repository-Zahlen hängt (FA-81), wird sie bespielt – Campbell's Law. Sechs Maßnahmen, die den Schaden begrenzen statt ihn zu verhindern | Entwurf |
+| 0.14 | 2026-09-13 | G. Hainbucher | R-14 aufgenommen: Beim Firmenauftrag sind vier Ausgleiche als Einzelfallentscheidung festgelegt – damit hängt die Vergleichbarkeit zwischen den Teams allein an der Aufzeichnung. Fünf Maßnahmen, OP-R4 ergänzt | Entwurf |
 
 ---
 
@@ -72,6 +74,8 @@ umgesetzt ist. **Ein Risiko ohne Verweis ist unversorgt** — der Prüflauf meld
 | R-10 | Ein Drittel der Jahresnote entsteht außerhalb des Werkzeugs und ist nicht belegbar | Fachlichkeit | 2 | 3 | 6 | hoch | in Behandlung |
 | R-11 | Die Sperre entscheidet über positiv oder negativ, steht aber auf wenigen Feststellungen | Fachlichkeit | 1 | 4 | 4 | mittel | behandelt |
 | R-12 | Die KI-gestützte Korrektur offener Antworten ist unzulässig, uneinheitlich oder beides | Recht, Fachlichkeit | 3 | 3 | 9 | hoch | in Behandlung |
+| R-13 | Sobald die Versionsverwaltung an Repository-Zahlen hängt, wird sie bespielt: Trivial-Commits, Trivial-PRs, Genehmigungen ohne Blick | Fachlichkeit | 4 | 2 | 8 | hoch | in Behandlung |
+| R-14 | Einzelfallentscheidungen beim Firmenauftrag sind im Nachhinein nicht vergleichbar, weil der Grund nirgends steht | Recht, Fachlichkeit | 3 | 3 | 9 | hoch | in Behandlung |
 
 ---
 
@@ -363,7 +367,74 @@ die Auswertung ist in einer Tabellenkalkulation nachbaubar, und die Rubrik exist
 Papier. Die Maßnahmen — dokumentiertes Format, verständlicher Aufbau, Tests — dienen dem
 ohnehin und kosten nichts zusätzlich.
 
+**Maßnahmen**
+
+| Nr. | Maßnahme | Umgesetzt in |
+|---|---|---|
+| M-08a | Der Bestand ist jederzeit vollständig als lesbares JSON auszugeben – ohne dieses Werkzeug lesbar und in einer Tabellenkalkulation nachrechenbar | DS-03, FA-64 |
+| M-08b | Die Notenberechnung liegt ohne Oberfläche vor und ist durch Tests belegt; sie ist damit nachbaubar und nicht bloß vorhanden | NFA-06 |
+| M-08c | Die Rubrik lässt sich als Kriterienblatt ausgeben und existiert damit auch auf Papier | FA-39 |
+
 ---
+
+### R-13 Die Kennzahlen werden bespielt — *hoch*
+
+**Beschreibung.** Mit FA-81 hängt ein Teil des Kriteriums „Versionsverwaltung“ an
+abgefragten Zahlen: PR-Anteil, Review-Beteiligung, Verteilung der Beiträge. Damit ist das
+Verhalten, das gemessen wird, auch das Verhalten, das sich anpasst – **Campbell's Law**, von
+den Autoren von E2 ausdrücklich für genau diesen Fall genannt (Fachkonzept 14.4). Zu erwarten
+sind Trivial-Commits, aufgeteilte Pull Requests und Genehmigungen ohne Durchsicht.
+
+Die Eintrittswahrscheinlichkeit ist mit 4 angesetzt, weil es kein Versagen ist, sondern
+rationales Verhalten: Wer weiß, dass Pull Requests zählen, macht Pull Requests. Die
+Schadenshöhe ist mit 2 angesetzt, weil der Schaden begrenzt bleibt – siehe Maßnahmen.
+
+**Der Nebeneffekt ist teilweise erwünscht.** Dass Schülerinnen und Schüler anfangen, Pull
+Requests zu stellen und Reviews zu geben, *weil* es zählt, ist genau die Aktivierung, die mit
+FA-78 und FA-81 beabsichtigt ist. Das Risiko ist nicht die Verhaltensänderung, sondern die
+**leere** Verhaltensänderung: die Form ohne die Sache.
+
+**Maßnahmen**
+
+| Nr. | Maßnahme | Umgesetzt in |
+|---|---|---|
+| M-13a | Der Vorschlag deckt nur den mechanischen Teil von `t5`; „aussagekräftige Commits“ bleibt Urteil der Lehrkraft | FA-81 AK-5 |
+| M-13b | Begrenzte Hebelwirkung: `t5` trägt 6 von 50 Punkten des Team-Ergebnisses, das Team-Ergebnis 45 % des Sprints | FA-07, Rubrik |
+| M-13c | Kein Vorschlag für andere Kriterien – Funktionalität, Code-Qualität und individueller Beitrag bleiben unberührt | FA-81 AK-8 |
+| M-13d | Der Verstehensnachweis ist nicht bespielbar: Er verlangt Erklärung, nicht Aktivität | Fachkonzept 8.3, FA-40 |
+| M-13e | Die Spur je Person wird im Gespräch erhoben, nicht gezählt – eine Trivialstelle fällt dabei auf | FA-78 |
+| M-13f | Der Vorschlag überschreibt nichts und ist in der Aufzeichnung als Vorschlag erkennbar | FA-81 AK-6, AK-7 |
+
+### R-14 Der Einzelfall ist nicht nachvollziehbar — *hoch*
+
+**Beschreibung.** Beim Auftrag einer Firma an ein Schülerteam sind vier Stellen als
+**Einzelfallentscheidung** festgelegt (siehe [Zusammenarbeit mit KI](zusammenarbeit-mit-ki.md),
+Kapitel 11): der Ausgleich bei einer schweigenden Firma, der Ausgleich bei ungleich guten
+KI-Werkzeugen, der Sprintwert eines abgebrochenen Sprints und jede Abweichung vom gerechneten
+Wert. Jede einzelne davon ist sachlich richtig – eine Regel wäre in diesen Fällen gröber als
+das Urteil. Zusammen bedeuten sie aber: Die Vergleichbarkeit zwischen den Teams hängt an der
+Aufzeichnung und an nichts sonst.
+
+**Unterschied zu R-05.** Dort sind die *Umstände* nicht vergleichbar – fordernder gegen
+genügsamen Auftraggeber. Hier sind die *eigenen Entscheidungen* nicht vergleichbar: zwei
+ähnliche Fälle, zwei verschiedene Ausgleiche, und kein Beleg dafür, warum. Das ist der Weg, auf
+dem R-02 tatsächlich eintritt.
+
+**Warum die Wahrscheinlichkeit bei 3 liegt.** Nicht wegen Nachlässigkeit, sondern wegen des
+Zeitpunkts: Die Entscheidung fällt im Review, unter Zeitdruck, mündlich. Die Begründung
+aufzuschreiben ist ein zweiter Handgriff, und der zweite Handgriff ist der, der entfällt. Die
+Schadenshöhe liegt bei 3: Es kippt nicht der ganze Bestand, sondern die eine Entscheidung, die
+gerade bestritten wird – und genau die ist dann unbelegt.
+
+**Maßnahmen**
+
+| Nr. | Maßnahme | Umgesetzt in |
+|---|---|---|
+| M-14a | Jede Abweichung wird als **gesetzter Wert mit Begründung** erfasst, nie als stille Korrektur; der gerechnete Wert bleibt daneben stehen | FA-50, ADR-006 |
+| M-14b | Die Begründung erscheint in der Belegfassung – was dort nicht steht, ist im Widerspruchsfall nicht vorhanden | FA-32 |
+| M-14c | Der Abbruch eines Sprints wird über den verkürzten Zeitraum und den regulären Abschluss festgehalten, der Grund in der Teamnotiz | FA-77, FA-17 |
+| M-14d | Das Review folgt für alle Teams denselben Fragen, und das Ergebnis wird festgehalten – sonst trägt es die Werkzeugunabhängigkeit nicht, die ihm zugedacht ist | FA-40, FA-78 |
+| M-14e | Vergleich der Einzelfälle untereinander: noch ohne Werkzeug – eine Übersicht aller gesetzten Werte eines Durchgangs gibt es nicht | OP-R4 |
 
 ## 5 Bewusst nicht als Risiko geführt
 
@@ -382,4 +453,5 @@ ohnehin und kosten nichts zusätzlich.
 | OP-R1 | Soll die Rubrik je Klasse und Durchgang eingefroren werden, statt global zu gelten? | **entschieden 2026-09-10: eingefroren je Abschnitt, beim ersten Eintrag (FA-65). Nicht je Klasse und nicht als Versionsverwaltung – der Abschnitt ist die richtige Ebene, seit die Rubrik ohnehin an ihm hängt** |
 | OP-R2 | Ab wie vielen Änderungen ohne Sicherung soll erinnert werden (M-01b)? | **entschieden 2026-09-10: nicht nach Änderungen, sondern nach Tagen – erinnert wird, sobald am laufenden Tag geändert und noch nicht gesichert wurde (FA-46)** |
 | OP-R3 | Wer prüft dieses Register — nur die Lehrkraft, oder ist es Teil der Abstimmung mit der Schulleitung? | offen |
-| OP-R4 | Soll der erwartete Umfang eines Sprint-Ziels in Schulstunden ausgewiesen werden, damit M-09a überprüfbar wird? | offen |
+| OP-R4 | Braucht es eine Übersicht aller gesetzten Werte eines Durchgangs, um Einzelfallentscheidungen untereinander vergleichen zu können (M-14e)? | offen |
+| OP-R5 | Soll der erwartete Umfang eines Sprint-Ziels in Schulstunden ausgewiesen werden, damit M-09a überprüfbar wird? | offen |

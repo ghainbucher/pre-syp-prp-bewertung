@@ -59,7 +59,6 @@ function bestand(): Datenbestand {
 function zeilen(daten = bestand(), abschnitte = daten.abschnitte) {
   return uebersichtZeilen({
     daten,
-    klasseId: 'k1',
     personen: daten.personen,
     teams: daten.teams,
     abschnitte,
@@ -179,7 +178,6 @@ describe('uebersichtZeilen (FA-31)', () => {
     daten.abschnitte[2].bis = '2027-03-20';
     const zeilenMitStichtag = uebersichtZeilen({
       daten,
-      klasseId: 'k1',
       personen: daten.personen,
       teams: daten.teams,
       abschnitte: daten.abschnitte.filter((a) => a.bis && a.bis <= '2027-01-31'),
@@ -194,10 +192,13 @@ describe('uebersichtZeilen (FA-31)', () => {
     expect(datenzeile[kopf.indexOf('Theorie (%)')]).toBe('');
   });
 
-  it('nennt in der Spalte „Team“ die Zuordnung im letzten Abschnitt (FA-58)', () => {
+  it('nennt in der Spalte „Projekt“ die Zuordnung des Schülers (FA-87)', () => {
+    // Ab Schemastand 4 gilt die Mitgliedschaft für alle Abschnitte: Ein
+    // Wechsel je Abschnitt ist nicht mehr abbildbar (Fachkonzept 15.2, A8).
     const wechsel: Aktion[] = [
       { art: 'team/anlegen', id: 'team2', klasseId: 'k1', name: 'Team Galilei' },
-      { art: 'zugehoerigkeit/setzen', abschnittId: 's2', personId: 'p1', teamId: 'team2' },
+      { art: 'mitgliedschaft/setzen', projektId: 'team1', personId: 'p1', dabei: false },
+      { art: 'mitgliedschaft/setzen', projektId: 'team2', personId: 'p1', dabei: true },
     ];
     const daten = wechsel.reduce(storeReducer, bestand());
     const sprints = daten.abschnitte.filter((a) => a.strang === 'praxis');

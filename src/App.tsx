@@ -8,9 +8,20 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { leererDatenbestand } from './domain/defaults';
 import type { Datenbestand } from './domain/types';
 import { AuswertungAnsicht } from './ansichten/AuswertungAnsicht';
-import { BewertenAnsicht } from './ansichten/BewertenAnsicht';
 import { RubrikAnsicht } from './ansichten/RubrikAnsicht';
-import { StrukturAnsicht } from './ansichten/StrukturAnsicht';
+import {
+  DailyAnsicht,
+  DiplomarbeitAnsicht,
+  SprintplanningAnsicht,
+  SprintreviewAnsicht,
+} from './ansichten/SprintAnsicht';
+import { ProjektAnsicht } from './ansichten/ProjektAnsicht';
+import { KlassenAnsicht } from './ansichten/KlassenAnsicht';
+import { ProjektStammdatenAnsicht } from './ansichten/ProjektStammdatenAnsicht';
+import { SchuelerAnsicht } from './ansichten/SchuelerAnsicht';
+import { StichtagAnsicht } from './ansichten/StichtagAnsicht';
+import { TestStammdatenAnsicht } from './ansichten/TestStammdatenAnsicht';
+import { TestAnsicht } from './ansichten/TestAnsicht';
 import { dateiAnbieten } from './export/csv';
 import {
   alsSicherung,
@@ -44,13 +55,61 @@ import {
 import { storeReducer } from './store/storeReducer';
 import { auswahlKorrigieren, klassen as alleKlassen } from './ui/auswahl';
 import { BestaetigenSchalter } from './ui/bausteine';
-import { useUiZustand, type Ansicht } from './ui/useUiZustand';
+import { useUiZustand, type Ansicht, type Stammseite } from './ui/useUiZustand';
 
+/**
+ * Die vier Hauptbereiche (FA-34 AK-1).
+ *
+ * Zwei Leistungsbereiche – **Projekte** und **Tests** (Fachkonzept 15.2, A1) –,
+ * die **Notenauswertung**, die beide zusammenführt, und die **Stammdaten**, die
+ * tragen, was dafür gepflegt wird.
+ *
+ * Die Reihenfolge folgt der **Häufigkeit der Benutzung**, nicht dem Ablauf
+ * (AK-2, Fachkonzept A6): In Projekten wird wöchentlich gearbeitet, Stammdaten
+ * werden dreimal im Jahr gepflegt.
+ */
 const ANSICHTEN: Array<{ id: Ansicht; nr: string; titel: string }> = [
-  { id: 'bewerten', nr: '01', titel: 'Bewerten' },
-  { id: 'auswertung', nr: '02', titel: 'Auswertung' },
-  { id: 'struktur', nr: '03', titel: 'Klassen & Teams' },
-  { id: 'rubrik', nr: '04', titel: 'Rubrik & Notenschlüssel' },
+  { id: 'projekte', nr: '01', titel: 'Projekte' },
+  { id: 'tests', nr: '02', titel: 'Tests' },
+  { id: 'auswertung', nr: '03', titel: 'Notenauswertung' },
+  { id: 'stammdaten', nr: '04', titel: 'Stammdaten' },
+];
+
+/**
+ * Die Teile eines Abschnitts (FA-91 AK-4).
+ *
+ * Sie gehören zum Projekt und stehen deshalb in einer zweiten, untergeordneten
+ * Zeile – **sichtbar nur im Bereich Projekt** (FA-34 AK-5, Festlegung des
+ * Auftraggebers vom 13.09.2026). Ein Sprintteil ohne Projekt ist kein Bereich,
+ * sondern ein Schritt ohne Gegenstand; in den Stammdaten oder im Notenschlüssel
+ * wäre die Zeile vier Knöpfe, die dort nichts zu suchen haben.
+ */
+const SPRINTTEILE: Array<{ id: Ansicht; titel: string }> = [
+  { id: 'planning', titel: 'Sprintplanning' },
+  { id: 'daily', titel: 'Daily' },
+  { id: 'review', titel: 'Sprintreview' },
+  // Steht hier, solange die Diplomarbeitsvorbereitung eine Abschnittsart ist.
+  // Mit dem nächsten Schemastand wird sie ein Projekt vom Typ Diplomarbeit und
+  // der Eintrag entfällt (FA-34 AK-6). Ihn jetzt zu entfernen hieße, vorhandene
+  // Abschnitte unerreichbar zu machen.
+  { id: 'diplomarbeit', titel: 'Diplomarbeitsvorbereitung' },
+];
+
+/**
+ * Die Stammdatenseiten (FA-34 AK-3).
+ *
+ * **Ein Blatt je Sache.** Klassen und Schüler sind getrennt, weil das eine
+ * dreimal im Jahr und das andere laufend gepflegt wird; je Leistungsbereich
+ * gibt es eines; Notenschlüssel und Stichtage gelten für beide und stehen
+ * daneben.
+ */
+const STAMMSEITEN: Array<{ id: Stammseite; titel: string }> = [
+  { id: 'klassen', titel: 'Klassen' },
+  { id: 'schueler', titel: 'Schüler' },
+  { id: 'projekte', titel: 'Projekte' },
+  { id: 'tests', titel: 'Tests' },
+  { id: 'rubrik', titel: 'Rubrik & Notenschlüssel' },
+  { id: 'stichtage', titel: 'Stichtage' },
 ];
 
 const start = laden();
@@ -257,6 +316,10 @@ export function App() {
   const gemeinsam = { daten, dispatch, ui, setUi };
 
   const hinweis = sicherungsHinweis(sicherung);
+  // Die Teile eines Abschnitts gehören zum Projekt: Sie erscheinen im Bereich
+  // Projekt und in ihnen selbst, sonst nicht (FA-34 AK-5).
+  const istSprintteil = SPRINTTEILE.some((teil) => teil.id === ui.ansicht);
+  const imProjekt = ui.ansicht === 'projekte' || istSprintteil;
 
   function sicherungSpeichern() {
     dateiAnbieten(sicherungsDateiname(), alsSicherung(daten), 'application/json');
@@ -292,6 +355,13 @@ export function App() {
             PRE/SYP-PRP <small>Bewertung</small>
           </div>
           <span className="dehnen" />
+          {/*
+            Der Klassenfilter steht in der Kopfleiste und **wirkt auf jeder
+            Sicht** (FA-95): Was er ausblendet, ist überall ausgeblendet. Weil
+            er über Sichtgrenzen hinweg gilt, muss er auch überall zu sehen und
+            zu ändern sein – sonst arbeitet man in einer gefilterten Liste,
+            ohne den Filter zu kennen.
+          */}
           {klassen.length > 0 ? (
             <div className="zeile">
               <label className="etikett" htmlFor="klassenwahl">
@@ -300,8 +370,11 @@ export function App() {
               <select
                 id="klassenwahl"
                 value={ui.klasseId ?? ''}
-                onChange={(e) => setUi({ klasseId: e.target.value, abschnittId: null, teamId: null })}
+                onChange={(e) =>
+                  setUi({ klasseId: e.target.value || null, abschnittId: null, teamId: null })
+                }
               >
+                <option value="">alle Klassen</option>
                 {klassen.map((klasse) => (
                   <option key={klasse.id} value={klasse.id}>
                     {klasse.name}
@@ -323,7 +396,9 @@ export function App() {
             <button
               key={eintrag.id}
               type="button"
-              aria-current={ui.ansicht === eintrag.id}
+              aria-current={
+                ui.ansicht === eintrag.id || (eintrag.id === 'projekte' && istSprintteil)
+              }
               onClick={() => setUi({ ansicht: eintrag.id })}
             >
               <span className="nr">{eintrag.nr}</span>
@@ -331,6 +406,36 @@ export function App() {
             </button>
           ))}
         </div>
+        {imProjekt ? (
+          <div className="rahmen unterreiter">
+            <span className="nr">im Sprint</span>
+            {SPRINTTEILE.map((eintrag) => (
+              <button
+                key={eintrag.id}
+                type="button"
+                aria-current={ui.ansicht === eintrag.id}
+                onClick={() => setUi({ ansicht: eintrag.id })}
+              >
+                {eintrag.titel}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {ui.ansicht === 'stammdaten' ? (
+          <div className="rahmen unterreiter">
+            <span className="nr">Stammdaten</span>
+            {STAMMSEITEN.map((eintrag) => (
+              <button
+                key={eintrag.id}
+                type="button"
+                aria-current={ui.stammseite === eintrag.id}
+                onClick={() => setUi({ stammseite: eintrag.id })}
+              >
+                {eintrag.titel}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </nav>
 
       <main>
@@ -363,10 +468,31 @@ export function App() {
             </div>
           ) : null}
 
-          {ui.ansicht === 'bewerten' ? <BewertenAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'projekte' ? <ProjektAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'stammdaten' && ui.stammseite === 'klassen' ? (
+            <KlassenAnsicht {...gemeinsam} />
+          ) : null}
+          {ui.ansicht === 'stammdaten' && ui.stammseite === 'schueler' ? (
+            <SchuelerAnsicht {...gemeinsam} />
+          ) : null}
+          {ui.ansicht === 'stammdaten' && ui.stammseite === 'projekte' ? (
+            <ProjektStammdatenAnsicht {...gemeinsam} />
+          ) : null}
+          {ui.ansicht === 'stammdaten' && ui.stammseite === 'tests' ? (
+            <TestStammdatenAnsicht {...gemeinsam} />
+          ) : null}
+          {ui.ansicht === 'stammdaten' && ui.stammseite === 'rubrik' ? (
+            <RubrikAnsicht {...gemeinsam} />
+          ) : null}
+          {ui.ansicht === 'stammdaten' && ui.stammseite === 'stichtage' ? (
+            <StichtagAnsicht {...gemeinsam} />
+          ) : null}
+          {ui.ansicht === 'planning' ? <SprintplanningAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'daily' ? <DailyAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'review' ? <SprintreviewAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'diplomarbeit' ? <DiplomarbeitAnsicht {...gemeinsam} /> : null}
+          {ui.ansicht === 'tests' ? <TestAnsicht {...gemeinsam} /> : null}
           {ui.ansicht === 'auswertung' ? <AuswertungAnsicht {...gemeinsam} /> : null}
-          {ui.ansicht === 'struktur' ? <StrukturAnsicht {...gemeinsam} /> : null}
-          {ui.ansicht === 'rubrik' ? <RubrikAnsicht {...gemeinsam} /> : null}
         </div>
       </main>
 

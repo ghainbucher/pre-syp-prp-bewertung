@@ -16,7 +16,7 @@
  */
 
 import { formatProzent, notenvorschlag, notenstandWeichtAb } from '../domain/scoring';
-import { rubrikVon, teamIn } from '../domain/zuordnung';
+import { planungVon, rubrikFuer, teamIn } from '../domain/zuordnung';
 import type {
   Datenbestand,
   Gesamtergebnis,
@@ -108,25 +108,37 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
 
   const abschnitte = ergebnis.alle
     .map(({ abschnitt, ergebnis: e, zeitfaktor }) => {
-      const rubrik = rubrikVon(daten, abschnitt);
       const teamId = abschnitt.art === 'test' ? null : teamIn(daten, abschnitt.id, person.id);
+      const rubrik = rubrikFuer(daten, abschnitt, teamId);
+      const planung = planungVon(daten, abschnitt.id, teamId);
       const teamname = daten.teams.find((t) => t.id === teamId)?.name ?? null;
       const bewertung = daten.bewertungen.find(
         (b) => b.abschnittId === abschnitt.id && b.teamId === teamId,
       );
 
-      // AK-6: Rubrik und Team je Abschnitt. Nach dem Einfrieren gilt die Kopie.
+      // AK-6: Rubrik und Team je Abschnitt. Nach dem Einfrieren gilt die Kopie –
+      // seit Schemastand 3 die des Teams (FA-67 AK-5).
+      const eingefroren = planung?.rubrikKopie ? planung : abschnitt.rubrikKopie ? abschnitt : null;
+      const angeglichenAm = eingefroren?.angeglichenAm;
+      const zeitraum =
+        abschnitt.art === 'test'
+          ? abschnitt.bis
+          : (planung?.bis?.trim() ?? '') || abschnitt.bis;
       const kopfzeilen = [
         `Rubrik „${rubrik.name}“${
-          abschnitt.rubrikKopie
-            ? abschnitt.angeglichenAm
-              ? ` (beim ersten Eintrag festgehalten, am ${datumDeutsch(new Date(abschnitt.angeglichenAm))} an die geänderte Rubrik angeglichen)`
+          eingefroren
+            ? angeglichenAm
+              ? ` (festgehalten, am ${datumDeutsch(new Date(angeglichenAm))} an die geänderte Rubrik angeglichen)`
               : ' (beim ersten Eintrag festgehalten)'
             : ''
         }`,
         abschnitt.art === 'test' ? 'Test – ohne Team' : teamname ? `Team ${teamname}` : 'ohne Team',
+        // FA-66 AK-5: Das Ziel ist der Gegenstand der Bewertung. Ohne es steht
+        // in der Aufzeichnung ein Prozentwert ohne Bezug.
+        planung?.ziel?.trim() ? `Ziel: ${planung.ziel.trim()}` : null,
+        zeitraum ? `bis ${datumDeutsch(new Date(`${zeitraum}T00:00:00`))}` : null,
         `Gewicht ${abschnitt.faktor} × Zeitfaktor ${zeitfaktor}`,
-      ];
+      ].filter((z): z is string => z !== null);
 
       const bloecke = KATEGORIEN.map((k) => {
         const punkte =
@@ -166,6 +178,16 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
         ? `      <p class="reflexion">Sicht der Person: ${maskiert(eintrag.reflexion)}</p>`
         : '';
 
+      // FA-78 AK-7: Die Spur ist der Teil der Aufzeichnung, der ein Urteil
+      // über den individuellen Beitrag überprüfbar macht (§ 18 Abs. 1 SchUG).
+      // Ausdrücklich als „kein Punktewert“ ausgewiesen, damit niemand sie für
+      // eine Bewertungsgröße nimmt.
+      const spurZeile = eintrag?.spur
+        ? `      <p class="spur">Gezeigte Spur: ${maskiert(eintrag.spur.bezeichnung)}${
+            eintrag.spur.verweis ? ` · ${maskiert(eintrag.spur.verweis)}` : ''
+          } <span class="anmerkung">(Anker des Urteils, kein Punktewert)</span></p>`
+        : '';
+
       const peerZeile =
         abschnitt.peerAktiv && e.peer
           ? `      <p class="peer">Peer-Einschätzung ${formatProzent(e.peer.prozent, 1)} % aus
@@ -182,6 +204,31 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
            } · gesetzt am ${datumDeutsch(new Date(e.gesetzt.gesetztAm))}</p>`
         : '';
 
+      // FA-80 AK-7: Die Maßnahmen sind eine Zusage des Teams, keine
+      // Zuschreibung an eine Person – sie stehen deshalb ohne Namen und ohne
+      // Wertung da, samt Umsetzungsstand aus dem Folgesprint.
+      const massnahmen = planung?.massnahmen ?? [];
+      const massnahmenZeile =
+        massnahmen.length > 0
+          ? `      <p class="massnahmen">Maßnahmen der Retrospektive: ${massnahmen
+              .map((m) => maskiert(m.text))
+              .join(' · ')}</p>`
+          : '';
+
+      // FA-82 AK-5: Der Sprintwert ist das, was das Team gehört hat. Ein Wert,
+      // den das Team kennt und der in keiner Aufzeichnung steht, wäre im
+      // Anlassfall nicht erklärbar. Ausdrücklich als „geht in keine Note ein“.
+      const sprintwert = bewertung?.gesetzt?.sprintwert;
+      const sprintwertZeile = sprintwert
+        ? `      <p class="sprintwert">Sprintwert des Teams <b>${formatProzent(
+            sprintwert.prozent,
+            1,
+          )} %</b>${
+            sprintwert.begruendung ? ` · ${maskiert(sprintwert.begruendung)}` : ''
+          } · gesetzt am ${datumDeutsch(new Date(sprintwert.gesetztAm))}
+         <span class="anmerkung">(Aussage an das Team, geht in keine Note ein)</span></p>`
+        : '';
+
       const schema =
         abschnitt.art === 'test'
           ? `      <p class="schema">Bewertungsschema der offenen Frage: ${maskiert(
@@ -193,9 +240,12 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
       <h3>${maskiert(abschnitt.name)} <span class="ergebnis">${prozentOderLeer(e.prozent)}</span></h3>
       <p class="kopf">${maskiert(kopfzeilen.join(' · '))}</p>
 ${bloecke}
+${spurZeile}
 ${verstehenZeile}
 ${reflexionZeile}
 ${peerZeile}
+${sprintwertZeile}
+${massnahmenZeile}
 ${schema}
 ${gesetztZeile}
     </section>`;

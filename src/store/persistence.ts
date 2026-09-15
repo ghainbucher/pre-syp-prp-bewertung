@@ -12,6 +12,7 @@ import {
   SCHEMA_VERSION,
   STANDARD_NOTENSCHLUESSEL,
   STRANG_GEWICHTE,
+  BEFUND_SCHWELLE,
   VERSTEHENS_ANTEIL,
   ZEITFAKTOR_ZWEITE_HAELFTE,
   VORLAGE_RUBRIK_SPRINT,
@@ -23,11 +24,16 @@ import type {
   Abschnitt,
   Bewertung,
   Datenbestand,
+  Id,
   Notenstufe,
   PeerEntscheidung,
+  Person,
   Rubrik,
   Stichtag,
+  Team,
+  Teamabschnitt,
   Zugehoerigkeit,
+  Mitgliedschaft,
 } from '../domain/types';
 
 export const SPEICHER_SCHLUESSEL = 'pre-syp-prp.data.v1';
@@ -82,12 +88,22 @@ function rubrikVervollstaendigen(roh: Partial<Rubrik> | undefined, id: string, n
 }
 
 /**
+ * Zwischenmodell der Migration: der neue Bestand plus die Felder, die bis
+ * Schemastand 3 existierten. Nur innerhalb dieser Datei – nach außen gibt es
+ * ausschließlich `Datenbestand`.
+ */
+type BestandMitAltlast = Omit<Datenbestand, 'personen'> & {
+  zugehoerigkeiten?: Zugehoerigkeit[];
+  personen: Array<Person & { teamId?: Id | null }>;
+};
+
+/**
  * Hebt einen Bestand nach Schemastand 1 auf Stand 2 (FA-57).
  *
  * Punkte, Notizen und Peer-Urteile bleiben unangetastet; es ändern sich nur
  * die Namen der Bezugsgrößen und die Ablage der Rubrik.
  */
-function vonStand1(roh: RoherBestand): Datenbestand {
+function vonStand1(roh: RoherBestand): BestandMitAltlast {
   const alteRubrik = roh.rubrik as (Partial<Rubrik> & { notenschluessel?: Notenstufe[] }) | undefined;
   const rubrik = rubrikVervollstaendigen(alteRubrik, RUBRIK_SPRINT, 'Sprint');
 
@@ -147,6 +163,7 @@ function vonStand1(roh: RoherBestand): Datenbestand {
     strangGewichte: { ...STRANG_GEWICHTE },
     peerDeckelung: PEER_DECKELUNG,
     verstehensAnteil: VERSTEHENS_ANTEIL,
+    befundSchwelle: BEFUND_SCHWELLE,
     zeitfaktorZweiteHaelfte: ZEITFAKTOR_ZWEITE_HAELFTE,
     sperreAktiv: true,
     stichtage: [],
@@ -154,16 +171,138 @@ function vonStand1(roh: RoherBestand): Datenbestand {
     notenstaende: {},
     klassen: (roh.klassen ?? []) as Datenbestand['klassen'],
     teams: (roh.teams ?? []) as Datenbestand['teams'],
-    personen: personen as Datenbestand['personen'],
+    personen: personen as BestandMitAltlast['personen'],
     abschnitte,
+    teamabschnitte: [],
     zugehoerigkeiten,
+    mitgliedschaften: [],
     bewertungen,
     peerEntscheidungen: [],
   };
 }
 
+/**
+ * Hebt einen Bestand nach Schemastand 2 auf Stand 3 (FA-68).
+ *
+ * Aus jeder Paarung von Abschnitt und Team, die eine Bewertung oder eine
+ * Zugehörigkeit hat, wird eine Planung. Sie übernimmt den Zeitraum des
+ * Abschnitts und dessen eingefrorene Rubrik – damit rechnet der Bestand danach
+ * **genau gleich weiter** (AK-5). Ein Ziel gibt es nicht; es ist nicht
+ * erfindbar und bleibt leer.
+ */
+function vonStand2(daten: BestandMitAltlast): BestandMitAltlast {
+  const vorhanden = new Set(
+    (daten.teamabschnitte ?? []).map((tp) => `${tp.abschnittId}__${tp.teamId}`),
+  );
+  const teamabschnitte: Teamabschnitt[] = [...(daten.teamabschnitte ?? [])];
+
+  for (const abschnitt of daten.abschnitte) {
+    // Ein Test hat kein Team (FA-60 AK-3) und damit keine Planung.
+    if (abschnitt.art === 'test') continue;
+
+    const teams = new Set<string>();
+    for (const z of daten.zugehoerigkeiten ?? []) {
+      if (z.abschnittId === abschnitt.id && z.teamId) teams.add(z.teamId);
+    }
+    for (const b of daten.bewertungen) {
+      if (b.abschnittId === abschnitt.id && b.teamId) teams.add(b.teamId);
+    }
+    // Ohne Zugehörigkeiten greift die Vorbelegung an der Person (FA-58).
+    if (teams.size === 0) {
+      for (const person of daten.personen) {
+        if (person.klasseId === abschnitt.klasseId && person.teamId) teams.add(person.teamId);
+      }
+    }
+
+    for (const teamId of teams) {
+      if (vorhanden.has(`${abschnitt.id}__${teamId}`)) continue;
+      const planung: Teamabschnitt = {
+        abschnittId: abschnitt.id,
+        teamId,
+        ziel: '',
+        von: abschnitt.von,
+        bis: abschnitt.bis,
+      };
+      if (abschnitt.rubrikKopie) {
+        planung.rubrikKopie = strukturKopie(abschnitt.rubrikKopie);
+        if (abschnitt.eingefrorenAm) planung.eingefrorenAm = abschnitt.eingefrorenAm;
+        planung.herkunft = { art: 'vorlage', rubrikId: abschnitt.rubrikId };
+      }
+      teamabschnitte.push(planung);
+    }
+  }
+
+  return { ...daten, schemaVersion: SCHEMA_VERSION, teamabschnitte };
+}
+
+/**
+ * Hebt einen Bestand nach Schemastand 3 auf Stand 4 (FA-87 AK-6).
+ *
+ * **Schüler gehören zu Projekten, nicht zu Sprints** (Fachkonzept 15.2, A8).
+ * Aus jeder Zugehörigkeit mit Team und aus jeder Vorbelegung an der Person
+ * wird eine Mitgliedschaft – ohne Doppel. `teamId: null` bedeutete „in diesem
+ * Abschnitt keinem Team zugeordnet" und entfällt ersatzlos: Wer in keinem
+ * Projekt war, hat auch keine Mitgliedschaft.
+ *
+ * **Die Rechnung ändert sich dadurch nicht.** Ein Schüler, der in allen
+ * Abschnitten demselben Team zugeordnet war – der Normalfall –, ist danach
+ * Mitglied genau dieses Projekts, und `teamIn` liefert dasselbe Ergebnis wie
+ * vorher. Nur der Sonderfall „wechselt im dritten Sprint das Team" geht
+ * verloren; er war eine Festlegung, die der Auftraggeber am 14.09.2026
+ * aufgehoben hat.
+ */
+function vonStand3(daten: BestandMitAltlast): Datenbestand {
+  const paare = new Set<string>();
+  const mitgliedschaften: Mitgliedschaft[] = [];
+  const merken = (projektId: Id, personId: Id) => {
+    const schluessel = `${projektId}__${personId}`;
+    if (paare.has(schluessel)) return;
+    paare.add(schluessel);
+    mitgliedschaften.push({ projektId, personId });
+  };
+
+  for (const z of daten.zugehoerigkeiten ?? []) {
+    if (z.teamId) merken(z.teamId, z.personId);
+  }
+  for (const person of daten.personen) {
+    if (person.teamId) merken(person.teamId, person.id);
+  }
+
+  // Die GitHub-Kennungen am Team sind ab Schemastand 4 an der Person zu Hause
+  // (FA-88 AK-3). Eine Kennung, die dort schon steht, wird nicht überschrieben.
+  const teams = daten.teams.map((team) => {
+    // `kennungen` gibt es am Typ nicht mehr; ein alter Bestand trägt es noch.
+    const alt = team as Team & { kennungen?: Record<string, Id> };
+    const kennungen = alt.kennungen;
+    const rest = { ...team };
+    delete (rest as { kennungen?: unknown }).kennungen;
+    for (const [kennung, personId] of Object.entries(kennungen ?? {})) {
+      const person = daten.personen.find((pe) => pe.id === personId);
+      if (person && !(person.githubKennung ?? '').trim()) person.githubKennung = kennung;
+    }
+    return rest;
+  });
+
+  // `delete` statt Destrukturierung mit ungenutzter Bindung: Die Regel
+  // `no-unused-vars` ist hier ohne `ignoreRestSiblings` eingestellt und würde
+  // ein `{ teamId: _weg, ...rest }` als Fehler melden.
+  const personen = daten.personen.map((person) => {
+    const kopie = { ...person };
+    delete kopie.teamId;
+    return kopie;
+  });
+
+  return {
+    ...daten,
+    schemaVersion: SCHEMA_VERSION,
+    teams,
+    personen,
+    mitgliedschaften,
+  };
+}
+
 /** Füllt fehlende Felder eines Bestands nach Schemastand 2 auf. */
-function vervollstaendigen(roh: RoherBestand): Datenbestand {
+function vervollstaendigen(roh: RoherBestand): BestandMitAltlast {
   const rubriken = (roh.rubriken as Rubrik[] | undefined)?.length
     ? (roh.rubriken as Rubrik[])
     : vorlagenRubriken();
@@ -206,6 +345,12 @@ function vervollstaendigen(roh: RoherBestand): Datenbestand {
       typeof roh.verstehensAnteil === 'number' && Number.isFinite(roh.verstehensAnteil)
         ? roh.verstehensAnteil
         : VERSTEHENS_ANTEIL,
+    // FA-79 AK-4a: additiv innerhalb von Schemastand 3 – ein Bestand ohne das
+    // Feld bekommt die Vorgabe, nichts wird umgeschrieben.
+    befundSchwelle:
+      typeof roh.befundSchwelle === 'number' && Number.isFinite(roh.befundSchwelle)
+        ? roh.befundSchwelle
+        : BEFUND_SCHWELLE,
     zeitfaktorZweiteHaelfte:
       typeof roh.zeitfaktorZweiteHaelfte === 'number' && Number.isFinite(roh.zeitfaktorZweiteHaelfte)
         ? roh.zeitfaktorZweiteHaelfte
@@ -220,7 +365,14 @@ function vervollstaendigen(roh: RoherBestand): Datenbestand {
     teams: (roh.teams ?? []) as Datenbestand['teams'],
     personen: (roh.personen ?? []) as Datenbestand['personen'],
     abschnitte,
+    teamabschnitte: ((roh.teamabschnitte ?? []) as Teamabschnitt[]).map((tp) => ({
+      ...tp,
+      ziel: tp.ziel ?? '',
+      von: tp.von ?? '',
+      bis: tp.bis ?? '',
+    })),
     zugehoerigkeiten: (roh.zugehoerigkeiten ?? []) as Zugehoerigkeit[],
+    mitgliedschaften: (roh.mitgliedschaften ?? []) as Mitgliedschaft[],
     bewertungen,
     peerEntscheidungen: (roh.peerEntscheidungen ?? []) as PeerEntscheidung[],
   };
@@ -236,7 +388,23 @@ export function migriere(roh: unknown): Datenbestand {
   if (!istDatenbestand(roh)) return leererDatenbestand();
   const kopie = strukturKopie(roh) as RoherBestand;
   const stand = typeof kopie.schemaVersion === 'number' ? kopie.schemaVersion : 1;
-  return stand < 2 ? vonStand1(kopie) : vervollstaendigen(kopie);
+  const aufStand2 = stand < 2 ? vonStand1(kopie) : vervollstaendigen(kopie);
+  const aufStand3 = stand < 3 ? vonStand2(aufStand2) : aufStand2;
+  if (stand < 4) return vonStand3(aufStand3);
+  // Ein Bestand, der schon auf Stand 4 ist, hat die Altfelder nicht mehr –
+  // `vervollstaendigen` trägt sie aber leer ein, damit die Migrationsschritte
+  // sie lesen können. Hier fallen sie wieder weg, sonst unterschiede sich ein
+  // gelesener Bestand von einem frisch gebauten (FA-33).
+  const sauber = { ...aufStand3 };
+  delete sauber.zugehoerigkeiten;
+  return {
+    ...sauber,
+    personen: sauber.personen.map((person) => {
+      const kopie = { ...person };
+      delete kopie.teamId;
+      return kopie;
+    }),
+  };
 }
 
 /** Liest den Bestand aus dem übergebenen Speicher (Vorgabe: localStorage). */

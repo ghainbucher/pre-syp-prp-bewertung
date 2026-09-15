@@ -7,9 +7,22 @@
  * Schemastand 2 (FA-55 bis FA-60, FA-65): Der **Abschnitt** trägt das Modell,
  * nicht mehr der Sprint. Ein Sprint ist ein Abschnitt, die
  * Diplomarbeitsvorbereitung ist einer, ein Test ist einer.
+ *
+ * Schemastand 3 (FA-66 bis FA-69): Der Abschnitt ist nur noch der Rahmen der
+ * Klasse – Nummer, Art, Strang, Faktor. Beginn, Ende, Ziel und die geltenden
+ * Kriterien liegen beim **Team** (`Teamabschnitt`).
  */
 
 export type Id = string;
+
+/**
+ * Wann ein Kriterium beobachtet wird (FA-75).
+ *
+ * Bestimmt **nur den Ort der Erfassung**, niemals die Rechnung: Kategorie,
+ * Gewicht und Maximalpunkte bleiben unberührt (AK-2). Ohne Angabe gilt
+ * `review` – so verhalten sich alle bisherigen Bestände unverändert (AK-5).
+ */
+export type Erfassungszeitpunkt = 'planning' | 'daily' | 'review';
 
 /** Ein Bewertungskriterium mit erreichbarer Punktezahl. */
 export interface Kriterium {
@@ -18,6 +31,8 @@ export interface Kriterium {
   beschreibung: string;
   /** Erreichbare Punkte. Bei Peer-Kriterien ohne Bedeutung (feste Skala 1–5). */
   max: number;
+  /** Wann es beobachtet wird (FA-75). Fehlt es, gilt `review`. */
+  zeitpunkt?: Erfassungszeitpunkt;
 }
 
 /** Die vier Kategorien einer Rubrik (FA-05). */
@@ -33,6 +48,17 @@ export type Strang = 'praxis' | 'theorie';
  * der Oberfläche – niemals die Rechenlogik (FA-56 AK-3).
  */
 export type Abschnittsart = 'sprint' | 'diplomarbeit' | 'test';
+
+/**
+ * Art eines Projekts (FA-87 AK-2).
+ *
+ * Sie sagt, worum es geht, und sie trägt den Jahrgang: Ein SYP/PRE-Projekt der
+ * 4. Klasse ist etwas anderes als eines der 5., und eine Diplomarbeit ist
+ * wieder etwas anderes. Fehlt die Angabe, ist die Art unbekannt – dann taucht
+ * das Projekt in keinem Jahrgangsfilter auf und wird als solches angezeigt
+ * (FA-90 AK-4). Additiv innerhalb von Schemastand 3.
+ */
+export type Projekttyp = 'syp-pre-4' | 'syp-pre-5' | 'diplomarbeit';
 
 export interface Notenstufe {
   /** Note 1 bis 5. */
@@ -65,17 +91,67 @@ export interface Rubrik {
   gewichte: Record<KategorieSchluessel, number>;
   /** Zählt die Selbsteinschätzung in die Peer-Note (FA-15)? */
   selbstZaehlt: boolean;
+  /**
+   * Zeitpunkt des logischen Löschens (FA-94).
+   *
+   * Gesetzt heißt: aus allen Auswahllisten und Auswertungen verschwunden, in
+   * bestehenden Bewertungen und Belegfassungen aber weiterhin lesbar – und
+   * wiederherstellbar. Physisch gelöscht wird nur, was **nichts Bewertetes**
+   * trägt; sonst wäre eine Note nicht mehr rekonstruierbar (Fachkonzept G7).
+   */
+  geloeschtAm?: string;
 }
 
 export interface Klasse {
   id: Id;
   name: string;
+  /**
+   * Zeitpunkt des logischen Löschens (FA-94).
+   *
+   * Gesetzt heißt: aus allen Auswahllisten und Auswertungen verschwunden, in
+   * bestehenden Bewertungen und Belegfassungen aber weiterhin lesbar – und
+   * wiederherstellbar. Physisch gelöscht wird nur, was **nichts Bewertetes**
+   * trägt; sonst wäre eine Note nicht mehr rekonstruierbar (Fachkonzept G7).
+   */
+  geloeschtAm?: string;
 }
 
 export interface Team {
   id: Id;
   klasseId: Id;
   name: string;
+  /**
+   * Pfad des Repositorys, `eigentuemer/name` (FA-81 AK-3).
+   *
+   * Nur nötig, wo die GitHub-Auswertung benutzt wird; leer heißt: keine.
+   */
+  repository?: string;
+  /**
+   * Typ des Projekts (FA-87 AK-2, Fachkonzept 15.1). Fehlt er, ist er unbekannt.
+   *
+   * Aus dem Typ wird der Jahrgang abgeleitet; ein Projekt ohne Typ fällt aus
+   * dem Jahrgangsfilter heraus und wird keinem Jahrgang zugeschlagen.
+   */
+  typ?: Projekttyp;
+  /** Freier Text zum Auftrag – reine Gedächtnisstütze (Fachkonzept 15.1). */
+  beschreibung?: string;
+  /**
+   * Zeitraum des Projekts – **Information für den Leser, keine Rechnung**
+   * (Fachkonzept 15.1). Üblicherweise der Zeitraum, in dem die Sprints liegen;
+   * geprüft wird das nicht. Der Zeitfaktor nach § 20 Abs. 1 LBVO rechnet
+   * weiterhin über die Hälften des Beurteilungszeitraums.
+   */
+  von?: string;
+  bis?: string;
+  /**
+   * Zeitpunkt des logischen Löschens (FA-94).
+   *
+   * Gesetzt heißt: aus allen Auswahllisten und Auswertungen verschwunden, in
+   * bestehenden Bewertungen und Belegfassungen aber weiterhin lesbar – und
+   * wiederherstellbar. Physisch gelöscht wird nur, was **nichts Bewertetes**
+   * trägt; sonst wäre eine Note nicht mehr rekonstruierbar (Fachkonzept G7).
+   */
+  geloeschtAm?: string;
 }
 
 export interface Person {
@@ -83,20 +159,206 @@ export interface Person {
   klasseId: Id;
   name: string;
   /**
-   * Vorbelegung für neu angelegte Abschnitte – **nicht** die gültige
-   * Zuordnung. Maßgeblich ist die Zugehörigkeit je Abschnitt (FA-58); dieses
-   * Feld dient nur als Ausgangswert, solange für einen Abschnitt noch keine
-   * Zugehörigkeit eingetragen ist. `null` = keinem Team zugeordnet.
+   * GitHub-Kennung dieser Person (FA-88 AK-1).
+   *
+   * Sie liegt an der Person und nicht am Projekt: Eine Kennung gehört einem
+   * Menschen, nicht einer Gruppe. Leer heißt „nicht erfasst" und ist der
+   * Normalzustand am Anfang eines Durchgangs.
    */
-  teamId: Id | null;
+  githubKennung?: string;
+  /**
+   * Schul-E-Mail-Adresse (FA-88 AK-1).
+   *
+   * Eine Angabe der Lehrkraft. Die Anwendung **prüft nicht**, ob sie mit dem
+   * GitHub-Konto verknüpft ist – sie ruft nichts ab (ADR-001), und GitHub
+   * verbirgt Adressen standardmäßig (FA-88 AK-5).
+   */
+  schulEmail?: string;
+  /**
+   * Zeitpunkt des logischen Löschens (FA-94).
+   *
+   * Gesetzt heißt: aus allen Auswahllisten und Auswertungen verschwunden, in
+   * bestehenden Bewertungen und Belegfassungen aber weiterhin lesbar – und
+   * wiederherstellbar. Physisch gelöscht wird nur, was **nichts Bewertetes**
+   * trägt; sonst wäre eine Note nicht mehr rekonstruierbar (Fachkonzept G7).
+   */
+  geloeschtAm?: string;
 }
 
-/** Wer war in welchem Abschnitt in welchem Team (FA-58). */
+/**
+ * Ein Schüler gehört zu einem Projekt (Fachkonzept 15.1, FA-87).
+ *
+ * **Eigene Größe und kein Feld an der Person**: Ein Schüler darf in mehreren
+ * Projekten zugleich sein – im 5. Jahrgang laufen SYP/PRE-Projekt und
+ * Diplomarbeit nebeneinander. Praktisch ist das selten, deshalb warnt die
+ * Anwendung und verlangt eine Bestätigung (FA-87 AK-5).
+ *
+ * Ersetzt ab Schemastand 4 die Zugehörigkeit **je Abschnitt**: Der Auftraggeber
+ * hat am 14.09.2026 festgelegt, dass Schüler zu Projekten gehören und nicht zu
+ * Sprints (Fachkonzept 15.2, A8).
+ */
+export interface Mitgliedschaft {
+  projektId: Id;
+  personId: Id;
+  /**
+   * Zeitpunkt, zu dem die Überschneidung mit einem anderen Projekt bestätigt
+   * wurde. Fehlt er, gab es zum Zeitpunkt der Zuordnung keine Überschneidung.
+   */
+  ueberschneidungBestaetigtAm?: string;
+}
+
+/** Nur noch für das Einlesen alter Bestände (bis Schemastand 3). */
 export interface Zugehoerigkeit {
   abschnittId: Id;
   personId: Id;
-  /** `null` = in diesem Abschnitt keinem Team zugeordnet (FA-58 AK-3). */
   teamId: Id | null;
+}
+
+/**
+ * Woher die Kriterien einer Planung stammen (FA-67 AK-9).
+ *
+ * Ohne diese Angabe lässt sich später nicht mehr sagen, ob ein abweichendes
+ * Kriterium eine Entscheidung war oder aus einer Vorlage stammt.
+ */
+export type Herkunft =
+  | { art: 'vorlage'; rubrikId: Id }
+  | { art: 'uebernommen'; ausAbschnittId: Id }
+  | { art: 'geaendert'; ausAbschnittId: Id | null };
+
+/**
+ * Die Planung eines Teams für einen Abschnitt (FA-66, FA-67).
+ *
+ * Eigene Größe und nicht ein paar Felder in `Bewertung`: Die Planung entsteht
+ * am Sprintbeginn, also bevor es eine Bewertung gibt. Eine leere Bewertung nur
+ * als Träger eines Datums anzulegen liefe der Aufräumregel zuwider, die leere
+ * Bewertungen entfernt – die Planung wäre beim nächsten Speichern weg.
+ */
+export interface Teamabschnitt {
+  abschnittId: Id;
+  teamId: Id;
+  /** Was sich das Team vornimmt (FA-66 AK-1). */
+  ziel: string;
+  /**
+   * Die **geplanten** Anforderungen dieses Sprints (FA-96).
+   *
+   * Vorerst Freitext: eine Zeile je Anforderung, so wie sie im Planning
+   * besprochen wird. Bewusst keine Liste mit Kennungen – welche Struktur sie
+   * braucht, entscheidet sich, wenn erkennbar ist, wie damit gearbeitet wird
+   * (OP-F38).
+   *
+   * Sie ist **keine Bewertungsgrundlage**: Bewertet wird nach den Kriterien
+   * der Planung (`rubrikKopie`, FA-65). Der Text sagt, woran gearbeitet werden
+   * sollte, und macht den Vergleich mit dem Ergebnis möglich.
+   */
+  geplanteAnforderungen?: string;
+  /**
+   * Die **umgesetzten** Anforderungen, im Review festgehalten (FA-96).
+   *
+   * Steht neben dem Plantext, damit Plan und Ist nebeneinander lesbar sind –
+   * das ist der ganze Zweck der Aufzeichnung. Ob etwas fehlt, ist eine
+   * Feststellung; ob das schlecht war, entscheiden die Kriterien.
+   */
+  umgesetzteAnforderungen?: string;
+  /** Beginn; leer = nicht festgelegt, dann gilt der Rahmen des Abschnitts. */
+  von: string;
+  /** Ende; leer = offen. Maßgeblich für die Stichtagszuordnung (FA-48 AK-6). */
+  bis: string;
+  /** Zeitpunkt, zu dem die Planung festgehalten wurde. */
+  geplantAm?: string;
+  /**
+   * Die für dieses Team geltenden Kriterien (FA-65 AK-1, FA-67 AK-1).
+   *
+   * Sobald sie existiert, ist **sie** maßgeblich – nie mehr die Rubrik.
+   */
+  rubrikKopie?: Rubrik;
+  eingefrorenAm?: string;
+  /** Zeitpunkt des letzten Angleichens (FA-47 AK-6). */
+  angeglichenAm?: string;
+  herkunft?: Herkunft;
+  /**
+   * Zeitpunkt der Fixierung (FA-77 AK-3).
+   *
+   * Bis dahin ist die Planung ein **Vorschlag**: vorausgeplant, aber noch nicht
+   * der geltende Sprint. Fixieren geht erst, wenn der vorige Sprint desselben
+   * Teams abgeschlossen ist. Fehlt das Feld, gilt eine Planung als fixiert,
+   * sobald für sie Punkte erfasst sind (AK-10).
+   */
+  fixiertAm?: string;
+  /**
+   * Was sich das Team in der Retrospektive vornimmt (FA-80 AK-1).
+   *
+   * Zwei bis drei Sätze. Sie gehören zu **diesem** Sprint, in dessen
+   * Retrospektive sie entstanden sind; ob sie umgesetzt wurden, steht am
+   * Folgesprint (`nachschau`) – so gibt es für den Text eine einzige Quelle.
+   */
+  massnahmen?: Massnahme[];
+  /**
+   * Umsetzungsstand der Maßnahmen des **vorigen** Sprints (FA-80 AK-4).
+   *
+   * Schlüssel ist die Maßnahmenkennung. Grundlage für das Prozesskriterium
+   * „Retrospektive“, das sonst etwas bewertet, das nirgends steht.
+   */
+  nachschau?: Record<Id, Nachschau>;
+  /** Eingelesene Kennzahlen zur Zusammenarbeit (FA-81). */
+  auswertung?: GithubAuswertung;
+  /**
+   * Zeitpunkt des Abschlusses im Sprintreview (FA-77 AK-5).
+   *
+   * Eine ausdrückliche Handlung, kein Nebenprodukt der Bewertung: Ein bewusst
+   * leer gelassenes Feld soll den nächsten Sprint nicht aufhalten. Für den
+   * Abschluss gibt es keine Ersatzregel – was nie abgeschlossen wurde, ist
+   * offen.
+   */
+  abgeschlossenAm?: string;
+}
+
+/** Eine Maßnahme aus der Retrospektive (FA-80). */
+export interface Massnahme {
+  id: Id;
+  /** Ein Satz: was das Team im Folgesprint anders macht. */
+  text: string;
+}
+
+/** Wie weit eine Maßnahme umgesetzt wurde (FA-80 AK-4). */
+export type Umsetzungsstand = 'ja' | 'teilweise' | 'nein';
+
+export interface Nachschau {
+  stand: Umsetzungsstand;
+  notiz: string;
+}
+
+/**
+ * Kennzahlen zur Zusammenarbeit eines Teams in einem Zeitraum (FA-81).
+ *
+ * **Alles auf Teamebene und alles als Verteilung** – nie eine Leistungszahl je
+ * Person (AK-2). Die Zahlen entstehen außerhalb der Anwendung durch ein Skript
+ * und werden eingelesen; die Anwendung ruft nichts ab (AK-1).
+ */
+export interface GithubAuswertung {
+  /** Wann eingelesen – die Zahlen sind ein Stand, kein Live-Wert (AK-4). */
+  standAm: string;
+  /** Zeitraum, über den das Skript abgefragt hat. */
+  von: string;
+  bis: string;
+  /** Anteil je GitHub-Kennung an den Beiträgen des Zeitraums, in Prozent. */
+  anteile: Record<string, number>;
+  /** Wer wessen Pull Requests kommentiert oder genehmigt hat. */
+  reviews: Reviewkante[];
+  /** Anteil der Änderungen über Pull Requests mit Review, in Prozent. */
+  prAnteil: number;
+  /** Zahl der Änderungen, die direkt auf den Hauptzweig gingen. */
+  direktePushes: number;
+  /** Beiträge je Tag (`JJJJ-MM-TT`), für die zeitliche Verteilung. */
+  jeTag: Record<string, number>;
+  /** Kennungen, für die das Team keine Person benannt hat (AK-3). */
+  nichtZugeordnet: string[];
+}
+
+/** Eine Review-Beziehung: `von` hat einen PR von `an` begutachtet. */
+export interface Reviewkante {
+  von: string;
+  an: string;
+  anzahl: number;
 }
 
 /**
@@ -129,9 +391,16 @@ export interface Abschnitt {
    * wurden.
    */
   angeglichenAm?: string;
+  /**
+   * Rahmen der Klasse, keine Festlegung (FA-04 AK-2).
+   *
+   * Ab Schemastand 3 ist für einen Sprint der Zeitraum des **Teams**
+   * maßgeblich; dieser hier gilt als Rückfall, solange keine Planung vorliegt,
+   * und für Tests, die kein Team haben.
+   */
   von: string;
   bis: string;
-  /** Eigenart des Abschnitts: Vorgabe 1, Lernsprint 0,5 (FA-04, FA-24). */
+  /** Eigenart des Abschnitts: Vorgabe 1, Lernsprint 0,5 (FA-04, FA-24). Gilt für alle Teams. */
   faktor: number;
   /** Findet in diesem Abschnitt eine Peer-Bewertung statt (FA-52)? */
   peerAktiv: boolean;
@@ -139,6 +408,15 @@ export interface Abschnitt {
   angekuendigtAm?: string;
   /** Nur bei Tests: Arbeitszeit in Minuten (FA-60 AK-5, FA-62). */
   arbeitszeitMinuten?: number;
+  /**
+   * Zeitpunkt des logischen Löschens (FA-94).
+   *
+   * Gesetzt heißt: aus allen Auswahllisten und Auswertungen verschwunden, in
+   * bestehenden Bewertungen und Belegfassungen aber weiterhin lesbar – und
+   * wiederherstellbar. Physisch gelöscht wird nur, was **nichts Bewertetes**
+   * trägt; sonst wäre eine Note nicht mehr rekonstruierbar (Fachkonzept G7).
+   */
+  geloeschtAm?: string;
 }
 
 /**
@@ -157,6 +435,15 @@ export interface Stichtag {
   /** Letztes einbezogenes Datum, ISO (JJJJ-MM-TT). */
   bis: string;
   art: Stichtagsart;
+  /**
+   * Zeitpunkt des logischen Löschens (FA-94).
+   *
+   * Gesetzt heißt: aus allen Auswahllisten und Auswertungen verschwunden, in
+   * bestehenden Bewertungen und Belegfassungen aber weiterhin lesbar – und
+   * wiederherstellbar. Physisch gelöscht wird nur, was **nichts Bewertetes**
+   * trägt; sonst wäre eine Note nicht mehr rekonstruierbar (Fachkonzept G7).
+   */
+  geloeschtAm?: string;
 }
 
 /** Ein Beurteilungszeitraum als Datumsspanne; `null` heißt „offen“. */
@@ -249,6 +536,29 @@ export interface Einzelbewertung {
    * hat, ist Grundlage des Gesprächs und nicht ein weiterer Prozentwert.
    */
   reflexion?: string;
+  /** Woran diese Person ihren Beitrag zeigt (FA-78). */
+  spur?: Spur;
+}
+
+/**
+ * Die eine Stelle, an der eine Person ihren Beitrag in einem Abschnitt zeigt
+ * (FA-78 AK-1).
+ *
+ * Kein Punktewert und kein Nachweis von Menge – eine einzige Stelle kann viel
+ * oder wenig Arbeit sein (AK-3). Sie ist der Anker des Urteils: die Stelle,
+ * über die im Verstehensnachweis gesprochen wurde. Im Vorbereitungssprint ein
+ * Dokument, später ein Commit oder ein Pull Request (AK-6).
+ */
+export interface Spur {
+  /** Kurz, in eigenen Worten: „PR #42, Storno-Validierung“. */
+  bezeichnung: string;
+  /**
+   * Verweis darauf, etwa eine URL.
+   *
+   * Wird **gespeichert und angezeigt, nie geöffnet oder gelesen** (AK-4): Die
+   * Anwendung ruft nichts ab (ADR-001, NFA-03).
+   */
+  verweis?: string;
 }
 
 /**
@@ -275,6 +585,14 @@ export interface Bewertung {
   gesetzt?: {
     kategorie?: Partial<Record<KategorieSchluessel, GesetzterWert>>;
     abschnittsergebnis?: Record<Id, GesetzterWert>;
+    /**
+     * Der Sprintwert dieses Teams (FA-82).
+     *
+     * Eine Aussage **an das Team**, keine Bewertungsebene: Er geht in keine
+     * Note ein (AK-4). Die Jahresnote entsteht weiter aus den
+     * Abschnittsergebnissen je Person.
+     */
+    sprintwert?: GesetzterWert;
   };
 }
 
@@ -323,6 +641,15 @@ export interface Datenbestand {
    * wesentlichen Bereichen.
    */
   sperreAktiv: boolean;
+  /**
+   * Abstand zum Teamergebnis in Prozentpunkten, ab dem das erste Signal des
+   * Befunds anspricht (FA-79 AK-4a). Vorgabe 15.
+   *
+   * Einstellbar, weil eine fest verdrahtete Zahl im Widerspruchsfall nicht zu
+   * begründen wäre: So ist es eine Festlegung der Lehrkraft, die in der
+   * Aufzeichnung steht. Additiv innerhalb von Schemastand 3.
+   */
+  befundSchwelle: number;
   /** Beurteilungs- und Kontrollzeitpunkte (FA-48 AK-4). */
   stichtage: Stichtag[];
   /** Gesetzter Gesamtstand je Stichtag und Person (FA-50 AK-1). */
@@ -333,7 +660,10 @@ export interface Datenbestand {
   teams: Team[];
   personen: Person[];
   abschnitte: Abschnitt[];
-  zugehoerigkeiten: Zugehoerigkeit[];
+  /** Planung je Team und Abschnitt (FA-66, Schemastand 3). */
+  teamabschnitte: Teamabschnitt[];
+  /** Schüler ↔ Projekt (FA-87). Ersetzt ab Schemastand 4 `zugehoerigkeiten`. */
+  mitgliedschaften: Mitgliedschaft[];
   bewertungen: Bewertung[];
   /**
    * Nachvollziehbar, ab wann Peer-Werte einfließen (FA-53 AK-4).

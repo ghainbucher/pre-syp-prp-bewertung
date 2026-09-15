@@ -8,7 +8,7 @@
 | **Datum** | 2026-09-09 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.3.0 |
+| **Gültig für Softwarestand** | 0.8.0 |
 | **Zuletzt geprüft** | 2026-09-11 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 

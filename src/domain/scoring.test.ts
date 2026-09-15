@@ -4,13 +4,35 @@ import {
   RUBRIK_SPRINT,
   STANDARD_NOTENSCHLUESSEL,
   VORLAGE_RUBRIK_SPRINT,
+  VORLAGE_RUBRIK_VORBEREITUNG,
   leererDatenbestand,
   schuljahrVon,
   strukturKopie,
   testRubrik,
   vorlageStichtage,
+  vorlagenRubriken,
+  zeitpunktVon,
 } from './defaults';
-import { zeitraumVon } from './zuordnung';
+import {
+  abschnitteOhneSpur,
+  abschnittKuenftig,
+  fixierbarkeit,
+  istLaufenderAbschnitt,
+  kurzzeichen,
+  sprintZustand,
+  ueberschneidungen,
+  zeitraumVerdreht,
+  zeitraumVon,
+  zuletztGelaufenerAbschnitt,
+} from './zuordnung';
+import {
+  abschlussFaellig,
+  abschnitteMitAbweichung,
+  befund,
+  kriterienWeichenAb,
+  sprintwertVorschlag,
+  versionsverwaltungVorschlag,
+} from './scoring';
 import {
   ABWEICHUNG_SCHWELLE,
   abschnittsErgebnis,
@@ -45,8 +67,10 @@ import type {
   Bewertung,
   Datenbestand,
   Gesamtergebnis,
+  GithubAuswertung,
   Kriterium,
   Person,
+  Punkte,
   Rubrik,
   Verstehensstufe,
 } from './types';
@@ -65,7 +89,25 @@ const KRITERIEN: Kriterium[] = [
 const ALLE_GEWICHTE = { team: 40, prozess: 15, individuell: 35, peer: 10 };
 
 function person(id: string, teamId: string | null = 'team1'): Person {
-  return { id, klasseId: 'k1', teamId, name: id };
+  // `teamId` bleibt als Parameter erhalten, damit die Aufrufe unverändert
+  // lesbar sind; ab Schemastand 4 liegt die Zuordnung aber an der
+  // Mitgliedschaft. `mitglied()` erzeugt sie dazu.
+  void teamId;
+  return { id, klasseId: 'k1', name: id };
+}
+
+/**
+ * Mitgliedschaft eintragen, ohne Doppel.
+ *
+ * Bis Schemastand 3 wurde je Abschnitt eine Zugehörigkeit geschrieben; ab
+ * Schemastand 4 gilt eine Mitgliedschaft für alle Abschnitte des Projekts.
+ * Mehrfaches Eintragen darf deshalb nichts verändern.
+ */
+function mitgliedschaftMerken(daten: Datenbestand, projektId: string, personId: string): void {
+  if (daten.mitgliedschaften.some((m) => m.projektId === projektId && m.personId === personId)) {
+    return;
+  }
+  daten.mitgliedschaften.push({ projektId, personId });
 }
 
 function leereBewertung(abschnittId = 's1', teamId: string | null = 'team1'): Bewertung {
@@ -323,6 +365,7 @@ describe('strangErgebnis und gesamtErgebnis (FA-24, FA-59)', () => {
     daten.klassen = [{ id: 'k1', name: '4AHIF' }];
     daten.teams = [{ id: 'team1', klasseId: 'k1', name: 'Team Kepler' }];
     daten.personen = [person('p1')];
+    mitgliedschaftMerken(daten, 'team1', 'p1');
     daten.rubriken = [
       rubrik({ gewichte: { team: 100, prozess: 0, individuell: 0, peer: 0 } }),
       testRubrik('rubrik-test', 'Test 1'),
@@ -471,8 +514,8 @@ describe('Aufbau der Rubrik (FA-05, FA-10)', () => {
     const b = leereBewertung();
     b.team = { t1: 5 };
     const r = rubrik();
-    const ausKlasseA = { ...person('p1'), klasseId: 'k1', teamId: 'team1' };
-    const ausKlasseB = { ...person('p2'), klasseId: 'k2', teamId: 'team2' };
+    const ausKlasseA = { ...person('p1'), klasseId: 'k1' };
+    const ausKlasseB = { ...person('p2'), klasseId: 'k2' };
     expect(ergebnisAusRubrik(b, ausKlasseA, [ausKlasseA], r, false).team!.prozent).toBe(
       ergebnisAusRubrik(b, ausKlasseB, [ausKlasseB], r, false).team!.prozent,
     );
@@ -587,9 +630,11 @@ describe('Abschluss und Nachfrage (FA-53)', () => {
     daten.klassen.push({ id: 'k1', name: '4AHIF' });
     daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Team Kepler' });
     daten.personen.push(
-      { id: 'p1', klasseId: 'k1', teamId: 'team1', name: 'Berger Lena' },
-      { id: 'p2', klasseId: 'k1', teamId: 'team1', name: 'Steiner Jonas' },
+      { id: 'p1', klasseId: 'k1', name: 'Berger Lena' },
+      { id: 'p2', klasseId: 'k1', name: 'Steiner Jonas' },
     );
+    mitgliedschaftMerken(daten, 'team1', 'p1');
+    mitgliedschaftMerken(daten, 'team1', 'p2');
     const abschnitt: Abschnitt = {
       id: 's1',
       klasseId: 'k1',
@@ -628,9 +673,9 @@ describe('Abschluss und Nachfrage (FA-53)', () => {
     expect(abschnittAbgeschlossen(ganz.daten, ganz.abschnitt, ganz.bewertungen)).toBe(true);
   });
 
-  it('gilt ohne Team nicht als abgeschlossen', () => {
+  it('gilt ohne Projekt nicht als abgeschlossen', () => {
     const { daten, abschnitt, bewertungen } = lage({ p1: { f1: 2 }, p2: { f1: 1 } });
-    daten.personen = daten.personen.map((p) => ({ ...p, teamId: null }));
+    daten.mitgliedschaften = [];
     expect(abschnittAbgeschlossen(daten, abschnitt, bewertungen)).toBe(false);
   });
 
@@ -814,7 +859,7 @@ describe('Testfälle zur Notenfindung (FA-54, TF-A bis TF-I)', () => {
         faktor: 1,
         peerAktiv: false,
       });
-      daten.zugehoerigkeiten.push({ abschnittId: id, personId: 'p1', teamId: 'team1' });
+      mitgliedschaftMerken(daten, 'team1', 'p1');
       const bewertung: Bewertung = {
         abschnittId: id,
         teamId: 'team1',
@@ -1006,6 +1051,7 @@ describe('Auswertung zu einem Stichtag (FA-48)', () => {
     daten.klassen.push({ id: 'k1', name: '4AHIF' });
     daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Team Kepler' });
     daten.personen.push(person('p1'));
+    mitgliedschaftMerken(daten, 'team1', 'p1');
     const enden = ['2026-11-14', '2027-01-23', '2027-03-20', '2027-05-29'];
     const bewertungen = new Map<string, Bewertung>();
     enden.forEach((bis, i) => {
@@ -1023,7 +1069,7 @@ describe('Auswertung zu einem Stichtag (FA-48)', () => {
         faktor: 1,
         peerAktiv: false,
       });
-      daten.zugehoerigkeiten.push({ abschnittId: id, personId: 'p1', teamId: 'team1' });
+      mitgliedschaftMerken(daten, 'team1', 'p1');
       const bewertung: Bewertung = {
         abschnittId: id,
         teamId: 'team1',
@@ -1447,7 +1493,7 @@ describe('Rubrik angleichen (FA-47)', () => {
       faktor: 1,
       peerAktiv: false,
     });
-    daten.zugehoerigkeiten.push({ abschnittId: 's1', personId: 'p1', teamId: 'team1' });
+    mitgliedschaftMerken(daten, 'team1', 'p1');
     const bewertung: Bewertung = {
       abschnittId: 's1',
       teamId: 'team1',
@@ -1511,5 +1557,899 @@ describe('Rubrik angleichen (FA-47)', () => {
     const vorher = JSON.stringify(daten);
     angleichungsVorschau(daten, RUBRIK_SPRINT, bewertungen);
     expect(JSON.stringify(daten)).toBe(vorher);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* Zeitraum und Kriterien je Team (FA-66, FA-67, FA-69)                        */
+/* -------------------------------------------------------------------------- */
+
+describe('Stichtagszuordnung über das Teamende (FA-48 AK-6a, FA-66)', () => {
+  /** Ein Sprint, zwei Teams, verschiedene Enddaten um den Stichtag herum. */
+  function zweiTeams() {
+    const daten = leererDatenbestand();
+    daten.stichtage = strukturKopie(vorlageStichtage(2026));
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Kepler' });
+    daten.teams.push({ id: 'team2', klasseId: 'k1', name: 'Doppler' });
+    daten.personen.push(person('p1', 'team1'), person('p2', 'team2'));
+    daten.abschnitte.push({
+      id: 's1',
+      klasseId: 'k1',
+      nummer: 1,
+      name: 'Sprint 1',
+      art: 'sprint',
+      strang: 'praxis',
+      rubrikId: RUBRIK_SPRINT,
+      von: '2027-01-07',
+      bis: '2027-01-28',
+      faktor: 1,
+      peerAktiv: false,
+    });
+    mitgliedschaftMerken(daten, 'team1', 'p1');
+    mitgliedschaftMerken(daten, 'team2', 'p2');
+    // Kepler ist vor dem Semesterzeugnis fertig, Doppler danach.
+    daten.teamabschnitte.push(
+      { abschnittId: 's1', teamId: 'team1', ziel: 'Buchung', von: '2027-01-07', bis: '2027-01-28' },
+      { abschnittId: 's1', teamId: 'team2', ziel: 'Storno', von: '2027-01-07', bis: '2027-02-03' },
+    );
+    const bewertungen = new Map<string, Bewertung>();
+    for (const teamId of ['team1', 'team2']) {
+      const bewertung: Bewertung = {
+        abschnittId: 's1',
+        teamId,
+        team: { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 },
+        prozess: {},
+        individuell: {},
+        peer: {},
+        notiz: '',
+      };
+      daten.bewertungen.push(bewertung);
+      bewertungen.set(bewertungsSchluessel('s1', teamId), bewertung);
+    }
+    return { daten, bewertungen };
+  }
+
+  it('zählt denselben Sprint für ein Team ins Semester und für das andere nicht', () => {
+    const { daten, bewertungen } = zweiTeams();
+    const kepler = gesamtErgebnis(daten, daten.personen[0], bewertungen, 'stichtag-semester');
+    const doppler = gesamtErgebnis(daten, daten.personen[1], bewertungen, 'stichtag-semester');
+    expect(kepler.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s1']);
+    expect(doppler.praxis.abschnitte).toEqual([]);
+  });
+
+  it('nimmt ohne Planung den Rahmen des Abschnitts (FA-66 AK-3)', () => {
+    const { daten, bewertungen } = zweiTeams();
+    daten.teamabschnitte = [];
+    const doppler = gesamtErgebnis(daten, daten.personen[1], bewertungen, 'stichtag-semester');
+    expect(doppler.praxis.abschnitte.map((e) => e.abschnitt.id)).toEqual(['s1']);
+  });
+
+  it('meldet ein Team ohne Enddatum als Auslassung (FA-66 AK-4)', () => {
+    const { daten, bewertungen } = zweiTeams();
+    daten.abschnitte[0].bis = '';
+    daten.teamabschnitte[1].bis = '';
+    const doppler = gesamtErgebnis(daten, daten.personen[1], bewertungen, 'stichtag-semester');
+    expect(doppler.auslassung.ohneDatum.map((a) => a.id)).toEqual(['s1']);
+    // Für das andere Team ist nichts ausgelassen.
+    const kepler = gesamtErgebnis(daten, daten.personen[0], bewertungen, 'stichtag-semester');
+    expect(kepler.auslassung.ohneDatum).toEqual([]);
+  });
+
+  it('weist abweichende Kriterien aus, wo Teams verglichen werden (FA-67 AK-6)', () => {
+    const { daten } = zweiTeams();
+    expect(kriterienWeichenAb(daten, daten.abschnitte[0])).toBe(false);
+
+    const eigene = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+    eigene.team = eigene.team.filter((k) => k.id !== 't3');
+    daten.teamabschnitte[1].rubrikKopie = eigene;
+    expect(kriterienWeichenAb(daten, daten.abschnitte[0])).toBe(true);
+    expect(abschnitteMitAbweichung(daten, daten.abschnitte).map((a) => a.id)).toEqual(['s1']);
+  });
+
+  it('nennt eine andere Beschreibung keine Abweichung (FA-67 AK-6)', () => {
+    const { daten } = zweiTeams();
+    const eigene = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+    eigene.team[0].beschreibung = 'anders formuliert';
+    daten.teamabschnitte[1].rubrikKopie = eigene;
+    expect(kriterienWeichenAb(daten, daten.abschnitte[0])).toBe(false);
+  });
+});
+
+describe('Sprints eines Teams überschneiden sich nicht (FA-66 AK-8)', () => {
+  /** Ein Team, zwei Sprints – die Zeiträume kommen aus dem jeweiligen Test. */
+  function zweiSprints(erster: [string, string], zweiter: [string, string]) {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Kepler' });
+    for (const [i, id] of ['s1', 's2'].entries()) {
+      daten.abschnitte.push({
+        id,
+        klasseId: 'k1',
+        nummer: i + 1,
+        name: `Sprint ${i + 1}`,
+        art: 'sprint',
+        strang: 'praxis',
+        rubrikId: RUBRIK_SPRINT,
+        von: '',
+        bis: '',
+        faktor: 1,
+        peerAktiv: false,
+      });
+    }
+    daten.teamabschnitte.push(
+      { abschnittId: 's1', teamId: 'team1', ziel: 'Grundgerüst', von: erster[0], bis: erster[1] },
+      { abschnittId: 's2', teamId: 'team1', ziel: 'Buchung', von: zweiter[0], bis: zweiter[1] },
+    );
+    return daten;
+  }
+
+  it('lässt Ende und Beginn am selben Tag zu', () => {
+    const daten = zweiSprints(['2026-10-03', '2026-10-17'], ['2026-10-17', '2026-10-31']);
+    expect(ueberschneidungen(daten, 's2', 'team1')).toEqual([]);
+    expect(ueberschneidungen(daten, 's1', 'team1')).toEqual([]);
+  });
+
+  it('erkennt einen einzigen Tag Überschneidung', () => {
+    const daten = zweiSprints(['2026-10-03', '2026-10-17'], ['2026-10-16', '2026-10-31']);
+    expect(ueberschneidungen(daten, 's2', 'team1').map((p) => p.abschnittId)).toEqual(['s1']);
+    // Die Beziehung ist gegenseitig – von beiden Seiten sichtbar.
+    expect(ueberschneidungen(daten, 's1', 'team1').map((p) => p.abschnittId)).toEqual(['s2']);
+  });
+
+  it('erkennt einen Sprint, der ganz im anderen liegt', () => {
+    const daten = zweiSprints(['2026-10-03', '2026-10-31'], ['2026-10-10', '2026-10-17']);
+    expect(ueberschneidungen(daten, 's2', 'team1').map((p) => p.abschnittId)).toEqual(['s1']);
+  });
+
+  it('lässt einen unvollständigen Zeitraum außen vor', () => {
+    // Ohne Ende ist nichts zu vergleichen – gemeldet wird das über FA-66 AK-4.
+    const ohneEnde = zweiSprints(['2026-10-03', ''], ['2026-10-10', '2026-10-17']);
+    expect(ueberschneidungen(ohneEnde, 's2', 'team1')).toEqual([]);
+    const garNichts = zweiSprints(['2026-10-03', '2026-10-31'], ['', '']);
+    expect(ueberschneidungen(garNichts, 's2', 'team1')).toEqual([]);
+  });
+
+  it('vergleicht nur innerhalb desselben Teams', () => {
+    const daten = zweiSprints(['2026-10-03', '2026-10-31'], ['2026-10-10', '2026-10-17']);
+    daten.teams.push({ id: 'team2', klasseId: 'k1', name: 'Doppler' });
+    daten.teamabschnitte[0].teamId = 'team2';
+    expect(ueberschneidungen(daten, 's2', 'team1')).toEqual([]);
+  });
+
+  it('erkennt ein Ende vor dem Beginn (AK-8b)', () => {
+    const daten = zweiSprints(['2026-10-31', '2026-10-03'], ['2026-11-03', '2026-11-14']);
+    expect(zeitraumVerdreht(daten.teamabschnitte[0])).toBe(true);
+    expect(zeitraumVerdreht(daten.teamabschnitte[1])).toBe(false);
+    // Ein halb ausgefüllter Zeitraum ist kein verdrehter.
+    expect(zeitraumVerdreht({ ...daten.teamabschnitte[1], bis: '' })).toBe(false);
+    expect(zeitraumVerdreht(undefined)).toBe(false);
+  });
+});
+
+describe('Vorlage für den Vorbereitungssprint (FA-69)', () => {
+  it('trägt die sechs vereinbarten Ergebnisse mit zusammen 50 Punkten (AK-4)', () => {
+    expect(VORLAGE_RUBRIK_VORBEREITUNG.team.map((k) => k.name)).toEqual([
+      'Fachliches Konzept',
+      'Anforderungsspezifikation',
+      'Solution-Design',
+      'CI/CD',
+      'Stakeholderanalyse',
+      'Versionsverwaltung',
+    ]);
+    expect(VORLAGE_RUBRIK_VORBEREITUNG.team.reduce((s, k) => s + k.max, 0)).toBe(50);
+  });
+
+  it('teilt die Kennung mit der Sprint-Rubrik, wo es dasselbe Kriterium ist (FA-67 AK-2a)', () => {
+    // Sonst stünde „Versionsverwaltung“ im Vorrat zweimal.
+    const vorbereitung = VORLAGE_RUBRIK_VORBEREITUNG.team.find((k) => k.name === 'Versionsverwaltung');
+    const sprint = VORLAGE_RUBRIK_SPRINT.team.find((k) => k.name === 'Versionsverwaltung');
+    expect(vorbereitung?.id).toBe(sprint?.id);
+  });
+
+  it('übernimmt Prozess, individuellen Beitrag und Peer wörtlich aus der Sprint-Rubrik (AK-5)', () => {
+    for (const kategorie of ['prozess', 'individuell', 'peer'] as const) {
+      expect(VORLAGE_RUBRIK_VORBEREITUNG[kategorie]).toEqual(VORLAGE_RUBRIK_SPRINT[kategorie]);
+    }
+  });
+
+  it('gewichtet den Prozess niedriger, weil er erst entsteht (AK-6)', () => {
+    expect(VORLAGE_RUBRIK_VORBEREITUNG.gewichte).toEqual({
+      team: 50,
+      prozess: 15,
+      individuell: 35,
+      peer: 0,
+    });
+  });
+
+  it('wird mit ausgeliefert (AK-1)', () => {
+    expect(vorlagenRubriken().map((r) => r.name)).toContain('Vorbereitungssprint');
+  });
+});
+
+describe('Erfassungszeitpunkt je Kriterium (FA-75)', () => {
+  it('gilt als „Review“, solange nichts eingetragen ist (AK-1)', () => {
+    expect(zeitpunktVon({ id: 'x', name: 'X', beschreibung: '', max: 5 })).toBe('review');
+  });
+
+  it('trägt in den Vorlagen Planning und Daily an der richtigen Stelle (AK-4)', () => {
+    for (const vorlage of [VORLAGE_RUBRIK_SPRINT, VORLAGE_RUBRIK_VORBEREITUNG]) {
+      const planning = vorlage.prozess.filter((k) => zeitpunktVon(k) === 'planning');
+      const daily = vorlage.prozess.filter((k) => zeitpunktVon(k) === 'daily');
+      expect(planning.map((k) => k.name)).toEqual(['Sprint Planning']);
+      expect(daily.map((k) => k.name)).toEqual(['Standup']);
+      // Alles Übrige wird im Review erfasst.
+      expect(vorlage.team.every((k) => zeitpunktVon(k) === 'review')).toBe(true);
+      expect(vorlage.individuell.every((k) => zeitpunktVon(k) === 'review')).toBe(true);
+    }
+  });
+
+  it('ändert die Rechnung nicht (AK-2)', () => {
+    // Dieselben Punkte, einmal mit und einmal ohne Zeitpunkt: gleicher Wert.
+    const ohne = [{ id: 'a', name: 'A', beschreibung: '', max: 10 }];
+    const mit = [{ id: 'a', name: 'A', beschreibung: '', max: 10, zeitpunkt: 'daily' as const }];
+    expect(kategorieErgebnis({ a: 7 }, mit)?.prozent).toBe(kategorieErgebnis({ a: 7 }, ohne)?.prozent);
+  });
+});
+
+describe('Anzeigenummer eines Abschnitts (FA-04 AK-5)', () => {
+  /** Vier Abschnitte gemischter Art mit durchgehender Nummer. */
+  function gemischt() {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    const arten = ['sprint', 'sprint', 'test', 'sprint'] as const;
+    arten.forEach((art, i) => {
+      daten.abschnitte.push({
+        id: `a${i + 1}`,
+        klasseId: 'k1',
+        nummer: i + 1,
+        name: `Abschnitt ${i + 1}`,
+        art,
+        strang: art === 'test' ? 'theorie' : 'praxis',
+        rubrikId: RUBRIK_SPRINT,
+        von: '',
+        bis: '',
+        faktor: 1,
+        peerAktiv: false,
+      });
+    });
+    return daten;
+  }
+
+  it('zählt innerhalb der Art, nicht über alle Abschnitte', () => {
+    const daten = gemischt();
+    expect(daten.abschnitte.map((a) => kurzzeichen(daten, a))).toEqual(['S1', 'S2', 'T1', 'S3']);
+  });
+
+  it('lässt keine Lücke, wenn ein Abschnitt anderer Art gelöscht wird', () => {
+    const daten = gemischt();
+    daten.abschnitte = daten.abschnitte.filter((a) => a.art !== 'test');
+    expect(daten.abschnitte.map((a) => kurzzeichen(daten, a))).toEqual(['S1', 'S2', 'S3']);
+    // Die gespeicherte Nummer bleibt, wie sie war – sie ordnet den Verlauf.
+    expect(daten.abschnitte.map((a) => a.nummer)).toEqual([1, 2, 4]);
+  });
+});
+
+describe('Bezugsgröße des Zeitfaktors ist das Team (FA-54, FA-70, TF-N, TF-O)', () => {
+  /**
+   * Zwei Teams mit spiegelbildlichem Verlauf, nacheinander im Jahr:
+   * Kepler steigt im ersten Halbjahr, Doppler fällt im zweiten.
+   * Eine Rubrik mit genau einem Kriterium zu 100 Punkten – Punkte = Prozent.
+   */
+  function zweiTeamsNacheinander(mitPlanungen: boolean) {
+    const daten = leererDatenbestand();
+    daten.rubriken = [
+      {
+        id: 'r',
+        name: 'Probe',
+        team: [{ id: 'x', name: 'Gesamtleistung', beschreibung: '', max: 100 }],
+        prozess: [],
+        individuell: [],
+        peer: [],
+        gewichte: { team: 100, prozess: 0, individuell: 0, peer: 0 },
+        selbstZaehlt: false,
+      },
+    ];
+    daten.vorgabeRubrikId = 'r';
+    daten.klassen.push({ id: 'k', name: '4AHIF' });
+    daten.teams.push(
+      { id: 'kepler', klasseId: 'k', name: 'Kepler' },
+      { id: 'doppler', klasseId: 'k', name: 'Doppler' },
+    );
+    daten.personen.push(
+      { id: 'p1', klasseId: 'k', name: 'Person Kepler' },
+      { id: 'p2', klasseId: 'k', name: 'Person Doppler' },
+    );
+    mitgliedschaftMerken(daten, 'kepler', 'p1');
+    mitgliedschaftMerken(daten, 'doppler', 'p2');
+
+    const plan: Array<[string, 'kepler' | 'doppler', number]> = [
+      ['s1', 'kepler', 55], ['s2', 'kepler', 65], ['s3', 'kepler', 85], ['s4', 'kepler', 95],
+      ['s5', 'doppler', 95], ['s6', 'doppler', 85], ['s7', 'doppler', 65], ['s8', 'doppler', 55],
+    ];
+    const bewertungen = new Map<string, Bewertung>();
+    plan.forEach(([id, teamId, prozent], i) => {
+      daten.abschnitte.push({
+        id, klasseId: 'k', nummer: i + 1, name: `Sprint ${i + 1}`,
+        art: 'sprint', strang: 'praxis', rubrikId: 'r',
+        von: '', bis: '', faktor: 1, peerAktiv: false,
+      });
+      mitgliedschaftMerken(daten, 'kepler', 'p1');
+      mitgliedschaftMerken(daten, 'doppler', 'p2');
+      if (mitPlanungen) {
+        daten.teamabschnitte.push({ abschnittId: id, teamId, ziel: '', von: '', bis: '' });
+      }
+      const bewertung: Bewertung = {
+        abschnittId: id, teamId, team: { x: prozent },
+        prozess: {}, individuell: {}, peer: {}, notiz: '',
+      };
+      daten.bewertungen.push(bewertung);
+      bewertungen.set(bewertungsSchluessel(id, teamId), bewertung);
+    });
+    return { daten, bewertungen };
+  }
+
+  function stand(mitPlanungen: boolean, personId: string) {
+    const { daten, bewertungen } = zweiTeamsNacheinander(mitPlanungen);
+    const person = daten.personen.find((p) => p.id === personId)!;
+    const ergebnis = gesamtErgebnis(daten, person, bewertungen);
+    return {
+      prozent: ergebnis.praxis.prozent,
+      // Nur die Abschnitte mit Ergebnis: Ohne Planungen stehen auch die
+      // Sprints des anderen Teams in der Liste, tragen aber nichts bei.
+      faktoren: ergebnis.praxis.abschnitte
+        .filter((e) => e.ergebnis.prozent !== null)
+        .map((e) => e.zeitfaktor),
+      note: notenvorschlag(ergebnis, daten.notenschluessel, daten.sperreAktiv).note,
+    };
+  }
+
+  it('bildet die Hälften über die eigenen Sprints des Teams (TF-N, TF-O)', () => {
+    const kepler = stand(true, 'p1');
+    const doppler = stand(true, 'p2');
+    expect(kepler.faktoren).toEqual([1, 1, 2, 2]);
+    expect(doppler.faktoren).toEqual([1, 1, 2, 2]);
+    expect(kepler.prozent).toBeCloseTo(80, 5);
+    expect(doppler.prozent).toBeCloseTo(70, 5);
+    expect(kepler.note).toBe(2);
+    expect(doppler.note).toBe(3);
+  });
+
+  it('ließe den Zeitfaktor ohne diese Einschränkung ganz ausfallen', () => {
+    // Ohne Planungen gilt jeder Sprint für die ganze Klasse. Dann liegen alle
+    // vier Sprints eines Teams in derselben Hälfte, tragen denselben Faktor –
+    // und ein gemeinsamer Faktor kürzt sich aus dem gewichteten Mittel heraus.
+    const kepler = stand(false, 'p1');
+    const doppler = stand(false, 'p2');
+    expect(kepler.faktoren).toEqual([1, 1, 1, 1]);
+    expect(doppler.faktoren).toEqual([2, 2, 2, 2]);
+    expect(kepler.prozent).toBeCloseTo(75, 5);
+    expect(doppler.prozent).toBeCloseTo(75, 5);
+    // Zwei entgegengesetzte Verläufe, ein Wert – das verbietet § 20 Abs. 1 LBVO.
+    expect(kepler.prozent).toBe(doppler.prozent);
+  });
+
+  it('zählt das Kürzel innerhalb der Sprints des Teams (FA-04 AK-5)', () => {
+    const { daten } = zweiTeamsNacheinander(true);
+    const s5 = daten.abschnitte.find((a) => a.id === 's5')!;
+    expect(kurzzeichen(daten, s5, 'doppler')).toBe('S1');
+    // Ohne Team zählt die Klasse – so beschriftet die Auswertung ihre Spalten.
+    expect(kurzzeichen(daten, s5)).toBe('S5');
+  });
+});
+
+describe('Laufender Abschnitt eines Teams (FA-76 AK-1)', () => {
+  /** Ein Team mit drei Sprints hintereinander, Zeiträume ohne Lücke bis auf eine. */
+  function dreiSprints() {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push(
+      { id: 'a', klasseId: 'k1', name: 'Kepler' },
+      { id: 'b', klasseId: 'k1', name: 'Doppler' },
+    );
+    const zeiten: Array<[string, string]> = [
+      ['2026-10-03', '2026-10-17'],
+      ['2026-10-17', '2026-10-31'],
+      // Lücke: Semesterferien.
+      ['2026-11-14', '2026-11-28'],
+    ];
+    zeiten.forEach(([von, bis], i) => {
+      const id = `s${i + 1}`;
+      daten.abschnitte.push({
+        id, klasseId: 'k1', nummer: i + 1, name: `Sprint ${i + 1}`,
+        art: 'sprint', strang: 'praxis', rubrikId: RUBRIK_SPRINT,
+        von: '', bis: '', faktor: 1, peerAktiv: false,
+      });
+      daten.teamabschnitte.push({ abschnittId: id, teamId: 'a', ziel: '', von, bis });
+    });
+    return daten;
+  }
+
+  const hole = (daten: ReturnType<typeof dreiSprints>, id: string) =>
+    daten.abschnitte.find((a) => a.id === id)!;
+
+  it('ist der Sprint, in dessen Zeitraum heute liegt', () => {
+    const daten = dreiSprints();
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's2'), 'a', '2026-10-20')).toBe(true);
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's1'), 'a', '2026-10-20')).toBe(false);
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's3'), 'a', '2026-10-20')).toBe(false);
+  });
+
+  it('zählt Beginn und Ende mit', () => {
+    const daten = dreiSprints();
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's1'), 'a', '2026-10-03')).toBe(true);
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's1'), 'a', '2026-10-17')).toBe(true);
+    // Am Übergabetag laufen beide – das ist der Preis dafür, dass Berührung
+    // erlaubt ist (FA-66 AK-8), und an einem einzigen Tag hinnehmbar.
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's2'), 'a', '2026-10-17')).toBe(true);
+  });
+
+  it('lässt in einer Lücke keinen laufen (AK-1a)', () => {
+    const daten = dreiSprints();
+    for (const id of ['s1', 's2', 's3']) {
+      expect(istLaufenderAbschnitt(daten, hole(daten, id), 'a', '2026-11-05')).toBe(false);
+    }
+    // Und sagt, welcher zuletzt lief.
+    expect(zuletztGelaufenerAbschnitt(daten, 'k1', 'a', '2026-11-05')?.id).toBe('s2');
+  });
+
+  it('nimmt einen unvollständigen Zeitraum als offen', () => {
+    const daten = dreiSprints();
+    daten.teamabschnitte[1].bis = '';
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's2'), 'a', '2027-05-01')).toBe(true);
+  });
+
+  it('sperrt Test und Diplomarbeitsvorbereitung nicht (AK-6)', () => {
+    const daten = dreiSprints();
+    const test = { ...hole(daten, 's1'), id: 't1', art: 'test' as const, nummer: 9 };
+    daten.abschnitte.push(test);
+    expect(istLaufenderAbschnitt(daten, test, 'a', '2027-05-01')).toBe(true);
+  });
+
+  it('erkennt einen künftigen Sprint, dessen Planung offen bleibt (AK-1c)', () => {
+    const daten = dreiSprints();
+    expect(abschnittKuenftig(daten, hole(daten, 's3'), 'a', '2026-10-20')).toBe(true);
+    // Der laufende und die vergangenen sind nicht künftig.
+    expect(abschnittKuenftig(daten, hole(daten, 's2'), 'a', '2026-10-20')).toBe(false);
+    expect(abschnittKuenftig(daten, hole(daten, 's1'), 'a', '2026-10-20')).toBe(false);
+    // Ohne Beginn auch nicht – ein leerer Zeitraum ist offen, nicht künftig.
+    daten.teamabschnitte[2].von = '';
+    expect(abschnittKuenftig(daten, hole(daten, 's3'), 'a', '2026-10-20')).toBe(false);
+  });
+
+  it('richtet sich nach dem Zeitraum dieses Teams', () => {
+    const daten = dreiSprints();
+    // Doppler plant denselben Sprint 1 später.
+    daten.teamabschnitte.push({
+      abschnittId: 's1', teamId: 'b', ziel: '', von: '2026-11-03', bis: '2026-11-21',
+    });
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's1'), 'a', '2026-11-10')).toBe(false);
+    expect(istLaufenderAbschnitt(daten, hole(daten, 's1'), 'b', '2026-11-10')).toBe(true);
+  });
+});
+
+describe('Spur je Person (FA-78)', () => {
+  /** Ein abgeschlossener und ein laufender Sprint eines Teams. */
+  function zweiSprints() {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'a', klasseId: 'k1', name: 'Kepler' });
+    daten.personen.push(person('p1', 'a'), person('p2', 'a'));
+    const zeiten: Array<[string, string]> = [
+      ['2026-10-03', '2026-10-17'],
+      ['2026-10-20', '2026-10-31'],
+    ];
+    zeiten.forEach(([von, bis], i) => {
+      const id = `s${i + 1}`;
+      daten.abschnitte.push({
+        id, klasseId: 'k1', nummer: i + 1, name: `Sprint ${i + 1}`,
+        art: 'sprint', strang: 'praxis', rubrikId: RUBRIK_SPRINT,
+        von: '', bis: '', faktor: 1, peerAktiv: false,
+      });
+      daten.teamabschnitte.push({ abschnittId: id, teamId: 'a', ziel: '', von, bis });
+      mitgliedschaftMerken(daten, 'a', 'p1');
+      mitgliedschaftMerken(daten, 'a', 'p2');
+    });
+    return daten;
+  }
+
+  /** Heute: im zweiten Sprint. Der erste ist damit abgeschlossen. */
+  const heute = '2026-10-25';
+
+  it('zählt fehlende Spuren nur in abgeschlossenen Sprints', () => {
+    const daten = zweiSprints();
+    // Nichts erfasst: Der erste Sprint ist vorbei, der zweite läuft.
+    expect(abschnitteOhneSpur(daten, 'p1', 'k1', 'a', heute)).toBe(1);
+
+    daten.bewertungen.push({
+      abschnittId: 's1', teamId: 'a', team: {}, prozess: {},
+      individuell: { p1: { punkte: {}, notiz: '', spur: { bezeichnung: 'PR 3' } } },
+      peer: {}, notiz: '',
+    });
+    expect(abschnitteOhneSpur(daten, 'p1', 'k1', 'a', heute)).toBe(0);
+    // Für die andere Person fehlt sie weiterhin.
+    expect(abschnitteOhneSpur(daten, 'p2', 'k1', 'a', heute)).toBe(1);
+  });
+
+  it('nimmt eine leere Bezeichnung nicht als Spur', () => {
+    const daten = zweiSprints();
+    daten.bewertungen.push({
+      abschnittId: 's1', teamId: 'a', team: {}, prozess: {},
+      individuell: { p1: { punkte: {}, notiz: '', spur: { bezeichnung: '  ' } } },
+      peer: {}, notiz: '',
+    });
+    expect(abschnitteOhneSpur(daten, 'p1', 'k1', 'a', heute)).toBe(1);
+  });
+
+  it('zählt einen künftigen Sprint nicht mit', () => {
+    const daten = zweiSprints();
+    // Vor allen Sprints ist keiner abgeschlossen.
+    expect(abschnitteOhneSpur(daten, 'p1', 'k1', 'a', '2026-09-01')).toBe(0);
+  });
+});
+
+describe('Befund: agiert das Team als Team (FA-79)', () => {
+  /**
+   * Ein Team mit drei Personen. Die Punkte je Person kommen aus dem Test –
+   * `individuell` trägt in der Vorlage 36 Punkte (i1 10, i2 8, i3 6, i4 6, i5 6).
+   */
+  function lage(punkte: Record<string, Punkte>) {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'a', klasseId: 'k1', name: 'Kepler' });
+    daten.abschnitte.push({
+      id: 's1', klasseId: 'k1', nummer: 1, name: 'Sprint 1',
+      art: 'sprint', strang: 'praxis', rubrikId: RUBRIK_SPRINT,
+      von: '', bis: '', faktor: 1, peerAktiv: false,
+    });
+    daten.teamabschnitte.push({ abschnittId: 's1', teamId: 'a', ziel: '', von: '', bis: '' });
+    const bewertung: Bewertung = {
+      abschnittId: 's1', teamId: 'a',
+      // Team-Ergebnis 90 %: 45 von 50 Punkten.
+      team: { t1: 9, t2: 9, t3: 7, t4: 5, t5: 6, t6: 4.5 },
+      prozess: {}, individuell: {}, peer: {}, notiz: '',
+    };
+    for (const [personId, eigene] of Object.entries(punkte)) {
+      daten.personen.push(person(personId, 'a'));
+      mitgliedschaftMerken(daten, 'a', personId);
+      bewertung.individuell[personId] = {
+        punkte: eigene,
+        notiz: '',
+        spur: { bezeichnung: 'PR' },
+      };
+    }
+    daten.bewertungen.push(bewertung);
+    const bewertungen = new Map<string, Bewertung>([[bewertungsSchluessel('s1', 'a'), bewertung]]);
+    return { daten, bewertungen, abschnitt: daten.abschnitte[0] };
+  }
+
+  /** Volle Punkte in allen fünf Kriterien der Kategorie. */
+  const voll = { i1: 10, i2: 8, i3: 6, i4: 6, i5: 6 };
+  /** Rund die Hälfte. */
+  const halb = { i1: 5, i2: 4, i3: 3, i4: 3, i5: 3 };
+
+  it('nennt ein Team, dessen Beiträge zusammenliegen', () => {
+    const { daten, bewertungen, abschnitt } = lage({ p1: voll, p2: voll, p3: voll });
+    const ergebnis = befund(daten, abschnitt, 'a', bewertungen);
+    expect(ergebnis.muster).toBe('zusammen');
+    expect(ergebnis.spanne).toBe(0);
+    expect(ergebnis.personen.every((p) => !p.auffaellig)).toBe(true);
+  });
+
+  it('unterscheidet gemeinsam schwach von ungleich (AK-2)', () => {
+    const { daten, bewertungen, abschnitt } = lage({ p1: halb, p2: halb, p3: halb });
+    // Alle gleich und unter der Genügend-Grenze: ein fachliches Problem.
+    const ergebnis = befund(daten, abschnitt, 'a', bewertungen);
+    expect(ergebnis.muster).toBe('zusammen-schwach');
+    expect(ergebnis.spanne).toBe(0);
+  });
+
+  it('erkennt eine Person deutlich unter dem Team (AK-4, AK-4c)', () => {
+    const { daten, bewertungen, abschnitt } = lage({
+      p1: voll,
+      p2: voll,
+      p3: { i1: 1, i2: 1, i3: 0, i4: 0, i5: 0 },
+    });
+    const ergebnis = befund(daten, abschnitt, 'a', bewertungen);
+    expect(ergebnis.muster).toBe('ungleich');
+    const schwach = ergebnis.personen.find((p) => p.person.id === 'p3')!;
+    expect(schwach.richtung).toBe('unter');
+    expect(schwach.auffaellig).toBe(true);
+    // Der Median liegt, wo das Team liegt: Nur die abweichende Person ist
+    // auffällig, nicht die beiden, die tragen.
+    expect(ergebnis.bezug).toBe(100);
+    expect(ergebnis.personen.filter((p) => p.auffaellig)).toHaveLength(1);
+  });
+
+  it('bleibt beim Median liegen, wenn einer ausreißt (AK-4)', () => {
+    const { daten, bewertungen, abschnitt } = lage({
+      p1: voll,
+      p2: voll,
+      p3: { i1: 0, i2: 0, i3: 0, i4: 0, i5: 0 },
+    });
+    const ergebnis = befund(daten, abschnitt, 'a', bewertungen);
+    // Mit dem Mittelwert wären p1 und p2 rund 33 Prozentpunkte darüber und
+    // damit selbst auffällig gewesen. Der Median verhindert das.
+    for (const id of ['p1', 'p2']) {
+      expect(ergebnis.personen.find((p) => p.person.id === id)!.abstand).toBe(0);
+    }
+  });
+
+  it('braucht zwei Signale – ein einzelnes ist Rauschen (AK-4)', () => {
+    // 28 von 36 Punkten: rund 22 Prozentpunkte unter dem Median. Über der
+    // Schwelle von 15, aber unter der doppelten aus AK-4c.
+    const { daten, bewertungen, abschnitt } = lage({
+      p1: voll,
+      p2: voll,
+      p3: { i1: 10, i2: 8, i3: 4, i4: 3, i5: 3 },
+    });
+    const ergebnis = befund(daten, abschnitt, 'a', bewertungen);
+    const schwach = ergebnis.personen.find((p) => p.person.id === 'p3')!;
+    expect(schwach.ohneSpur).toBe(0);
+    expect(schwach.signale).toBe(1);
+    expect(schwach.auffaellig).toBe(false);
+    expect(ergebnis.muster).toBe('zusammen');
+  });
+
+  it('lässt einen sehr großen Abstand allein tragen (AK-4c)', () => {
+    // Dieselbe Lage, nur weiter auseinander: 12 von 36 Punkten.
+    const { daten, bewertungen, abschnitt } = lage({
+      p1: voll,
+      p2: voll,
+      p3: { i1: 5, i2: 4, i3: 1, i4: 1, i5: 1 },
+    });
+    const schwach = befund(daten, abschnitt, 'a', bewertungen).personen.find(
+      (p) => p.person.id === 'p3',
+    )!;
+    expect(schwach.signale).toBe(1);
+    expect(schwach.auffaellig).toBe(true);
+  });
+
+  it('zählt eine Abweichung nach oben genauso (AK-3)', () => {
+    const { daten, bewertungen, abschnitt } = lage({
+      p1: { i1: 1, i2: 1, i3: 0, i4: 0, i5: 0 },
+      p2: { i1: 1, i2: 1, i3: 0, i4: 0, i5: 0 },
+      p3: voll,
+    });
+    const ergebnis = befund(daten, abschnitt, 'a', bewertungen);
+    const stark = ergebnis.personen.find((p) => p.person.id === 'p3')!;
+    // Wer das Team trägt, ist derselbe Befund wie wer mitläuft.
+    expect(stark.richtung).toBe('ueber');
+    expect(stark.auffaellig).toBe(true);
+    expect(ergebnis.muster).toBe('ungleich');
+    expect(ergebnis.spanne).toBeGreaterThan(50);
+    // Und das Team-Ergebnis bleibt als Anzeigegröße erhalten – dort wäre die
+    // Abweichung nach oben nie sichtbar geworden.
+    expect(stark.abstandTeam).not.toBeNull();
+    expect(Math.abs(stark.abstandTeam!)).toBeLessThan(15);
+  });
+
+  it('behauptet ohne zwei Ergebnisse keinen Befund (AK-8)', () => {
+    const { daten, bewertungen, abschnitt } = lage({ p1: voll });
+    expect(befund(daten, abschnitt, 'a', bewertungen).muster).toBe('unklar');
+  });
+
+  it('nennt die geltende Schwelle und richtet sich nach ihr (AK-4a, AK-4b)', () => {
+    const { daten, bewertungen, abschnitt } = lage({
+      p1: voll,
+      p2: voll,
+      p3: { i1: 7, i2: 6, i3: 4, i4: 4, i5: 4 },
+    });
+    expect(befund(daten, abschnitt, 'a', bewertungen).schwelle).toBe(15);
+    // Mit einer engeren Schwelle spricht dasselbe Signal an.
+    daten.befundSchwelle = 5;
+    const enger = befund(daten, abschnitt, 'a', bewertungen);
+    expect(enger.schwelle).toBe(5);
+    const abweichend = enger.personen.find((p) => p.person.id === 'p3')!;
+    expect(abweichend.signale).toBeGreaterThan(0);
+  });
+
+  it('rechnet nichts in die Note (AK-7)', () => {
+    const { daten, bewertungen, abschnitt } = lage({ p1: voll, p2: halb, p3: halb });
+    const vorher = JSON.stringify(daten);
+    befund(daten, abschnitt, 'a', bewertungen);
+    expect(JSON.stringify(daten)).toBe(vorher);
+  });
+});
+
+describe('Sprintwert je Team (FA-82)', () => {
+  const rubrik = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+
+  function bewertungMit(team: Punkte, prozess: Punkte): Bewertung {
+    return {
+      abschnittId: 's1',
+      teamId: 'a',
+      team,
+      prozess,
+      individuell: {},
+      peer: {},
+      notiz: '',
+    };
+  }
+
+  it('rechnet Team-Ergebnis und Prozess auf 100 % (AK-2)', () => {
+    // Team voll (50 von 50), Prozess halb (12,5 von 25).
+    const bewertung = bewertungMit(
+      { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 },
+      { p1: 2.5, p2: 2.5, p3: 2.5, p4: 2.5, p5: 2.5 },
+    );
+    // Gewichte 45 und 20: (100·45 + 50·20) / 65 = 84,6 %.
+    expect(sprintwertVorschlag(bewertung, rubrik)).toBeCloseTo((100 * 45 + 50 * 20) / 65, 5);
+  });
+
+  it('lässt eine fehlende Kategorie aus der Gewichtung fallen (ADR-004)', () => {
+    const nurTeam = bewertungMit({ t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 }, {});
+    // Kein Prozess erfasst: Der Wert ist der des Team-Ergebnisses, nicht die
+    // Hälfte davon.
+    expect(sprintwertVorschlag(nurTeam, rubrik)).toBe(100);
+  });
+
+  it('schlägt ohne Erfassung nichts vor (AK-6)', () => {
+    expect(sprintwertVorschlag(bewertungMit({}, {}), rubrik)).toBeNull();
+    expect(sprintwertVorschlag(undefined, rubrik)).toBeNull();
+  });
+
+  it('nimmt den individuellen Beitrag nicht mit (AK-2)', () => {
+    const bewertung = bewertungMit({ t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 }, {});
+    bewertung.individuell.p1 = { punkte: { i1: 0, i2: 0, i3: 0, i4: 0, i5: 0 }, notiz: '' };
+    // Ein schwacher individueller Beitrag verändert den Sprintwert nicht – er
+    // betrifft eine Person, nicht das Team.
+    expect(sprintwertVorschlag(bewertung, rubrik)).toBe(100);
+  });
+
+  it('kommt mit Gewicht 0 zurecht', () => {
+    const ohneGewicht = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+    ohneGewicht.gewichte.team = 0;
+    ohneGewicht.gewichte.prozess = 0;
+    const bewertung = bewertungMit({ t1: 10 }, { p1: 5 });
+    expect(sprintwertVorschlag(bewertung, ohneGewicht)).toBeNull();
+  });
+});
+
+describe('Vorschlag für die Versionsverwaltung (FA-81)', () => {
+  const auswertung: GithubAuswertung = {
+    standAm: '2026-10-18T10:00:00.000Z',
+    von: '2026-10-03',
+    bis: '2026-10-17',
+    anteile: { anna: 40, bert: 35, cem: 25 },
+    reviews: [
+      { von: 'anna', an: 'bert', anzahl: 2 },
+      { von: 'bert', an: 'anna', anzahl: 1 },
+    ],
+    prAnteil: 100,
+    direktePushes: 0,
+    jeTag: { '2026-10-06': 5, '2026-10-13': 7 },
+    nichtZugeordnet: [],
+  };
+
+  it('teilt die Punkte auf PR-Anteil und Review-Beteiligung (AK-5)', () => {
+    // PR-Anteil 100 % → 3 Punkte; zwei von drei Kennungen geben Reviews → 2.
+    const vorschlag = versionsverwaltungVorschlag(auswertung, 6)!;
+    expect(vorschlag.prAnteil).toBe(100);
+    expect(Math.round(vorschlag.reviewBeteiligung)).toBe(67);
+    expect(vorschlag.punkte).toBe(5);
+    expect(vorschlag.max).toBe(6);
+  });
+
+  it('gibt ohne Reviews nur die Hälfte', () => {
+    const ohne = { ...auswertung, reviews: [] };
+    expect(versionsverwaltungVorschlag(ohne, 6)?.punkte).toBe(3);
+  });
+
+  it('gibt ohne Pull Requests nichts für den PR-Anteil', () => {
+    const direkt = { ...auswertung, prAnteil: 0, direktePushes: 12, reviews: [] };
+    const vorschlag = versionsverwaltungVorschlag(direkt, 6)!;
+    expect(vorschlag.punkte).toBe(0);
+    expect(vorschlag.direktePushes).toBe(12);
+  });
+
+  it('überschreitet die Maximalpunkte nicht', () => {
+    const zuviel = { ...auswertung, prAnteil: 150 };
+    const vorschlag = versionsverwaltungVorschlag(zuviel, 6)!;
+    expect(vorschlag.punkte).toBeLessThanOrEqual(6);
+  });
+
+  it('schweigt ohne Auswertung und ohne Kriterium', () => {
+    expect(versionsverwaltungVorschlag(undefined, 6)).toBeNull();
+    expect(versionsverwaltungVorschlag(auswertung, 0)).toBeNull();
+    expect(versionsverwaltungVorschlag({ ...auswertung, anteile: {} }, 6)).toBeNull();
+  });
+});
+
+describe('Sprintzustand: Vorschlag, fixiert, abgeschlossen (FA-77)', () => {
+  /** Zwei Sprints eines Teams, beide erst geplant. */
+  function zweiPlanungen() {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'a', klasseId: 'k1', name: 'Kepler' });
+    daten.personen.push(person('p1', 'a'));
+    for (const [i, id] of ['s1', 's2'].entries()) {
+      daten.abschnitte.push({
+        id, klasseId: 'k1', nummer: i + 1, name: `Sprint ${i + 1}`,
+        art: 'sprint', strang: 'praxis', rubrikId: RUBRIK_SPRINT,
+        von: '', bis: '', faktor: 1, peerAktiv: false,
+      });
+      daten.teamabschnitte.push({ abschnittId: id, teamId: 'a', ziel: '', von: '', bis: '' });
+      mitgliedschaftMerken(daten, 'a', 'p1');
+    }
+    return daten;
+  }
+
+  const hole = (daten: Datenbestand, id: string) => daten.abschnitte.find((a) => a.id === id)!;
+  const planung = (daten: Datenbestand, id: string) =>
+    daten.teamabschnitte.find((t) => t.abschnittId === id)!;
+
+  it('beginnt als Vorschlag – auch mit eingefrorener Rubrik (AK-1, AK-10)', () => {
+    const daten = zweiPlanungen();
+    expect(sprintZustand(daten, 's1', 'a')).toBe('vorschlag');
+    // Das Festhalten der Planung friert die Kriterien ein; ein Vorschlag
+    // bleibt es trotzdem – Festhalten ist nicht Fixieren (AK-8).
+    planung(daten, 's1').rubrikKopie = strukturKopie(VORLAGE_RUBRIK_SPRINT);
+    planung(daten, 's1').eingefrorenAm = '2026-10-03T08:00:00.000Z';
+    expect(sprintZustand(daten, 's1', 'a')).toBe('vorschlag');
+  });
+
+  it('gilt als fixiert, sobald Punkte erfasst sind (AK-10)', () => {
+    const daten = zweiPlanungen();
+    daten.bewertungen.push({
+      abschnittId: 's1', teamId: 'a', team: { t1: 8 },
+      prozess: {}, individuell: {}, peer: {}, notiz: '',
+    });
+    expect(sprintZustand(daten, 's1', 'a')).toBe('fixiert');
+  });
+
+  it('erkennt fixiert und abgeschlossen an den Zeitpunkten (AK-1)', () => {
+    const daten = zweiPlanungen();
+    planung(daten, 's1').fixiertAm = '2026-10-03T08:00:00.000Z';
+    expect(sprintZustand(daten, 's1', 'a')).toBe('fixiert');
+    planung(daten, 's1').abgeschlossenAm = '2026-10-17T12:00:00.000Z';
+    expect(sprintZustand(daten, 's1', 'a')).toBe('abgeschlossen');
+  });
+
+  it('lässt den ersten Sprint ohne Vorgänger fixieren (AK-3)', () => {
+    const daten = zweiPlanungen();
+    expect(fixierbarkeit(daten, hole(daten, 's1'), 'a').erlaubt).toBe(true);
+  });
+
+  it('sperrt den zweiten, bis der erste abgeschlossen ist (AK-3, AK-4)', () => {
+    const daten = zweiPlanungen();
+    const gesperrt = fixierbarkeit(daten, hole(daten, 's2'), 'a');
+    expect(gesperrt.erlaubt).toBe(false);
+    expect(gesperrt.wartetAuf?.id).toBe('s1');
+
+    // Fixiert allein genügt nicht – das Review muss sein.
+    planung(daten, 's1').fixiertAm = '2026-10-03T08:00:00.000Z';
+    expect(fixierbarkeit(daten, hole(daten, 's2'), 'a').erlaubt).toBe(false);
+
+    planung(daten, 's1').abgeschlossenAm = '2026-10-17T12:00:00.000Z';
+    expect(fixierbarkeit(daten, hole(daten, 's2'), 'a').erlaubt).toBe(true);
+  });
+
+  it('fixiert nichts zweimal (AK-3)', () => {
+    const daten = zweiPlanungen();
+    planung(daten, 's1').fixiertAm = '2026-10-03T08:00:00.000Z';
+    expect(fixierbarkeit(daten, hole(daten, 's1'), 'a').erlaubt).toBe(false);
+  });
+
+  it('schlägt den Abschluss vor, wenn alles erfasst ist (AK-5)', () => {
+    const daten = zweiPlanungen();
+    const s1 = hole(daten, 's1');
+    const bewertungen = new Map<string, Bewertung>();
+    expect(abschlussFaellig(daten, s1, 'a', bewertungen)).toBe(false);
+
+    const bewertung: Bewertung = {
+      abschnittId: 's1', teamId: 'a',
+      team: { t1: 10, t2: 10, t3: 8, t4: 6, t5: 6, t6: 5 },
+      prozess: { p1: 5, p2: 5, p3: 5, p4: 5 },
+      individuell: { p1: { punkte: { i1: 8, i2: 8, i3: 8 }, notiz: '' } },
+      peer: {}, notiz: '',
+    };
+    daten.bewertungen.push(bewertung);
+    bewertungen.set(bewertungsSchluessel('s1', 'a'), bewertung);
+    expect(abschlussFaellig(daten, s1, 'a', bewertungen)).toBe(true);
+
+    // Ist er abgeschlossen, wird nichts mehr vorgeschlagen.
+    planung(daten, 's1').abgeschlossenAm = '2026-10-17T12:00:00.000Z';
+    expect(abschlussFaellig(daten, s1, 'a', bewertungen)).toBe(false);
   });
 });

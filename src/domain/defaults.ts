@@ -7,6 +7,8 @@
 
 import type {
   Datenbestand,
+  Erfassungszeitpunkt,
+  Kriterium,
   Notenstufe,
   Rubrik,
   Stichtag,
@@ -14,11 +16,12 @@ import type {
   Verstehensstufe,
 } from './types';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 4;
 
 /** Feste Kennungen der ausgelieferten Rubriken. */
 export const RUBRIK_SPRINT = 'rubrik-sprint';
 export const RUBRIK_DIPLOMARBEIT = 'rubrik-diplomarbeit';
+export const RUBRIK_VORBEREITUNG = 'rubrik-vorbereitungssprint';
 
 /** Höchste Verschiebung durch Peer-Werte in Prozentpunkten (FA-45 AK-4). */
 export const PEER_DECKELUNG = 5;
@@ -33,6 +36,16 @@ export const ZEITFAKTOR_ZWEITE_HAELFTE = 2;
 
 /** Anteil des Verstehensnachweises am individuellen Beitrag (FA-40 AK-2). */
 export const VERSTEHENS_ANTEIL = 30;
+
+/**
+ * Abstand zum Teamergebnis, ab dem das erste Signal des Befunds anspricht
+ * (FA-79 AK-4a), in Prozentpunkten.
+ *
+ * 15 ist eine Setzung und kein Messwert – die Literatur gibt keine Schwelle
+ * her (Fachkonzept 14.4). Deshalb ist sie einstellbar und wird dort genannt,
+ * wo der Befund erscheint.
+ */
+export const BEFUND_SCHWELLE = 15;
 
 /** Prozentwerte der vier Stufen des Verstehensnachweises (FA-40 AK-1). */
 export const VERSTEHENS_PROZENT: Record<Verstehensstufe, number> = {
@@ -82,8 +95,19 @@ export const VORLAGE_RUBRIK_SPRINT: Rubrik = {
     { id: 't6', name: 'Sprint Review', beschreibung: 'Demo läuft, Ergebnisse werden nachvollziehbar präsentiert', max: 5 },
   ],
   prozess: [
-    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5 },
-    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5 },
+    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5, zeitpunkt: 'planning' },
+    {
+      id: 'p2',
+      name: 'Standup',
+      // Nicht „Daily“: Bei einem Block je Woche gibt es ein Treffen, kein
+      // tägliches. Findet keines statt, bleibt das Kriterium leer und fällt aus
+      // der Gewichtung (FA-21, ADR-004) – „nicht beobachtet“ ist nicht „nicht
+      // geleistet“. Festlegung des Auftraggebers vom 13.09.2026 (OP-F30).
+      beschreibung:
+        'Wenn ein Standup stattfindet: kurz, Hindernisse werden benannt. Findet keines statt, bleibt das Kriterium leer',
+      max: 5,
+      zeitpunkt: 'daily',
+    },
     { id: 'p3', name: 'Backlog-Pflege', beschreibung: 'Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done', max: 5 },
     { id: 'p4', name: 'Board & Transparenz', beschreibung: 'Board aktuell, Burndown bzw. Velocity gepflegt', max: 5 },
     { id: 'p5', name: 'Retrospektive', beschreibung: 'Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt', max: 5 },
@@ -92,7 +116,10 @@ export const VORLAGE_RUBRIK_SPRINT: Rubrik = {
     { id: 'i1', name: 'Umfang & Schwierigkeit', beschreibung: 'Anspruch der übernommenen Aufgaben im Verhältnis zum Team', max: 10 },
     { id: 'i2', name: 'Selbstständigkeit', beschreibung: 'Löst Probleme eigenständig, holt gezielt Hilfe', max: 8 },
     { id: 'i3', name: 'Termintreue', beschreibung: 'Zugesagte Stories sind am Sprint-Ende fertig', max: 6 },
-    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Code Reviews, Unterstützung anderer, Kommunikation', max: 6 },
+    // FA-78 AK-5a: „Code Reviews“ ist hier entfallen – es zählt in `i5`.
+    // Sonst wäre ein gegebenes Review zweimal gewertet. Die Kennung bleibt.
+    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Unterstützung anderer, Kommunikation, Verlässlichkeit gegenüber dem Team', max: 6 },
+    { id: 'i5', name: 'Eigene Spur', beschreibung: 'Nachvollziehbare eigene Commits, gegebene Code-Reviews', max: 6 },
   ],
   peer: [
     { id: 'q1', name: 'Verlässlichkeit', beschreibung: 'hält Zusagen ein', max: 5 },
@@ -103,6 +130,69 @@ export const VORLAGE_RUBRIK_SPRINT: Rubrik = {
   // Der Peer-Anteil trägt kein Kategoriegewicht: Er wirkt ab 0.3.0 als
   // gedeckelter Korrekturfaktor (FA-45, ADR-007).
   gewichte: { team: 45, prozess: 20, individuell: 35, peer: 0 },
+  selbstZaehlt: false,
+};
+
+/**
+ * Vorlage für den Vorbereitungssprint (FA-69).
+ *
+ * Der erste Sprint unterscheidet sich maßgeblich von den späteren: Es gibt noch
+ * kein Produkt, sondern die Unterlagen, auf denen alles Weitere aufsetzt. Die
+ * sechs Ergebnisse sind die Vorgabe des Auftraggebers vom 12.09.2026.
+ *
+ * Prozess, individueller Beitrag und Peer sind **wörtlich** die der
+ * Sprint-Rubrik: Sie werden nach FA-67 AK-7 in den zweiten Sprint mitgenommen,
+ * und eine abweichende Benennung machte den Verlauf über das Jahr unlesbar.
+ */
+export const VORLAGE_RUBRIK_VORBEREITUNG: Rubrik = {
+  id: RUBRIK_VORBEREITUNG,
+  name: 'Vorbereitungssprint',
+  team: [
+    { id: 'v1', name: 'Fachliches Konzept', beschreibung: 'Problem, Zielgruppe und Nutzen sind beschrieben; der fachliche Ablauf ist in eigenen Worten dargestellt', max: 10 },
+    { id: 'v2', name: 'Anforderungsspezifikation', beschreibung: 'Anforderungen als überprüfbare Sätze mit Akzeptanzkriterien; Muss und Kann unterschieden', max: 10 },
+    { id: 'v3', name: 'Solution-Design', beschreibung: 'Architekturüberblick, Datenmodell und die tragenden Entscheidungen mit Begründung', max: 10 },
+    { id: 'v4', name: 'CI/CD', beschreibung: 'Pipeline läuft: Bauen und Tests bei jedem Push, ein fehlgeschlagener Lauf wird bemerkt und behoben', max: 8 },
+    { id: 'v5', name: 'Stakeholderanalyse', beschreibung: 'Beteiligte benannt, Interesse und Einfluss eingeschätzt, der Auftraggeber darunter', max: 6 },
+    // Bewusst dieselbe Kennung wie in der Sprint-Rubrik: Es ist dasselbe
+    // Kriterium. Sonst stünde es im Vorrat (FA-67 AK-2a) zweimal.
+    { id: 't5', name: 'Versionsverwaltung', beschreibung: 'Repository eingerichtet, aussagekräftige Commits, Branch-Strategie vereinbart und eingehalten', max: 6 },
+  ],
+  prozess: [
+    { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5, zeitpunkt: 'planning' },
+    {
+      id: 'p2',
+      name: 'Standup',
+      // Nicht „Daily“: Bei einem Block je Woche gibt es ein Treffen, kein
+      // tägliches. Findet keines statt, bleibt das Kriterium leer und fällt aus
+      // der Gewichtung (FA-21, ADR-004) – „nicht beobachtet“ ist nicht „nicht
+      // geleistet“. Festlegung des Auftraggebers vom 13.09.2026 (OP-F30).
+      beschreibung:
+        'Wenn ein Standup stattfindet: kurz, Hindernisse werden benannt. Findet keines statt, bleibt das Kriterium leer',
+      max: 5,
+      zeitpunkt: 'daily',
+    },
+    { id: 'p3', name: 'Backlog-Pflege', beschreibung: 'Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done', max: 5 },
+    { id: 'p4', name: 'Board & Transparenz', beschreibung: 'Board aktuell, Burndown bzw. Velocity gepflegt', max: 5 },
+    { id: 'p5', name: 'Retrospektive', beschreibung: 'Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt', max: 5 },
+  ],
+  individuell: [
+    { id: 'i1', name: 'Umfang & Schwierigkeit', beschreibung: 'Anspruch der übernommenen Aufgaben im Verhältnis zum Team', max: 10 },
+    { id: 'i2', name: 'Selbstständigkeit', beschreibung: 'Löst Probleme eigenständig, holt gezielt Hilfe', max: 8 },
+    { id: 'i3', name: 'Termintreue', beschreibung: 'Zugesagte Stories sind am Sprint-Ende fertig', max: 6 },
+    // FA-78 AK-5a: „Code Reviews“ ist hier entfallen – es zählt in `i5`.
+    // Sonst wäre ein gegebenes Review zweimal gewertet. Die Kennung bleibt.
+    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Unterstützung anderer, Kommunikation, Verlässlichkeit gegenüber dem Team', max: 6 },
+    { id: 'i5', name: 'Eigene Spur', beschreibung: 'Nachvollziehbare eigene Commits, gegebene Code-Reviews', max: 6 },
+  ],
+  peer: [
+    { id: 'q1', name: 'Verlässlichkeit', beschreibung: 'hält Zusagen ein', max: 5 },
+    { id: 'q2', name: 'Fachlicher Beitrag', beschreibung: 'trägt zum Ergebnis bei', max: 5 },
+    { id: 'q3', name: 'Zusammenarbeit', beschreibung: 'kommuniziert, hilft, nimmt Feedback an', max: 5 },
+    { id: 'q4', name: 'Eigeninitiative', beschreibung: 'bringt von sich aus Aufgaben ein', max: 5 },
+  ],
+  // Der Prozess wiegt weniger als später, weil er im ersten Sprint erst
+  // entsteht (FA-69 AK-6).
+  gewichte: { team: 50, prozess: 15, individuell: 35, peer: 0 },
   selbstZaehlt: false,
 };
 
@@ -201,9 +291,28 @@ export function schuljahrVon(datum = new Date()): number {
   return datum.getMonth() >= 8 ? datum.getFullYear() : datum.getFullYear() - 1;
 }
 
+/** Beschriftung der Erfassungszeitpunkte (FA-75). */
+export const ZEITPUNKT_BEZEICHNUNG: Record<Erfassungszeitpunkt, string> = {
+  planning: 'Sprintplanning',
+  daily: 'Daily',
+  review: 'Sprintreview',
+};
+
+/** Die drei Zeitpunkte in der Reihenfolge des Sprintablaufs. */
+export const ZEITPUNKTE: Erfassungszeitpunkt[] = ['planning', 'daily', 'review'];
+
+/** Der Zeitpunkt eines Kriteriums; ohne Angabe gilt `review` (FA-75 AK-1). */
+export function zeitpunktVon(kriterium: Kriterium): Erfassungszeitpunkt {
+  return kriterium.zeitpunkt ?? 'review';
+}
+
 /** Die mit der Anwendung ausgelieferten Rubriken. */
 export function vorlagenRubriken(): Rubrik[] {
-  return [strukturKopie(VORLAGE_RUBRIK_SPRINT), strukturKopie(VORLAGE_RUBRIK_DIPLOMARBEIT)];
+  return [
+    strukturKopie(VORLAGE_RUBRIK_SPRINT),
+    strukturKopie(VORLAGE_RUBRIK_VORBEREITUNG),
+    strukturKopie(VORLAGE_RUBRIK_DIPLOMARBEIT),
+  ];
 }
 
 export function leererDatenbestand(): Datenbestand {
@@ -215,6 +324,7 @@ export function leererDatenbestand(): Datenbestand {
     strangGewichte: { ...STRANG_GEWICHTE },
     peerDeckelung: PEER_DECKELUNG,
     verstehensAnteil: VERSTEHENS_ANTEIL,
+    befundSchwelle: BEFUND_SCHWELLE,
     zeitfaktorZweiteHaelfte: ZEITFAKTOR_ZWEITE_HAELFTE,
     sperreAktiv: true,
     stichtage: [],
@@ -224,7 +334,8 @@ export function leererDatenbestand(): Datenbestand {
     teams: [],
     personen: [],
     abschnitte: [],
-    zugehoerigkeiten: [],
+    teamabschnitte: [],
+    mitgliedschaften: [],
     bewertungen: [],
     peerEntscheidungen: [],
   };

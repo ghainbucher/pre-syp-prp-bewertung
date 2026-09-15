@@ -7,8 +7,13 @@
  * Umlaute richtig erkannt werden.
  */
 
-import { formatProzent, gesamtErgebnis, notenvorschlag } from '../domain/scoring';
-import { teamIn } from '../domain/zuordnung';
+import {
+  abschnitteMitAbweichung,
+  formatProzent,
+  gesamtErgebnis,
+  notenvorschlag,
+} from '../domain/scoring';
+import { projekteVon, teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Bewertung, Datenbestand, Person, Team } from '../domain/types';
 
 export const BOM = '﻿';
@@ -24,7 +29,6 @@ export function alsCsv(zeilen: Array<Array<string | number | null>>): string {
 
 export interface UebersichtEingabe {
   daten: Datenbestand;
-  klasseId: string;
   personen: Person[];
   teams: Team[];
   abschnitte: Abschnitt[];
@@ -43,6 +47,10 @@ export interface UebersichtEingabe {
  */
 export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string | number | null>> {
   const { daten, personen, teams, abschnitte, bewertungen, stichtagId = null } = eingabe;
+  // FA-67 AK-6: Wurden Teams nach verschiedenen Kriterien beurteilt, vergleicht
+  // diese Tabelle ungleiche Maßstäbe. Das gehört dazugeschrieben – die Spalte
+  // erscheint nur, wenn es tatsächlich abweicht.
+  const abweichende = abschnitteMitAbweichung(daten, abschnitte);
   const kopf: Array<string> = [
     'Name',
     'Team',
@@ -53,6 +61,7 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
     'Notenvorschlag',
     'Sperre',
     'Notenstand',
+    ...(abweichende.length > 0 ? ['Abweichende Kriterien'] : []),
   ];
 
   const zeilen: Array<Array<string | number | null>> = [kopf];
@@ -61,7 +70,7 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
   for (const person of personen) {
     const ergebnis = gesamtErgebnis(daten, person, bewertungen, stichtagId);
     const vorschlag = notenvorschlag(ergebnis, daten.notenschluessel, daten.sperreAktiv);
-    const teamId = letzter ? teamIn(daten, letzter.id, person.id) : person.teamId;
+    const teamId = letzter ? teamIn(daten, letzter.id, person.id) : (projekteVon(daten, person.id)[0] ?? null);
     const team = teams.find((t) => t.id === teamId);
     const nachId = new Map(ergebnis.alle.map((e) => [e.abschnitt.id, e.ergebnis]));
 
@@ -83,6 +92,7 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
           : '',
       // FA-49: die eingetragene Note – die einzige Ziffer, die nicht gerechnet ist.
       ergebnis.notenstand?.note ?? '',
+      ...(abweichende.length > 0 ? [abweichende.map((a) => a.name).join(', ')] : []),
     ]);
   }
 

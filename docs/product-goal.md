@@ -4,11 +4,11 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung |
 | **Dokument** | Product Goal |
-| **Version** | 0.3 |
+| **Version** | 0.4 |
 | **Datum** | 2026-09-10 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.3.0 |
+| **Gültig für Softwarestand** | 0.8.0 |
 | **Zuletzt geprüft** | 2026-09-11 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Rahmenbedingung** | RB-09 |
@@ -21,6 +21,7 @@
 |---|---|---|---|---|
 | 0.1 | 2026-09-09 | G. Hainbucher | Ersterstellung; herausgelöst aus Fachkonzept Kap. 12 | Entwurf |
 | 0.2 | 2026-09-10 | G. Hainbucher | „über ein Semester“ durch den tatsächlichen Projektzeitraum ersetzt; Messgrößen an das Zeitbudget von 3 Wochenstunden angeschlossen | Entwurf |
+| 0.4 | 2026-09-12 | G. Hainbucher | PN-2 um die empirische Grundlage ergänzt (Fachkonzept 14.4, E1 und E6): Der fehlende Zusammenhang zwischen Commit-Zahl und Qualität der Arbeit ist nicht nur ein pädagogisches, sondern ein empirisches Argument | Entwurf |
 | 0.3 | 2026-09-10 | G. Hainbucher | Nachgezogen auf Fachkonzept 0.19: zwei Phasen, zwei Stränge, Notenstand statt Note. Zielsatz neu gefasst, Messgrößen berichtigt und um PZ-6 und PZ-7 ergänzt, zwei Nicht-Ziele ergänzt | Entwurf |
 
 ---
@@ -92,7 +93,7 @@ nimmt der Gewohnheit nur einen Teil der Last ab.
 | Nr. | Nicht-Ziel | Grund |
 |---|---|---|
 | **PN-1** | Es vergibt keine Note, es rechnet einen Stand aus | Die Beurteilung ist eine pädagogische Entscheidung der Lehrkraft (§ 11 Abs. 2 LBVO); die Software macht sie nachvollziehbar, ersetzt sie nicht |
-| **PN-2** | Es misst keine Codemetriken und wertet keine Git-Statistiken aus | Grundsatz G4: Beurteilt wird, was beobachtet wurde — Commit-Zahlen sind keine Beobachtung von Kompetenz |
+| **PN-2** | Es misst keine Codemetriken und wertet keine Git-Statistiken aus | Grundsatz G4: Beurteilt wird, was beobachtet wurde — Commit-Zahlen sind keine Beobachtung von Kompetenz. **Empirisch gestützt:** Zwischen Commit-Anzahl und Bewertung der Arbeit ist kein signifikanter Zusammenhang nachweisbar (Fachkonzept 14.4, E1); auch in der Berufspraxis schneiden commit-basierte Maße am schlechtesten ab (E6) |
 | **PN-3** | Es erkennt keinen KI-Einsatz | Weder feststellbar noch die richtige Frage; geprüft wird, ob jemand für seinen Code einstehen kann |
 | **PN-4** | Es ersetzt kein Gespräch | Der Verstehensnachweis ist mündlich; die Software hält nur sein Ergebnis fest |
 | **PN-5** | Es ist kein Werkzeug für die Schülerteams | Deren Backlog und Board liegen in GitHub; dies ist ein Beurteilungswerkzeug der Lehrkraft |

@@ -4,12 +4,12 @@
 |---|---|
 | **Gegenstand** | Softwareprojekt (eigener Projektgegenstand) |
 | **Dokument** | Fachliches Konzept für Unterricht und Leistungsbeurteilung |
-| **Version** | 0.20 |
-| **Datum** | 2026-09-10 |
+| **Version** | 0.24 |
+| **Datum** | 2026-09-14 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.3.0 |
-| **Zuletzt geprüft** | 2026-09-11 |
+| **Gültig für Softwarestand** | 0.8.0 |
+| **Zuletzt geprüft** | 2026-09-15 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Nachgelagert** | [Product Goal](product-goal.md) → [Anforderungen](anforderungen.md) |
 
@@ -28,6 +28,10 @@
 | 0.7 | 2026-09-10 | G. Hainbucher | OP-F2 entschieden: Peer-Werte wirken als gedeckelter Korrekturfaktor von höchstens ±5 Prozentpunkten | Entwurf |
 | 0.8 | 2026-09-10 | G. Hainbucher | Grundsätze G8 bis G10 ergänzt: Aufzeichnungen ohne Noten, überspringbare Bewertungsebenen ohne Überschreiben, Zurückhaltung in der Darstellung. Kapitel 10 um die Bewertungspyramide erweitert. | Entwurf |
 | 0.9 | 2026-09-10 | G. Hainbucher | Die Peer-Bewertung wird zugeschaltet, nicht vorausgesetzt (8.4). Der Zeitpunkt bleibt eine Einschätzung der Lehrkraft; das Werkzeug fragt am Sprintende nach. OP-F5 dadurch zurückgestellt. | Entwurf |
+| 0.24 | 2026-09-14 | G. Hainbucher | **Kapitel 15 „Fachliches Modell“ aufgenommen**: 15.1 die Gegenstände des Unterrichts samt Beziehungen, 15.2 die Arbeitsweise (A1 bis A12) als Maßstab für den Zuschnitt der Sichten. Jede Aussage nennt ihre Wirkung auf das Produkt; „ohne Produktwirkung“ ist eine gültige Antwort. Festlegungen des Auftraggebers vom 13. und 14.09.2026 | Entwurf |
+| 0.23 | 2026-09-13 | G. Hainbucher | **G11** aufgenommen: Die Bedingungen dürfen verschieden sein, die Feststellung nicht. Verallgemeinert sechs Festlegungen vom 13.09.2026 und begründet die maschinell gleiche Reviewvorbereitung als Mittel der Gleichbehandlung | Entwurf |
+| 0.22 | 2026-09-12 | G. Hainbucher | Empirische Grundlage zu GitHub-Auswertungen als Kap. 14.4 und 14.5 aufgenommen (E1 bis E6) und an 8.2a, PN-2 und FA-78/FA-79 angeschlossen. Zeitpunkt der Peer-Bewertung bleibt Entscheidung der Lehrkraft (8.4) | Entwurf |
+| 0.21 | 2026-09-12 | G. Hainbucher | Festlegung des Auftraggebers: zuerst feststellen, ob das Team als Team agiert, dann entwickeln (neues Kap. 8.2a) – Verteilung im Team als Befund, kein Etikett in der Aufzeichnung, Retrospektive als Instrument der Entwicklung. Die nachvollziehbare Spur wird je Person und Sprint aufgezeichnet (8.2) | Entwurf |
 | 0.20 | 2026-09-11 | G. Hainbucher | Das Werkzeug heißt PRE/SYP-PRP-Bewertung; die Kürzel sind in Kapitel 3 einmal ausgeschrieben | Entwurf |
 | 0.19 | 2026-09-10 | G. Hainbucher | Rückfallebene festgelegt, falls die KI-gestützte Korrektur nicht zulässig ist (3.6). OP-F15 wird im Nachgang geklärt und bleibt von OP-S3 getrennt | Entwurf |
 | 0.18 | 2026-09-10 | G. Hainbucher | Arbeitsteilung der beiden Stränge ausdrücklich festgelegt (10.4); Einlesen von Testergebnissen als Anforderung FA-63 | Entwurf |
@@ -60,6 +64,10 @@ Es dient drei Zwecken:
    begründbar.
 3. **Ableitung des Product Goals** – die Software bekommt einen Zweck, der aus der Didaktik
    stammt und nicht aus dem technisch Naheliegenden.
+
+**Kapitel 15 hält das fachliche Modell fest**: die Gegenstände des Unterrichts samt ihren
+Beziehungen und die Arbeitsweise damit. Es ist der Maßstab, gegen den sich das technische
+Modell und der Zuschnitt der Sichten prüfen lassen müssen.
 
 **Nicht Gegenstand** dieses Dokuments sind die Wahl der Programmiersprache, der konkrete
 Projektauftrag eines Durchgangs und die Werkzeuglandschaft der Teams. Diese wechseln pro
@@ -562,7 +570,7 @@ eine volle Gewichtung würde die Anfangsunsicherheit statt der Kompetenz messen.
 
 ## 7 Beurteilungsgrundsätze
 
-Diese zehn Grundsätze sind die Verfassung des Beurteilungskonzepts. Alles Weitere – auch
+Diese elf Grundsätze sind die Verfassung des Beurteilungskonzepts. Alles Weitere – auch
 die Software – muss sich an ihnen messen lassen.
 
 **G1 Kriterien sind vorher bekannt.** Die vollständige Rubrik wird zu Projektbeginn
@@ -610,6 +618,36 @@ gezeigt, nicht die Herleitung. Die Herleitung ist abrufbar, nicht aufgedrängt �
 Lehrkraft wie für die Schülerinnen und Schüler. Zu viele Zahlen führen von der Frage weg,
 um die es geht: **Wo stehen wir, was ist gut, woran arbeiten wir?**
 
+
+**G11 Die Bedingungen dürfen verschieden sein, die Feststellung nicht.** Projekte,
+Auftraggeber, Werkzeuge und Zeitpläne unterscheiden sich – zwischen den Teams und zwischen den
+Personen. Das ist zulässig und sogar erwünscht, weil aus Verschiedenheit **Erfahrung** entsteht,
+und Erfahrung ist der Ertrag für die Schülerinnen und Schüler. Vereinheitlicht wird deshalb nicht
+die Lage, sondern **wie hingesehen wird**: dieselben Fragen, derselbe Maßstab, dieselbe
+Vorbereitung.
+
+Weil die Bedingungen verschieden sind, muss die Vorbereitung der Feststellung **maschinell gleich**
+sein. Das ist keine Bequemlichkeit der Lehrkraft, sondern die einzige Stelle, an der bei ungleichen
+Bedingungen Gleichbehandlung überhaupt entstehen kann: Menschliche Aufmerksamkeit ist in der
+sechsten Stunde eine andere als in der ersten, ein Skript nicht.
+
+*Was „Erfahrung" hier heißt:* **Reibung, die aufgezeichnet wird.** Der Kunde, der es anders gemeint
+hat; die KI, die überzeugend falsch lag; der Merge, der nicht zusammenpasste; das Review, in dem
+jemand die eigene Stelle nicht erklären konnte. Solche Reibung wird nicht abgefedert, sondern in
+der Retrospektive verwertet. Eine Erfahrung, die niemand aufgeschrieben hat, ist eine Anekdote.
+
+*Die Pflicht, die dazugehört:* G11 hebt die Unvergleichbarkeit nicht auf, es verschiebt sie. Je
+verschiedener die Bedingungen, desto mehr hängt die Gleichbehandlung an den Aufzeichnungen (R-05,
+R-14). „Alles gleich machen" ist unmöglich; „gleich hinsehen und den Unterschied aufschreiben" ist
+möglich – aber **nur mit dem Aufschreiben**. Und was aus einer Bedingung folgt, die das Team nicht
+steuern konnte, zählt nicht.
+
+*Angewandt, bevor es benannt war:* M-05a („die Note trägt, was auftraggeberunabhängig prüfbar
+ist"), FA-67 AK-2 (die Kategoriegewichte bleiben unverändert, auch wenn die Kriterien je Team
+abweichen), FA-67 AK-6 (abweichende Kriterien werden dort ausgewiesen, wo Teams verglichen werden)
+und FA-79 (eine Befundschwelle für alle). Einzelheiten zum Firmenauftrag in
+[Zusammenarbeit mit KI, Kap. 11](zusammenarbeit-mit-ki.md).
+
 ---
 
 ## 8 Beurteilungsinstrumente
@@ -626,6 +664,7 @@ einem einzigen Instrument.
 | **Peer- und Selbsteinschätzung** | am Sprintende, schriftlich | K2, K4.1 | Person |
 | **Reflexionsnotiz** | am Sprintende, kurz | K4.5 | Person |
 | **Rückmeldung des Auftraggebers** | nach dem Review, von der Lehrkraft erfasst (8.7) | K3 | Team |
+| **Retrospektive** | am Sprintende, 2–3 Maßnahmen für den Folgesprint | K2.5 | Team |
 
 ### 8.1 Produkt- und Prozessrubrik
 
@@ -644,6 +683,62 @@ in der Praxis der Maßstab, der zählt.
 Erhebt Umfang und Anspruch der übernommenen Aufgaben, Selbstständigkeit, Termintreue und den
 Beitrag zur Teamarbeit. Grundlage sind nachvollziehbare Spuren – zugeordnete Stories,
 Commits, Reviews – nicht der Gesamteindruck.
+
+**Nachvollziehbar heißt aufgezeichnet.** Eine Spur, die nur angesehen wurde, ist im
+Widerspruchsfall keine. Je Person und Sprint wird deshalb **eine** Stelle festgehalten, an
+der diese Person ihren Beitrag zeigt: ein Commit, ein Pull Request, im Vorbereitungssprint
+ein Dokument. Nicht als Nachweis von Menge – eine einzige Stelle belegt keinen Umfang –,
+sondern als Anker des Urteils: Sie ist die Stelle, über die im Verstehensnachweis (8.3)
+gesprochen wurde.
+
+Das hat eine Nebenwirkung, die beabsichtigt ist. Wer im Review eine eigene Stelle zeigen
+soll, muss eine haben. Damit wird die Versionsverwaltung von einer Vorschrift zu einer
+Notwendigkeit – der wirksamste Weg, sie einzuüben, und der einzige, der nicht auf das Zählen
+von Commits hinausläuft (PN-2).
+
+### 8.2a Feststellen, ob das Team ein Team ist
+
+**Festlegung des Auftraggebers vom 12.09.2026:** *Zuerst muss man feststellen, ob das Team
+als Team agiert – also den Beitrag der Einzelnen feststellen. Erst dann kann man ein Team
+entwickeln.*
+
+Das ordnet die Instrumente in eine Reihenfolge. Der individuelle Beitrag ist nicht zuerst
+ein Notenbestandteil, sondern ein **Befund**: Er sagt, ob aus vier Personen ein Team
+geworden ist. Gelesen wird dafür nicht der einzelne Wert, sondern die **Verteilung im
+Team** – und die drei Muster bedeuten Verschiedenes:
+
+| Muster | Befund | Was daraus folgt |
+|---|---|---|
+| alle nah beieinander, hoch | ein Team | weiterarbeiten wie bisher |
+| alle nah beieinander, niedrig | ein Team mit fachlichem Problem | fachliche Unterstützung, keine Teamentwicklung |
+| einer weit unten **oder** einer weit oben | kein Team | Teamentwicklung, und zwar in der Retrospektive |
+
+Der dritte Fall gilt **in beide Richtungen**: Wer alles allein macht, ist derselbe Befund wie
+wer nichts macht. Dafür gibt es einen empirischen Anhaltspunkt (E1a): In einer
+Fallstudie hatten Teams, in denen **alle** regelmäßig committen, die besten Ergebnisse, und
+Teams mit einem „designierten Ingenieur", der alle Commits macht, die **schlechtesten**. Und
+die Gleichverteilung der Beiträge eines Teams korrelierte positiv mit dessen
+Peer-Bewertung (E3). Die Streuung trägt also Information, auch wo die Einzelzahl keine
+trägt (E1). Ein Team, in dem eine Person die Arbeit trägt, hat dasselbe Problem wie
+eines mit einem Mitläufer – nur beschwert sich niemand darüber.
+
+**Der Befund ist keine Person.** Die abweichende Person ist das Symptom, nicht das Ergebnis.
+Die Aufzeichnung nennt deshalb Tatsachen – individueller Beitrag, Teamergebnis, Peer-Wert,
+fehlende Spuren – und **kein Etikett**. Ein Wort wie „Trittbrettfahrer“ hat in einer
+Aufzeichnung nichts zu suchen, die eine Schülerin nach § 71 SchUG einsehen kann: Es wäre
+angreifbar und beendet das Gespräch, das eigentlich beginnen soll.
+
+**Und er muss früh vorliegen.** Eine Feststellung, die drei Sprints Daten braucht, kommt nach
+der Zeit, in der Teamentwicklung noch etwas ändert. Sie stützt sich deshalb auf das, was ab
+dem ersten Sprint da ist: übernommene Aufgaben, Termintreue, die aufgezeichnete Spur – und ab
+dem zweiten Sprint die Peer-Werte, wenn sie zugeschaltet sind (8.4).
+
+**Dann die Entwicklung.** Das Werkzeug der zweiten Hälfte ist die Retrospektive: zwei bis
+drei konkrete Maßnahmen für den Folgesprint (6.2), bewertet über K2.5 und das Prozesskriterium
+„Retrospektive“. Damit „sichtbar umgesetzt“ überhaupt feststellbar ist, muss die Maßnahme
+aufgeschrieben sein und im Folgesprint wieder auftauchen. Feststellung und Entwicklung sind
+so ein Kreis: Befund im Review → Maßnahme in der Retrospektive → Nachschau im nächsten
+Review.
 
 ### 8.3 Verstehensnachweis
 
@@ -679,6 +774,12 @@ ZK-3 hinnehmbar, weil ihre eigentliche Wirkung im Gespräch liegt.
 setzt voraus, dass das Team tatsächlich nach Sprintlogik arbeitet – sonst schätzen sich vier
 Personen gegenseitig für etwas ein, das noch niemand tut, und das Ergebnis ist Rauschen. Ein
 Instrument, das beim ersten Einsatz Rauschen liefert, wird danach nicht mehr ernst genommen.
+
+**Bestätigt am 12.09.2026.** Erwogen und verworfen wurde, die Peer-Einschätzung im ersten
+Sprint ohne Wirkung auf die Note mitlaufen zu lassen – mit dem Argument aus E4, dass ihr
+Haupteffekt verhaltensbezogen ist und ab dem ersten Tag wirkt. Der Auftraggeber entscheidet
+über den Zeitpunkt **selbst**; das bleibt so. Eine Erhebung, die erklärtermaßen nicht zählt,
+wäre ohnehin ein zweifelhaftes Signal an die Klasse.
 
 Der Zeitpunkt ist **keine Regel und kein Rechenwert**, sondern eine Einschätzung der
 Lehrkraft. Das Werkzeug fragt am Ende jeder abgeschlossenen Sprintbewertung nach, ob die
@@ -1204,3 +1305,173 @@ Beurteilungszeitraum; OP-F1, OP-F8 und OP-F10 sind auf diesem Weg bereits geklä
 
 Die Fundstellen sind vor jeder Freigabe des Dokuments erneut zu prüfen. Die LBVO wird
 geändert; ein Zitat mit Abrufdatum ist ein Zitat mit Verfallsdatum.
+
+### 14.4 Empirische Grundlage zu GitHub-Auswertungen
+
+Die Festlegung, **keine** Commit-Zahlen zu bewerten (PN-2, NZ-2), und die Festlegung, die
+**Verteilung** im Team zu lesen (8.2a), stützen sich nicht nur auf Grundsatz G4, sondern auf
+Befunde aus der Fachliteratur. Sie zeigen in eine Richtung; ihre Tragfähigkeit ist begrenzt.
+
+| Nr. | Quelle | Befund | Wirkt auf |
+|---|---|---|---|
+| **E1** | Tushev u. a., *Using GitHub in Large Software Engineering Classes* (Fallstudie, 16 Teams) | **Kein signifikanter Zusammenhang** zwischen Commit-Anzahl und Bewertung (R² 0,0115–0,1723). Die Aktivität auf GitHub sei „kein verlässlicher Stellvertreter für den Aufwand“. Auch die Qualität der Commit-Nachrichten korrelierte nicht; darauf zu benoten sei „riskant“ | PN-2, NZ-2, FA-78 AK-3 |
+| **E1a** | dieselbe Quelle | Drei Muster: Teams, in denen **alle** regelmäßig committen, hatten die besten Ergebnisse; Teams mit einem „designierten Ingenieur“, der alle Commits macht, die **schlechtesten** | 8.2a, FA-79 AK-2, AK-3 |
+| **E2** | Conrad u. a., *Assessing Individual Contributions to Software Engineering Projects with Git Logs and User Stories* (SIGCSE 2020) | Git-Kennzahlen, an User Stories gebunden, korrelieren mit Peer-Bewertung und Projektnote, aber nur **schwach bis mittel** (r 0,19–0,46). Einschränkungen der Autoren: Wer einem Issue zugeordnet ist, muss es nicht gemacht haben; Arbeit außerhalb des Codes ist unsichtbar; **Campbell's Law** – Messen verändert das Gemessene; Qualität wird nicht erfasst | FA-78, FA-79 AK-7 |
+| **E3** | Combining GitHub, Chat, and Peer Evaluation Data (ACM TOCE, 23 Teams / 117 Studierende) | Die **Gleichverteilung** der Beiträge eines Teams korrelierte positiv mit der durchschnittlichen Peer-Bewertung des Teams | 8.2a, FA-79 AK-1 |
+| **E4** | Peer Evaluation of Team Member Effectiveness (CATME, Purdue) | Das Instrument gilt als reliabel und valide; der berichtete Haupteffekt ist **verhaltensbezogen** – Trittbrettfahren nimmt ab, weil eingeschätzt wird, nicht weil es erkannt wird. Gemessen wird berichteter, nicht tatsächlicher Beitrag; Risiken: Absprache, aufgeblähte Selbsteinschätzung, persönliche Abneigung | 8.4 |
+| **E5** | Forsgren u. a., *The SPACE of Developer Productivity* (ACM Queue) | Aktivitätsmaße sagen nicht, ob mehr Aktivität bessere Arbeit oder schlechtere Planung bedeutet; ein einzelnes Maß verändert das Verhalten mit unbeabsichtigten Folgen | PN-2 |
+| **E6** | Code and commit metrics of developer productivity (Empirical Software Engineering) | Code-basierte Maße passen besser zur Einschätzung von Teamleitern als **commit-basierte** – die Commit-Häufigkeit schneidet am schlechtesten ab | PN-2 |
+
+**Wie weit das trägt: begrenzt.** Kleine Stichproben (16 bis 23 Teams), einzelne Hochschulen,
+US-Informatikstudium, keine Replikationen, nichts aus einer österreichischen HTL. Die
+**Richtung** des Befunds ist über alle Arbeiten hinweg gleich; die einzelnen Zahlen sind
+Anhaltspunkte und keine Grundlage für eine Notenformel. E3 ist über eine Zusammenfassung
+belegt, nicht über das Original – der Verlag gibt den Volltext nicht frei.
+
+### 14.5 Fundstellen der Fachliteratur
+
+| Nr. | Quelle | Abgerufen |
+|---|---|---|
+| E1, E1a | [Using GitHub in Large Software Engineering Classes: An Exploratory Case Study](https://miroslavtushev.github.io/papers/publication_github_education.pdf) | 2026-09-12 |
+| E2 | [Assessing Individual Contributions to Software Engineering Projects with Git Logs and User Stories](https://sites.cs.ucsb.edu/~pconrad/files/paper032.pdf) | 2026-09-12 |
+| E3 | [Combining GitHub, Chat, and Peer Evaluation Data to Assess Individual Contributions](https://dl.acm.org/doi/10.1145/3593592) · [Zusammenfassung](https://par.nsf.gov/biblio/10392590-student-teamwork-programming-projects-what-can-github-logs-show-us) | 2026-09-12 |
+| E4 | [Peer Evaluation of Team Member Effectiveness (CATME)](https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=1005&context=impactpubs) | 2026-09-12 |
+| E5 | [The SPACE of Developer Productivity (Zusammenfassung)](https://www.infoq.com/news/2021/03/space-developer-productivity) | 2026-09-12 |
+| E6 | [Code and commit metrics of developer productivity: a study on team leaders' perceptions](https://link.springer.com/article/10.1007/s10664-020-09820-z) | 2026-09-12 |
+
+---
+
+## 15 Fachliches Modell
+
+Dieses Kapitel beschreibt die **Gegenstände des Unterrichts und die Arbeitsweise damit** –
+in der Sprache des Unterrichts, nicht in der der Software. Es ist die Grundlage, gegen die
+sich das technische Modell im [Solution-Design](solution-design.md) und der Zuschnitt der
+Sichten in den [Anforderungen](anforderungen.md) prüfen lassen müssen.
+
+**Es steht bewusst hier und nicht im Product Goal.** Das Product Goal sagt, *wozu* es die
+Software gibt, und muss einen vollständigen Neubau überleben. Projekt, Sprint, Schüler und
+Test sind aber Gegenstände **des Unterrichts**; die Software verwaltet sie nur.
+
+*Festgelegt vom Auftraggeber in den Gesprächen vom 13. und 14.09.2026.*
+
+### 15.1 Gegenstände und Beziehungen
+
+```mermaid
+erDiagram
+    KLASSE        ||--o{ SCHUELER : "besteht aus"
+    KLASSE        ||--o{ TEST : "schreibt"
+    SCHUELER      ||--o{ MITGLIEDSCHAFT : "hat"
+    PROJEKT       ||--o{ MITGLIEDSCHAFT : "hat"
+    PROJEKT       ||--o{ SPRINT : "gliedert sich in"
+    SPRINT        ||--o{ BEURTEILUNG : "wird beurteilt in"
+    TEST          ||--o{ BEURTEILUNG : "wird beurteilt in"
+    SCHUELER      ||--o{ BEURTEILUNG : "erhält"
+    KRITERIENKATALOG ||--o{ SPRINT : "gilt für"
+    BEURTEILUNGSZEITPUNKT ||--o{ BEURTEILUNG : "fasst zusammen"
+```
+
+| Gegenstand | Was er ist |
+|---|---|
+| **Klasse** | Eine Gruppe von Schülern. Sie schreibt Tests gemeinsam. |
+| **Schüler** | Gehört zu genau einer Klasse. |
+| **Projekt** | Ein Auftrag, an dem eine Gruppe arbeitet – mit einem Typ, einer Beschreibung, einem Zeitraum und in der Regel einem Repository. Ein Projekt gehört **keiner Klasse**. |
+| **Mitgliedschaft** | Verbindet einen Schüler mit einem Projekt. Sie hält fest, ob eine Überschneidung mit einem anderen Projekt bewusst gewollt ist. |
+| **Sprint** | Ein Abschnitt der Arbeit an **einem** Projekt: Ziel, Zeitraum und die Kriterien, nach denen am Ende beurteilt wird. |
+| **Test** | Eine schriftliche Überprüfung, die eine **Klasse** zu einem Termin schreibt. Seine Fragen sind zugleich seine Kriterien. |
+| **Kriterienkatalog** | Die Kriterien mit ihren Gewichten, nach denen ein Sprint beurteilt wird. Für Projekte über viele Sprints derselbe; bei einem Test sind es dessen Fragen. |
+| **Beurteilung** | Was zu einem Sprint oder Test festgehalten wird: Punkte je Kriterium – für das Team gemeinsam und für jeden Schüler einzeln –, Beobachtungen und die Rückmeldung. |
+| **Beurteilungszeitpunkt** | Semesterende oder Kontrollzeitpunkt, zu dem ein Stand festgestellt wird (§ 19 Abs. 3a SchUG). |
+
+**Drei Sätze, die man leicht überliest und die das Modell tragen:**
+
+- **Ein Projekt hat keine Klasse.** Die Klasse hängt am Schüler. Ob ein Projekt in einer
+  bestimmten Klasse läuft, ergibt sich nur über seine Mitglieder – bei einer Diplomarbeit
+  liefert diese Frage mehrere Antworten, und das ist richtig so.
+- **Ein Sprint gehört einem Projekt, nie einem Schüler und nie einer Klasse.**
+- **Eine Diplomarbeit ist ein Projekt** eines bestimmten Typs, keine eigene Art von Sache.
+  Aus dem Typ ergeben sich später zusätzliche Angaben; die Beurteilung läuft gleich.
+
+*Wie diese Gegenstände technisch abgelegt werden – Kennungen, Migration, was gespeichert und
+was abgeleitet wird –, steht im [Solution-Design, Kapitel 5](solution-design.md), samt einer
+Tabelle, die jede Größe von hier ihrer technischen Umsetzung gegenüberstellt.*
+
+### 15.2 Arbeitsweise
+
+Nicht *was* es gibt, sondern *wie damit gearbeitet wird*. Diese Sätze sind der **Maßstab für
+den Zuschnitt der Sichten**: Eine Anforderung, die eine Oberfläche festlegt, muss sich auf
+einen davon berufen können. Ohne sie begründet sich eine solche Anforderung selbst.
+
+Jede Aussage nennt ihre **Wirkung auf das Produkt**. „Ohne Produktwirkung“ ist eine gültige
+Antwort – dieses Konzept beschreibt den Unterricht und nicht die Software (Kapitel 2).
+
+**A1 Leistung entsteht in zwei getrennten Bereichen: in Projekten und in Tests.** Sie werden
+getrennt erhoben und erst bei der Note zusammengeführt. *Wirkung: FA-34, FA-59.*
+
+**A2 An einem Projekt arbeite ich zu einem Zeitpunkt.** Die Klasse ist beim Beurteilen eines
+Sprints keine nützliche Einheit – sie ist nur der Ort, aus dem die Schüler kommen.
+*Wirkung: FA-34, FA-87, FA-90.*
+
+**A3 Bei Tests und bei der Notenfindung arbeite ich nach Schüler.** Der Zugang führt dort über
+die Klasse, weil ein Test von der Klasse geschrieben wird. *Wirkung: FA-34, FA-92.*
+
+**A4 Ein Sprint hat drei Schritte: Planung, laufende Beobachtung, Review.** Was im Review
+beurteilt wird, wurde in der Planung angekündigt (G1). *Wirkung: FA-70, FA-71, FA-72.*
+
+**A5 Im Review brauche ich alles zu diesem Sprint gleichzeitig** – Punkte, Peer-Werte,
+Verstehensnachweis, Befund, Rückmeldung und den Abschluss. Ein Review, das über mehrere
+Seiten verteilt ist, wird in der Einheit nicht fertig. *Wirkung: FA-72, FA-79, FA-83.*
+
+**A6 Stammdaten pflege ich dreimal im Jahr, im Projekt arbeite ich wöchentlich.** Die
+Häufigkeit bestimmt, was vorne steht – nicht der Ablauf. *Wirkung: FA-34 AK-2.*
+
+**A7 Die Sprints verschiedener Projekte laufen versetzt.** Eine Unterrichtseinheit trägt nicht
+mehrere Reviews. Deshalb muss über alle Projekte hinweg sichtbar sein, welches gerade in
+welchem Sprint steht. *Wirkung: FA-84, FA-91.*
+
+**A8 Die Schüler wähle ich beim Projekt aus, nicht das Projekt beim Schüler.**
+*Wirkung: FA-87, FA-88.*
+
+**A9 Ein Projekt kann Schüler aus mehreren Klassen haben.** Das ist der Regelfall bei
+Diplomarbeiten und kein Fehler. Ein Schüler in zwei Projekten zugleich ist dagegen selten –
+zulässig, aber ausdrücklich zu bestätigen. *Wirkung: FA-87, FA-90.*
+
+**A10 Vor einem Gespräch will ich einen Schüler über alle seine Abschnitte sehen; beim
+Eintragen eines frisch korrigierten Tests eine ganze Klasse auf einmal.** Beide Zugänge sind
+berechtigt; welcher der Einstieg ist, ist noch offen. *Wirkung: OP-F32, OP-F33 – offen.*
+
+**A11 Im Sprintreview zeigt das Team dem Auftraggeber eine lauffähige Fassung.**
+*Wirkung: ohne Produktwirkung.* Das geschieht im Unterricht; die Software hält davon nur
+fest, was beurteilt wurde (Kapitel 6).
+
+**A12 Der Auftrag kommt von außen: Eine Firma vergibt ihn, Repository, CI/CD und Testsystem
+sind gesetzt.** *Wirkung: ohne Produktwirkung* für die Bewertungssoftware; die
+Rahmenbedingungen stehen in [Zusammenarbeit mit KI, Kapitel 11](zusammenarbeit-mit-ki.md).
+
+**A13 Stammdaten berichtige ich laufend, eine gegebene Note bleibt trotzdem begründet.**
+Ein Name ist vertippt, eine Klasse doppelt angelegt, ein Test versehentlich zweimal erfasst –
+das räume ich weg, sobald es mir auffällt, und will es danach nicht mehr sehen. Sobald aber
+etwas beurteilt wurde, hängt an dem Eintrag die Begründung einer Note; dann darf das
+Aufräumen sie nicht mitnehmen. *Wirkung:* Das Löschen eines Stammdatenobjekts hat **zwei
+Ausgänge**, und die Software wählt selbst, welcher greift: endgültig, solange nichts
+Bewertetes daran hängt; sonst nur ausgeblendet und wiederherstellbar ([G7](#g7)). Welcher
+Ausgang es im Einzelfall ist, steht **vor** der Bestätigung neben dem Schalter – sonst wäre
+die Wahl der Software eine Überraschung.
+
+**A14 Ich habe mehrere Klassen zugleich und springe zwischen den Sichten.** Zwei bis drei
+Klassen sind der Regelfall. Ich sehe in die Projekte der einen, wechsle in die Tests, dann in
+die Notenauswertung – und arbeite dabei die ganze Zeit an derselben Klasse, ohne das jedes Mal
+neu einzustellen. Manchmal will ich aber auch über alle Klassen schauen, etwa um zu sehen, wo
+welches Projekt gerade steht. *Wirkung:* Es gibt **genau einen** Klassenfilter für die ganze
+Anwendung, nicht einen je Sicht. Er kennt „alle Klassen", steht in der Kopfleiste, wirkt auf
+jeder Sicht, auf der eine Klasse vorkommt, und ist dort auch änderbar. Ein Filter, der über
+Sichtgrenzen hinweg wirkt, aber nur auf einer Sicht zu sehen ist, macht alle anderen
+unerklärlich: Man sucht einen Eintrag, der da sein müsste, und findet ihn nicht.
+
+**A15 Im Planning vereinbaren wir Anforderungen, im Review sehen wir nach, was daraus wurde.**
+Das Sprint-Ziel ist ein Satz; die Anforderungen sind die Punkte darunter, und über sie wird im
+Planning tatsächlich gesprochen. Im Review ist die erste Frage, ob das entstanden ist, was
+vereinbart war. *Wirkung:* Am Sprint eines Teams hängen **zwei Texte** – die geplanten
+Anforderungen aus dem Planning und die umgesetzten aus dem Review –, und im Review stehen sie
+nebeneinander. Getrennt voneinander sagt keiner von beiden etwas. Beide gehen in **keine
+Rechnung** ein: Ob eine offene Anforderung dem Team anzulasten ist, entscheidet die Lehrkraft
+und nicht ein Zeilenvergleich.
