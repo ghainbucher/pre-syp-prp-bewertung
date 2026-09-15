@@ -5,7 +5,7 @@ Team-Ergebnis, Scrum-Prozess, individueller Beitrag und Peer-Einschätzung werde
 erfasst, gewichtet zu einem Prozentwert verrechnet und über einen frei einstellbaren
 Notenschlüssel zu einer Note geführt.
 
-**Version 0.1.0** · Status: in Entwicklung
+**Version 0.8.0 „Ordnen“** · Status: erste durchgängig einsetzbare Fassung
 
 ---
 

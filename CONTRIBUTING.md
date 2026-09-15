@@ -15,11 +15,32 @@ gewählt, dass sie auch als Beispiel im Unterricht taugen.
 Direkte Pushes auf `main` sind unterbunden. Änderungen kommen über einen Pull Request, der
 erst zusammengeführt wird, wenn die Pipeline grün ist.
 
-**Einmalig einzurichten** (Settings → Branches → Add rule für `main`):
+**Einmalig einzurichten** – fünf Einstellungen, die das Skript setzt:
 
-- Require a pull request before merging
-- Require status checks to pass: `Lint, Typen, Unit-Tests, Build` und `End-to-End-Tests`
-- Require branches to be up to date before merging
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\repo-einrichten.ps1 -Schutz
+```
+
+| | Einstellung | Warum |
+|---|---|---|
+| 1 | Require a pull request before merging | Ohne sie sind alle folgenden Regeln freiwillig |
+| 2 | Require status checks to pass: `Lint, Typen, Unit-Tests, Build` und `End-to-End-Tests` | Die Pipeline entscheidet, nicht die Eile |
+| 3 | Require branches to be up to date before merging | Grün auf einem alten Stand sagt nichts |
+| 4 | **Dismiss stale pull request approvals when new commits are pushed** | Sonst wird genehmigt und danach nachgeschoben – die Genehmigung gilt für einen Stand, der nicht mehr da ist |
+| 5 | Kein Force-Push, kein Löschen von `main` | Die Historie bleibt nachvollziehbar (§ 18 Abs. 1 SchUG betrifft die Aufzeichnungen, nicht das Repo – aber dieselbe Überlegung) |
+
+Nummer 4 fehlt am häufigsten. Sie ist die einzige, die den naheliegenden Umweg schließt.
+
+**Genehmigungen:** In diesem Einpersonenprojekt sind **0** verlangt – der Pull Request bleibt
+Pflicht, aber man kann den eigenen nicht genehmigen. Für ein Schülerteam:
+`-Genehmigungen 1 -AdminsEingeschlossen`. Ohne `-AdminsEingeschlossen` hebt derjenige mit
+Verwaltungsrechten die ganze Absicherung auf.
+
+**Geht nicht in jedem Tarif:** Geschützte Zweige gibt es in *privaten* Repositories nur mit
+GitHub Pro, Team oder Enterprise; in öffentlichen sind sie auch im kostenlosen Tarif enthalten
+([GitHub Docs](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)).
+Das Skript sagt es, wenn es daran scheitert. Ohne geschützten Zweig bleibt die Pipeline eine
+Empfehlung – dann trägt die Absicherung allein das Review.
 
 ## Commits
 

@@ -3,6 +3,7 @@
  * (FA-28 bis FA-31, FA-59).
  */
 
+import { nurAktive } from '../domain/loeschen';
 import { useMemo } from 'react';
 
 import type { AbschnittMitErgebnis } from '../domain/types';
@@ -17,7 +18,13 @@ import {
   strangUnterGrenze,
   zeitfaktorWeichtAb,
 } from '../domain/scoring';
-import { abschnitteImZeitraum, teamIn, zeitraumVon } from '../domain/zuordnung';
+import {
+  abschnitteImZeitraum,
+  kurzzeichen,
+  projekteVon,
+  teamIn,
+  zeitraumVon,
+} from '../domain/zuordnung';
 import { belegfassungDateiname, belegfassungHtml } from '../export/belegfassung';
 import { alsCsv, csvDateiname, dateiAnbieten, uebersichtZeilen } from '../export/csv';
 import { bewertungsIndex } from '../store/storeReducer';
@@ -30,7 +37,9 @@ import {
   Prozent,
   Punktefeld,
   Textfeld,
+  Ueberarbeitung,
 } from '../ui/bausteine';
+import { ZWISCHENSTAENDE } from '../ui/zwischenstaende';
 import type { AnsichtProps } from './typen';
 
 const TENDENZ_ZEICHEN: Record<string, { zeichen: string; text: string }> = {
@@ -59,6 +68,8 @@ function TendenzZelle({ eintraege }: { eintraege: AbschnittMitErgebnis[] }) {
 
 export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
   const index = useMemo(() => bewertungsIndex(daten), [daten]);
+  // `undefined` heißt hier „alle Klassen" (FA-95) – die Auswertung kann über
+  // alle laufen, die Klasse ist nur ein Filter.
   const klasse = daten.klassen.find((k) => k.id === ui.klasseId);
   const zeitraum = zeitraumVon(daten, ui.stichtagId);
   const abschnitte = abschnitteImZeitraum(daten, ui.klasseId, zeitraum);
@@ -66,15 +77,35 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
   const teams = teamsVon(daten, ui.klasseId);
   const personen = personenVon(daten, ui.klasseId);
 
-  if (!klasse || personen.length === 0) {
+  if (personen.length === 0) {
+    // Gefiltert oder wirklich leer? (FA-95 AK-6)
+    const gefiltert = ui.klasseId !== null && personenVon(daten, null).length > 0;
     return (
       <LeerHinweis
-        titel="Noch nichts auszuwerten"
-        text="Sobald eine Klasse mit Personen und Abschnitten angelegt ist, erscheint hier die Übersicht."
+        titel={gefiltert ? 'Kein Schüler in dieser Klasse' : 'Noch nichts auszuwerten'}
+        text={
+          gefiltert
+            ? 'Der Klassenfilter oben in der Kopfleiste zeigt nur diese Klasse. In anderen Klassen gibt es Schüler.'
+            : 'Sobald eine Klasse mit Personen und Abschnitten angelegt ist, erscheint hier die Übersicht.'
+        }
         aktion={
-          <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
-            Zu Klassen &amp; Teams
-          </button>
+          gefiltert ? (
+            <button
+              type="button"
+              className="schalter haupt"
+              onClick={() => setUi({ klasseId: null })}
+            >
+              Alle Klassen zeigen
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="schalter haupt"
+              onClick={() => setUi({ ansicht: 'stammdaten', stammseite: 'klassen' })}
+            >
+              Zu den Stammdaten
+            </button>
+          )
         }
       />
     );
@@ -86,7 +117,7 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
   const teamVon = (personId: string) =>
     letzterMitTeam
       ? teamIn(daten, letzterMitTeam.id, personId)
-      : (daten.personen.find((p) => p.id === personId)?.teamId ?? null);
+      : (projekteVon(daten, personId)[0] ?? null);
 
   const ergebnisse = personen.map((person) => {
     const ergebnis = gesamtErgebnis(daten, person, index, ui.stichtagId);
@@ -124,21 +155,23 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
   function exportieren() {
     const zeilen = uebersichtZeilen({
       daten,
-      klasseId: klasse!.id,
       personen,
       teams,
       abschnitte,
       bewertungen: index,
       stichtagId: ui.stichtagId,
     });
-    dateiAnbieten(csvDateiname(klasse!.name, new Date(), stichtag?.name), alsCsv(zeilen));
+    dateiAnbieten(
+      csvDateiname(klasse?.name ?? 'alle-Klassen', new Date(), stichtag?.name),
+      alsCsv(zeilen),
+    );
   }
 
   return (
     <>
       <div className="ansichtskopf">
         <div>
-          <h2>Auswertung {klasse.name}</h2>
+          <h2>Auswertung {klasse?.name ?? 'aller Klassen'}</h2>
           <p>
             Praxis und Theorie werden getrennt gemittelt und dann mit{' '}
             {daten.strangGewichte.praxis} zu {daten.strangGewichte.theorie} zusammengeführt
@@ -155,7 +188,7 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
         </div>
         <span className="dehnen" />
         {/* FA-48 AK-3: Der gewählte Stichtag ist in der Ausgabe erkennbar. */}
-        {daten.stichtage.length > 0 ? (
+        {nurAktive(daten.stichtage).length > 0 ? (
           <div className="zeile">
             <label className="etikett" htmlFor="stichtagwahl">
               Stichtag
@@ -166,7 +199,7 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
               onChange={(e) => setUi({ stichtagId: e.target.value || null })}
             >
               <option value="">gesamter Durchgang</option>
-              {[...daten.stichtage]
+              {nurAktive(daten.stichtage)
                 .sort((a, b) => a.bis.localeCompare(b.bis))
                 .map((eintrag) => (
                   <option key={eintrag.id} value={eintrag.id}>
@@ -189,6 +222,8 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
           CSV exportieren
         </button>
       </div>
+
+      <Ueberarbeitung {...ZWISCHENSTAENDE.auswertung} />
 
       {stichtag ? (
         <p className="anmerkung">
@@ -219,7 +254,7 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
             : `${ohneDatum.length} Abschnitte haben kein Enddatum`}{' '}
           ({ohneDatum.map((a) => a.name).join(', ')}) und lässt sich damit keinem Stichtag
           zuordnen. {ohneDatum.length === 1 ? 'Er bleibt' : 'Sie bleiben'} in dieser Auswertung
-          außen vor – bitte das Enddatum unter „Klassen &amp; Teams“ eintragen.
+          außen vor – bitte das Enddatum unter „Stammdaten“ eintragen.
         </div>
       ) : null}
 
@@ -241,8 +276,7 @@ export function AuswertungAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) 
                           zeitfaktorVon.get(abschnitt.id) ?? 1
                         }`}
                       >
-                        {abschnitt.art === 'test' ? 'T' : abschnitt.art === 'diplomarbeit' ? 'DA' : 'S'}
-                        {abschnitt.nummer}
+                        {kurzzeichen(daten, abschnitt)}
                         <br />
                         {/* Beide Faktoren getrennt (FA-54 AK-4): Wer nur das
                             Produkt sieht, kann Lage und Einstellung nicht

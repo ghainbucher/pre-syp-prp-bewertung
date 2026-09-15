@@ -1,83 +1,26 @@
 /**
- * Oberflächenzustand: gewählte Ansicht, Klasse, Abschnitt, Team, bewertende
- * Person und die zur Bearbeitung geöffnete Rubrik.
+ * Der Haken für den Oberflächenzustand (FA-35).
  *
- * Wird getrennt vom Datenbestand gehalten und im localStorage abgelegt, damit
- * die Anwendung dort weitermacht, wo zuletzt gearbeitet wurde (FA-35).
+ * Alles außer React steht in `uizustand.ts` – die Form des Zustands, der
+ * Startwert und die Regel, was dauerhaft gemerkt wird. Von hier werden die
+ * Typen weitergereicht, damit die rund zwanzig bestehenden Importe stimmen
+ * bleiben.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
-/**
- * Die acht Bereiche (FA-34).
- *
- * Die Reihenfolge folgt dem Unterrichtsablauf: erst die Stammdaten, dann der
- * Sprint von seinem Beginn bis zu seinem Ende, dann das Ganzjährige, dann das
- * Auswerten und Einstellen.
- */
-export type Ansicht =
-  | 'struktur'
-  | 'planning'
-  | 'daily'
-  | 'review'
-  | 'diplomarbeit'
-  | 'tests'
-  | 'auswertung'
-  | 'rubrik';
+import { SCHLUESSEL, dauerhafterTeil, gelesen } from './uizustand';
+import type { UiZustand } from './uizustand';
 
-export interface UiZustand {
-  ansicht: Ansicht;
-  klasseId: string | null;
-  /** Gewählter Beurteilungsabschnitt – Sprint, Diplomarbeit oder Test. */
-  abschnittId: string | null;
-  teamId: string | null;
-  bewerterId: string | null;
-  /** In der Rubrikansicht geöffnete Rubrik (FA-55). */
-  rubrikId: string | null;
-  /** Stichtag der Auswertung; `null` = alles (FA-48). */
-  stichtagId: string | null;
-  /**
-   * Herleitung anzeigen (FA-51)? Vorgabe aus.
-   *
-   * Steht bewusst hier und nicht im Datenbestand: Die Einstellung wirkt nur auf
-   * die Anzeige und darf nie in einer Sicherung landen (AK-3).
-   */
-  ausfuehrlich: boolean;
-}
-
-// Stand 3: Aus dem einen Bereich „Bewerten“ sind fünf geworden (FA-34). Ein
-// neuer Schlüssel ist einfacher als eine Migration eines Zustands, der sich in
-// Sekunden wiederherstellt.
-const SCHLUESSEL = 'pre-syp-prp.ui.v3';
-
-const START: UiZustand = {
-  ansicht: 'planning',
-  klasseId: null,
-  abschnittId: null,
-  teamId: null,
-  bewerterId: null,
-  rubrikId: null,
-  stichtagId: null,
-  ausfuehrlich: false,
-};
-
-function gelesen(): UiZustand {
-  try {
-    const roh = localStorage.getItem(SCHLUESSEL);
-    if (!roh) return START;
-    const wert = JSON.parse(roh) as Partial<UiZustand>;
-    return { ...START, ...wert };
-  } catch {
-    return START;
-  }
-}
+export type { Ansicht, Stammseite, UiZustand } from './uizustand';
+export { START, dauerhafterTeil } from './uizustand';
 
 export function useUiZustand() {
   const [zustand, setZustand] = useState<UiZustand>(gelesen);
 
   useEffect(() => {
     try {
-      localStorage.setItem(SCHLUESSEL, JSON.stringify(zustand));
+      localStorage.setItem(SCHLUESSEL, JSON.stringify(dauerhafterTeil(zustand)));
     } catch {
       /* Ohne Speicher geht die Auswahl beim Neuladen verloren – kein Fehlerfall. */
     }

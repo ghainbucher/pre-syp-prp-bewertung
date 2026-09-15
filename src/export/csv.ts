@@ -13,7 +13,7 @@ import {
   gesamtErgebnis,
   notenvorschlag,
 } from '../domain/scoring';
-import { teamIn } from '../domain/zuordnung';
+import { projekteVon, teamIn } from '../domain/zuordnung';
 import type { Abschnitt, Bewertung, Datenbestand, Person, Team } from '../domain/types';
 
 export const BOM = '﻿';
@@ -29,7 +29,6 @@ export function alsCsv(zeilen: Array<Array<string | number | null>>): string {
 
 export interface UebersichtEingabe {
   daten: Datenbestand;
-  klasseId: string;
   personen: Person[];
   teams: Team[];
   abschnitte: Abschnitt[];
@@ -71,7 +70,7 @@ export function uebersichtZeilen(eingabe: UebersichtEingabe): Array<Array<string
   for (const person of personen) {
     const ergebnis = gesamtErgebnis(daten, person, bewertungen, stichtagId);
     const vorschlag = notenvorschlag(ergebnis, daten.notenschluessel, daten.sperreAktiv);
-    const teamId = letzter ? teamIn(daten, letzter.id, person.id) : person.teamId;
+    const teamId = letzter ? teamIn(daten, letzter.id, person.id) : (projekteVon(daten, person.id)[0] ?? null);
     const team = teams.find((t) => t.id === teamId);
     const nachId = new Map(ergebnis.alle.map((e) => [e.abschnitt.id, e.ergebnis]));
 

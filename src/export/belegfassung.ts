@@ -178,6 +178,16 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
         ? `      <p class="reflexion">Sicht der Person: ${maskiert(eintrag.reflexion)}</p>`
         : '';
 
+      // FA-78 AK-7: Die Spur ist der Teil der Aufzeichnung, der ein Urteil
+      // über den individuellen Beitrag überprüfbar macht (§ 18 Abs. 1 SchUG).
+      // Ausdrücklich als „kein Punktewert“ ausgewiesen, damit niemand sie für
+      // eine Bewertungsgröße nimmt.
+      const spurZeile = eintrag?.spur
+        ? `      <p class="spur">Gezeigte Spur: ${maskiert(eintrag.spur.bezeichnung)}${
+            eintrag.spur.verweis ? ` · ${maskiert(eintrag.spur.verweis)}` : ''
+          } <span class="anmerkung">(Anker des Urteils, kein Punktewert)</span></p>`
+        : '';
+
       const peerZeile =
         abschnitt.peerAktiv && e.peer
           ? `      <p class="peer">Peer-Einschätzung ${formatProzent(e.peer.prozent, 1)} % aus
@@ -194,6 +204,31 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
            } · gesetzt am ${datumDeutsch(new Date(e.gesetzt.gesetztAm))}</p>`
         : '';
 
+      // FA-80 AK-7: Die Maßnahmen sind eine Zusage des Teams, keine
+      // Zuschreibung an eine Person – sie stehen deshalb ohne Namen und ohne
+      // Wertung da, samt Umsetzungsstand aus dem Folgesprint.
+      const massnahmen = planung?.massnahmen ?? [];
+      const massnahmenZeile =
+        massnahmen.length > 0
+          ? `      <p class="massnahmen">Maßnahmen der Retrospektive: ${massnahmen
+              .map((m) => maskiert(m.text))
+              .join(' · ')}</p>`
+          : '';
+
+      // FA-82 AK-5: Der Sprintwert ist das, was das Team gehört hat. Ein Wert,
+      // den das Team kennt und der in keiner Aufzeichnung steht, wäre im
+      // Anlassfall nicht erklärbar. Ausdrücklich als „geht in keine Note ein“.
+      const sprintwert = bewertung?.gesetzt?.sprintwert;
+      const sprintwertZeile = sprintwert
+        ? `      <p class="sprintwert">Sprintwert des Teams <b>${formatProzent(
+            sprintwert.prozent,
+            1,
+          )} %</b>${
+            sprintwert.begruendung ? ` · ${maskiert(sprintwert.begruendung)}` : ''
+          } · gesetzt am ${datumDeutsch(new Date(sprintwert.gesetztAm))}
+         <span class="anmerkung">(Aussage an das Team, geht in keine Note ein)</span></p>`
+        : '';
+
       const schema =
         abschnitt.art === 'test'
           ? `      <p class="schema">Bewertungsschema der offenen Frage: ${maskiert(
@@ -205,9 +240,12 @@ export function belegfassungHtml(eingabe: BelegfassungEingabe): string {
       <h3>${maskiert(abschnitt.name)} <span class="ergebnis">${prozentOderLeer(e.prozent)}</span></h3>
       <p class="kopf">${maskiert(kopfzeilen.join(' · '))}</p>
 ${bloecke}
+${spurZeile}
 ${verstehenZeile}
 ${reflexionZeile}
 ${peerZeile}
+${sprintwertZeile}
+${massnahmenZeile}
 ${schema}
 ${gesetztZeile}
     </section>`;

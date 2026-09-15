@@ -1,6 +1,6 @@
 {
   "name": "pre-syp-prp-bewertung",
-  "version": "0.3.0",
+  "version": "0.8.0",
   "private": true,
   "description": "Kriteriengeleitete Bewertung von Schüler-Softwareprojekten über mehrere Sprints",
   "type": "module",
@@ -18,6 +18,11 @@
     "coverage": "vitest run --coverage",
     "e2e": "npm run build && playwright test",
     "dokumente": "node scripts/dokumente-pruefen.mjs",
+    "github": "node scripts/github-auswertung.mjs",
+    "reviewzettel": "node scripts/review-vorbereitung.mjs",
+    "pullrequests": "node scripts/pull-requests-auswerten.mjs",
+    "deutung": "node scripts/auswertung-deuten.mjs",
+    "ausmustern": "node scripts/ausmustern.mjs",
     "pruefen": "npm run lint && npm run typecheck && npm run test && npm run dokumente && npm run build"
   },
   "dependencies": {

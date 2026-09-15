@@ -11,7 +11,16 @@
  * Aktionen zurück.
  */
 
-import { kriterienVorrat, kriterienVorschlag, planungVon } from '../domain/zuordnung';
+import {
+  ZUSTAND_BEZEICHNUNG,
+  fixierbarkeit,
+  kriterienVorrat,
+  kriterienVorschlag,
+  planungVon,
+  sprintZustand,
+  ueberschneidungen,
+  zeitraumVerdreht,
+} from '../domain/zuordnung';
 import type {
   Abschnitt,
   Datenbestand,
@@ -67,6 +76,11 @@ export function PlanungsKarte({
   const gewaehlt = planung?.rubrikKopie ?? kriterienVorschlag(daten, abschnitt, team.id).rubrik;
   // Alles, was zur Wahl steht (AK-2a).
   const vorrat = kriterienVorrat(daten, abschnitt, team.id);
+  const ueberlappende = ueberschneidungen(daten, abschnitt.id, team.id);
+  // FA-77: Solange ein Sprint nicht fixiert ist, ist er ein Vorschlag – eine
+  // Absicht, die noch nicht gilt.
+  const zustand = sprintZustand(daten, abschnitt.id, team.id);
+  const fixierung = fixierbarkeit(daten, abschnitt, team.id);
 
   if (!planung) {
     return (
@@ -107,12 +121,50 @@ export function PlanungsKarte({
   return (
     <Karte
       titel="Sprintplanung"
-      hinweis={
+      hinweis={[
+        abschnitt.art === 'sprint' ? ZUSTAND_BEZEICHNUNG[zustand] : null,
         planung.geplantAm
           ? `festgehalten am ${datumDeutsch(planung.geplantAm.slice(0, 10))}`
-          : undefined
+          : null,
+        planung.fixiertAm
+          ? `fixiert am ${datumDeutsch(planung.fixiertAm.slice(0, 10))}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ') || undefined}
+      rechts={
+        abschnitt.art === 'sprint' && zustand === 'vorschlag' ? (
+          <button
+            type="button"
+            className="schalter haupt"
+            disabled={!fixierung.erlaubt}
+            onClick={() =>
+              dispatch({ art: 'planung/fixieren', abschnittId: abschnitt.id, teamId: team.id })
+            }
+          >
+            Sprint fixieren
+          </button>
+        ) : undefined
       }
     >
+      {/* FA-77 AK-2, AK-4, AK-7: Ein Vorschlag ist als solcher zu erkennen, und
+          wenn das Fixieren nicht geht, steht der Grund da. */}
+      {abschnitt.art === 'sprint' && zustand === 'vorschlag' ? (
+        <p className={fixierung.erlaubt ? 'hinweis' : 'warnung'} role="status">
+          {fixierung.wartetAuf ? (
+            <>
+              Noch ein Vorschlag. Fixieren geht erst, wenn {fixierung.wartetAuf.name} mit dem
+              Sprintreview abgeschlossen ist – ein neuer Sprint beginnt nicht, während der vorige
+              unbesprochen ist. Erfassen lässt sich hier trotzdem schon.
+            </>
+          ) : (
+            <>
+              Noch ein Vorschlag: vorausgeplant, aber nicht der geltende Sprint. Ziel, Zeitraum und
+              Kriterien sind frei änderbar. Erfassen lässt sich auch jetzt schon.
+            </>
+          )}
+        </p>
+      ) : null}
       <div className="zeile">
         <label className="etikett" htmlFor={`ziel-${team.id}`}>
           Ziel
@@ -129,6 +181,35 @@ export function PlanungsKarte({
                 abschnittId: abschnitt.id,
                 teamId: team.id,
                 aenderung: { ziel },
+              })
+            }
+          />
+        </div>
+      </div>
+
+      {/*
+        FA-96: Was in diesem Sprint umgesetzt werden soll – vorerst Freitext,
+        eine Zeile je Anforderung. Das Ziel darüber ist der Satz, hier stehen
+        die Punkte. Im Review steht dieser Text neben dem, was tatsächlich
+        umgesetzt wurde; erst das macht den Vergleich möglich.
+      */}
+      <div className="zeile">
+        <label className="etikett" htmlFor={`anforderungen-${team.id}`}>
+          Geplante Anforderungen
+        </label>
+        <div className="dehnen">
+          <Textfeld
+            mehrzeilig
+            wert={planung.geplanteAnforderungen ?? ''}
+            beschriftung={`Geplante Anforderungen von ${team.name}`}
+            platzhalter={'eine Zeile je Anforderung\nz. B. Storno einer Buchung'}
+            breit
+            onAendern={(geplanteAnforderungen) =>
+              dispatch({
+                art: 'planung/aendern',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+                aenderung: { geplanteAnforderungen },
               })
             }
           />
@@ -176,6 +257,26 @@ export function PlanungsKarte({
         <p className="warnung" role="status">
           Ohne Enddatum bleibt dieses Team in jeder Stichtagsauswertung außen vor – es wird dort
           genannt, aber nicht mitgerechnet.
+        </p>
+      ) : null}
+
+      {/* FA-66 AK-8: Ein Team arbeitet zu einer Zeit an einem Sprint. */}
+      {zeitraumVerdreht(planung) ? (
+        <p className="warnung" role="status">
+          Das Ende liegt vor dem Beginn.
+        </p>
+      ) : null}
+
+      {ueberlappende.length > 0 ? (
+        <p className="warnung" role="status">
+          Der Zeitraum überschneidet sich mit{' '}
+          {ueberlappende
+            .map((andere) => daten.abschnitte.find((a) => a.id === andere.abschnittId)?.name)
+            .filter(Boolean)
+            .join(', ')}
+          . Ein Team arbeitet zu einer Zeit an einem Sprint – sonst ist nicht mehr entscheidbar,
+          in welchen eine Leistung gehört. Dass ein Sprint am Tag des vorigen Endes beginnt, ist
+          in Ordnung.
         </p>
       ) : null}
 

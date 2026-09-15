@@ -16,7 +16,7 @@ import type {
   Verstehensstufe,
 } from './types';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** Feste Kennungen der ausgelieferten Rubriken. */
 export const RUBRIK_SPRINT = 'rubrik-sprint';
@@ -36,6 +36,16 @@ export const ZEITFAKTOR_ZWEITE_HAELFTE = 2;
 
 /** Anteil des Verstehensnachweises am individuellen Beitrag (FA-40 AK-2). */
 export const VERSTEHENS_ANTEIL = 30;
+
+/**
+ * Abstand zum Teamergebnis, ab dem das erste Signal des Befunds anspricht
+ * (FA-79 AK-4a), in Prozentpunkten.
+ *
+ * 15 ist eine Setzung und kein Messwert – die Literatur gibt keine Schwelle
+ * her (Fachkonzept 14.4). Deshalb ist sie einstellbar und wird dort genannt,
+ * wo der Befund erscheint.
+ */
+export const BEFUND_SCHWELLE = 15;
 
 /** Prozentwerte der vier Stufen des Verstehensnachweises (FA-40 AK-1). */
 export const VERSTEHENS_PROZENT: Record<Verstehensstufe, number> = {
@@ -86,7 +96,18 @@ export const VORLAGE_RUBRIK_SPRINT: Rubrik = {
   ],
   prozess: [
     { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5, zeitpunkt: 'planning' },
-    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5, zeitpunkt: 'daily' },
+    {
+      id: 'p2',
+      name: 'Standup',
+      // Nicht „Daily“: Bei einem Block je Woche gibt es ein Treffen, kein
+      // tägliches. Findet keines statt, bleibt das Kriterium leer und fällt aus
+      // der Gewichtung (FA-21, ADR-004) – „nicht beobachtet“ ist nicht „nicht
+      // geleistet“. Festlegung des Auftraggebers vom 13.09.2026 (OP-F30).
+      beschreibung:
+        'Wenn ein Standup stattfindet: kurz, Hindernisse werden benannt. Findet keines statt, bleibt das Kriterium leer',
+      max: 5,
+      zeitpunkt: 'daily',
+    },
     { id: 'p3', name: 'Backlog-Pflege', beschreibung: 'Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done', max: 5 },
     { id: 'p4', name: 'Board & Transparenz', beschreibung: 'Board aktuell, Burndown bzw. Velocity gepflegt', max: 5 },
     { id: 'p5', name: 'Retrospektive', beschreibung: 'Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt', max: 5 },
@@ -95,7 +116,10 @@ export const VORLAGE_RUBRIK_SPRINT: Rubrik = {
     { id: 'i1', name: 'Umfang & Schwierigkeit', beschreibung: 'Anspruch der übernommenen Aufgaben im Verhältnis zum Team', max: 10 },
     { id: 'i2', name: 'Selbstständigkeit', beschreibung: 'Löst Probleme eigenständig, holt gezielt Hilfe', max: 8 },
     { id: 'i3', name: 'Termintreue', beschreibung: 'Zugesagte Stories sind am Sprint-Ende fertig', max: 6 },
-    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Code Reviews, Unterstützung anderer, Kommunikation', max: 6 },
+    // FA-78 AK-5a: „Code Reviews“ ist hier entfallen – es zählt in `i5`.
+    // Sonst wäre ein gegebenes Review zweimal gewertet. Die Kennung bleibt.
+    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Unterstützung anderer, Kommunikation, Verlässlichkeit gegenüber dem Team', max: 6 },
+    { id: 'i5', name: 'Eigene Spur', beschreibung: 'Nachvollziehbare eigene Commits, gegebene Code-Reviews', max: 6 },
   ],
   peer: [
     { id: 'q1', name: 'Verlässlichkeit', beschreibung: 'hält Zusagen ein', max: 5 },
@@ -135,7 +159,18 @@ export const VORLAGE_RUBRIK_VORBEREITUNG: Rubrik = {
   ],
   prozess: [
     { id: 'p1', name: 'Sprint Planning', beschreibung: 'Stories geschätzt, Sprint Backlog realistisch gefüllt', max: 5, zeitpunkt: 'planning' },
-    { id: 'p2', name: 'Daily Standup', beschreibung: 'Regelmäßig, kurz, Hindernisse werden benannt', max: 5, zeitpunkt: 'daily' },
+    {
+      id: 'p2',
+      name: 'Standup',
+      // Nicht „Daily“: Bei einem Block je Woche gibt es ein Treffen, kein
+      // tägliches. Findet keines statt, bleibt das Kriterium leer und fällt aus
+      // der Gewichtung (FA-21, ADR-004) – „nicht beobachtet“ ist nicht „nicht
+      // geleistet“. Festlegung des Auftraggebers vom 13.09.2026 (OP-F30).
+      beschreibung:
+        'Wenn ein Standup stattfindet: kurz, Hindernisse werden benannt. Findet keines statt, bleibt das Kriterium leer',
+      max: 5,
+      zeitpunkt: 'daily',
+    },
     { id: 'p3', name: 'Backlog-Pflege', beschreibung: 'Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done', max: 5 },
     { id: 'p4', name: 'Board & Transparenz', beschreibung: 'Board aktuell, Burndown bzw. Velocity gepflegt', max: 5 },
     { id: 'p5', name: 'Retrospektive', beschreibung: 'Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt', max: 5 },
@@ -144,7 +179,10 @@ export const VORLAGE_RUBRIK_VORBEREITUNG: Rubrik = {
     { id: 'i1', name: 'Umfang & Schwierigkeit', beschreibung: 'Anspruch der übernommenen Aufgaben im Verhältnis zum Team', max: 10 },
     { id: 'i2', name: 'Selbstständigkeit', beschreibung: 'Löst Probleme eigenständig, holt gezielt Hilfe', max: 8 },
     { id: 'i3', name: 'Termintreue', beschreibung: 'Zugesagte Stories sind am Sprint-Ende fertig', max: 6 },
-    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Code Reviews, Unterstützung anderer, Kommunikation', max: 6 },
+    // FA-78 AK-5a: „Code Reviews“ ist hier entfallen – es zählt in `i5`.
+    // Sonst wäre ein gegebenes Review zweimal gewertet. Die Kennung bleibt.
+    { id: 'i4', name: 'Beitrag zum Team', beschreibung: 'Unterstützung anderer, Kommunikation, Verlässlichkeit gegenüber dem Team', max: 6 },
+    { id: 'i5', name: 'Eigene Spur', beschreibung: 'Nachvollziehbare eigene Commits, gegebene Code-Reviews', max: 6 },
   ],
   peer: [
     { id: 'q1', name: 'Verlässlichkeit', beschreibung: 'hält Zusagen ein', max: 5 },
@@ -286,6 +324,7 @@ export function leererDatenbestand(): Datenbestand {
     strangGewichte: { ...STRANG_GEWICHTE },
     peerDeckelung: PEER_DECKELUNG,
     verstehensAnteil: VERSTEHENS_ANTEIL,
+    befundSchwelle: BEFUND_SCHWELLE,
     zeitfaktorZweiteHaelfte: ZEITFAKTOR_ZWEITE_HAELFTE,
     sperreAktiv: true,
     stichtage: [],
@@ -296,7 +335,7 @@ export function leererDatenbestand(): Datenbestand {
     personen: [],
     abschnitte: [],
     teamabschnitte: [],
-    zugehoerigkeiten: [],
+    mitgliedschaften: [],
     bewertungen: [],
     peerEntscheidungen: [],
   };

@@ -9,3 +9,14 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Auswertungen der Schuelerrepos: enthalten GitHub-Kennungen und damit
+# personenbezogene Daten. Sie gehoeren in den schulischen Speicher (DS-06),
+# nicht in dieses Repository. Die Erklaerung darin bleibt versioniert.
+scripts/Review-Auswertungen/
+!scripts/Review-Auswertungen/LIESMICH.md
+
+# Ausgemusterte Dateien mit Zeitstempel, bevor sie endgueltig geloescht werden.
+# Sie stehen noch da, damit man nachsehen kann, was in ihnen stand - im
+# Repository haben sie nichts verloren.
+_temp/

@@ -13,23 +13,54 @@ import { abschnitteVon, rubrikVon } from '../domain/zuordnung';
 import type { Abschnitt, Bewertung, Notenstufe, Person, Rubrik } from '../domain/types';
 import { bewertungsIndex } from '../store/storeReducer';
 import { personenVon } from '../ui/auswahl';
-import { Karte, LeerHinweis, Notenzeichen, Prozent, Punktefeld } from '../ui/bausteine';
+import {
+  Karte,
+  LeerHinweis,
+  Notenzeichen,
+  Prozent,
+  Punktefeld,
+  Ueberarbeitung,
+} from '../ui/bausteine';
+import { ZWISCHENSTAENDE } from '../ui/zwischenstaende';
 import { NotizenKarte } from './NotizenKarte';
 import type { AnsichtProps } from './typen';
 
 export function TestAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
+  // Der Klassenfilter der Kopfleiste wirkt auch hier; auf „alle Klassen"
+  // stehen alle Tests nebeneinander (FA-95).
   const tests = abschnitteVon(daten, ui.klasseId).filter((a) => a.art === 'test');
   const index = useMemo(() => bewertungsIndex(daten), [daten]);
 
-  if (!ui.klasseId || tests.length === 0) {
+  if (tests.length === 0) {
+    // Gefiltert oder wirklich leer? Das ist nicht dasselbe (FA-95 AK-6).
+    const gefiltert =
+      ui.klasseId !== null && daten.abschnitte.some((a) => a.art === 'test' && !a.geloeschtAm);
     return (
       <LeerHinweis
-        titel="Noch kein Test angelegt"
-        text="Tests werden unter „Klassen & Teams“ angelegt und angekündigt; erfasst werden sie hier."
+        titel={gefiltert ? 'Kein Test in dieser Klasse' : 'Noch kein Test angelegt'}
+        text={
+          gefiltert
+            ? 'Der Klassenfilter oben in der Kopfleiste zeigt nur diese Klasse. In anderen Klassen gibt es Tests.'
+            : 'Tests werden unter Stammdaten · Tests angelegt und angekündigt; erfasst werden sie hier.'
+        }
         aktion={
-          <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
-            Zu Klassen &amp; Teams
-          </button>
+          gefiltert ? (
+            <button
+              type="button"
+              className="schalter haupt"
+              onClick={() => setUi({ klasseId: null, abschnittId: null })}
+            >
+              Alle Klassen zeigen
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="schalter haupt"
+              onClick={() => setUi({ ansicht: 'stammdaten', stammseite: 'tests' })}
+            >
+              Zu den Test-Stammdaten
+            </button>
+          )
         }
       />
     );
@@ -50,6 +81,16 @@ export function TestAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
         >
           <span className="index">T{eintrag.nummer}</span>
           {eintrag.name}
+          {/*
+            Ohne Klassenfilter stehen Tests mehrerer Klassen nebeneinander –
+            dann muss die Klasse dran stehen, sonst sind zwei „Test 1"
+            ununterscheidbar (FA-95).
+          */}
+          {ui.klasseId === null ? (
+            <span className="woanders">
+              {daten.klassen.find((k) => k.id === eintrag.klasseId)?.name ?? '—'}
+            </span>
+          ) : null}
         </button>
       ))}
     </div>
@@ -59,7 +100,13 @@ export function TestAnsicht({ daten, dispatch, ui, setUi }: AnsichtProps) {
     <TestMaske
       abschnitt={test}
       rubrik={rubrikVon(daten, test)}
-      personen={personenVon(daten, ui.klasseId)}
+      /*
+        Die Schüler kommen aus der Klasse **des Tests** und nicht aus dem
+        Filter: Einen Test schreibt genau eine Klasse (FA-60 AK-3). Stünde hier
+        der Filter, zeigte „alle Klassen" alle Schüler der Schule zu einem Test
+        einer einzigen Klasse.
+      */
+      personen={personenVon(daten, test.klasseId)}
       bewertung={index.get(bewertungsSchluessel(test.id, null))}
       notenschluessel={daten.notenschluessel}
       abschnittswahl={testwahl}
@@ -117,6 +164,8 @@ function TestMaske({
           </p>
         </div>
       </div>
+
+      <Ueberarbeitung {...ZWISCHENSTAENDE.tests} />
 
       {abschnittswahl}
 

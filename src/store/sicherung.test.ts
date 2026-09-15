@@ -185,7 +185,7 @@ describe('Stand fortschreiben', () => {
 
   it('zählt den Umfang aus dem Bestand', () => {
     const daten = leererDatenbestand();
-    daten.personen.push({ id: 'p1', klasseId: 'k1', teamId: null, name: 'Berger Lena' });
+    daten.personen.push({ id: 'p1', klasseId: 'k1', name: 'Berger Lena' });
     expect(umfangVon(daten).personen).toBe(1);
   });
 });

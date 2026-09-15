@@ -183,11 +183,9 @@ describe('Migration auf Schemastand 2 (FA-57)', () => {
     expect(bewertung.individuell).toEqual({});
   });
 
-  it('leitet die Teamzugehörigkeit je Abschnitt aus der alten Zuordnung ab (FA-58)', () => {
+  it('macht aus der alten Zuordnung eine Mitgliedschaft im Projekt (FA-87 AK-6)', () => {
     const daten = migriere(bestandStand1());
-    expect(daten.zugehoerigkeiten).toEqual([
-      { abschnittId: 's1', personId: 'p1', teamId: 'team1' },
-    ]);
+    expect(daten.mitgliedschaften).toEqual([{ projektId: 'team1', personId: 'p1' }]);
   });
 
   it('setzt die Stranggewichte auf die Vorgabe 75 zu 25 (FA-59)', () => {
@@ -246,11 +244,62 @@ describe('Migration innerhalb von Schemastand 2', () => {
   });
 });
 
+/*
+ * Vorher Teil des Durchstichs „hält die Spur je Person fest und benennt den
+ * Befund" – dort über ein Neuladen der Seite (Solution-Design 8.1). Die
+ * eigentliche Aussage betrifft aber das Speichern: Ein Eintrag **ohne einen
+ * einzigen Punkt** darf nicht als leer weggeworfen werden.
+ */
+describe('Spur ohne Punkte übersteht das Speichern (FA-78 AK-2)', () => {
+  function mitSpur() {
+    const daten = leererDatenbestand();
+    daten.klassen.push({ id: 'k1', name: '4AHIF' });
+    daten.teams.push({ id: 'team1', klasseId: 'k1', name: 'Team Kepler' });
+    daten.personen.push({ id: 'p1', klasseId: 'k1', name: 'Berger Lena' });
+    daten.mitgliedschaften.push({ projektId: 'team1', personId: 'p1' });
+    daten.bewertungen.push({
+      abschnittId: 's1',
+      teamId: 'team1',
+      team: {},
+      prozess: {},
+      individuell: {
+        p1: {
+          punkte: {},
+          notiz: '',
+          spur: { bezeichnung: 'PR #42, Storno-Validierung', verweis: 'https://example.invalid/42' },
+        },
+      },
+      peer: {},
+      notiz: '',
+    });
+    return daten;
+  }
+
+  it('bleibt nach Speichern und Laden vollständig erhalten', () => {
+    const speicher = speicherAttrappe();
+    speichern(mitSpur(), speicher);
+    const geladen = laden(speicher).daten;
+    const spur = geladen?.bewertungen[0].individuell.p1.spur;
+    expect(spur?.bezeichnung).toBe('PR #42, Storno-Validierung');
+    expect(spur?.verweis).toBe('https://example.invalid/42');
+    // Die Beobachtung ist der Zweck, nicht die Punktezahl: Eine Spur ohne
+    // Punkte ist der Normalfall während des Sprints.
+    expect(geladen?.bewertungen[0].individuell.p1.punkte).toEqual({});
+  });
+
+  it('übersteht auch den Weg über eine Sicherungsdatei (FA-33)', () => {
+    const zurueck = ausSicherung(alsSicherung(mitSpur()));
+    expect(zurueck.bewertungen[0].individuell.p1.spur?.bezeichnung).toBe(
+      'PR #42, Storno-Validierung',
+    );
+  });
+});
+
 describe('Sicherungsdatei (FA-33)', () => {
   it('schreibt und liest den Bestand verlustfrei', () => {
     const bestand = leererDatenbestand();
     bestand.klassen.push({ id: 'k1', name: '4AHIF' });
-    bestand.personen.push({ id: 'p1', klasseId: 'k1', teamId: null, name: 'Berger Lena' });
+    bestand.personen.push({ id: 'p1', klasseId: 'k1', name: 'Berger Lena' });
     expect(ausSicherung(alsSicherung(bestand))).toEqual(bestand);
   });
 
@@ -368,12 +417,14 @@ describe('Migration auf Schemastand 3 (FA-68)', () => {
     expect(daten.teamabschnitte.some((tp) => tp.abschnittId === 'x1')).toBe(false);
   });
 
-  it('lässt Punkte, Notizen und Zugehörigkeiten unverändert (AK-3)', () => {
+  it('lässt Punkte, Notizen und Zuordnungen unverändert (AK-3)', () => {
     const daten = migriere(standZwei());
     const bewertung = daten.bewertungen[0];
     expect(bewertung.team).toEqual({ t1: 8, t2: 7 });
     expect(bewertung.individuell.p1.notiz).toBe('im Review nachgefragt');
-    expect(daten.zugehoerigkeiten).toHaveLength(2);
+    // Zwei Zugehörigkeiten in zwei Abschnitten, dasselbe Team: daraus wird
+    // **eine** Mitgliedschaft je Person (Schemastand 4).
+    expect(daten.mitgliedschaften).toHaveLength(2);
   });
 
   it('ergibt dieselben Prozentwerte wie vor der Umstellung (AK-5)', () => {

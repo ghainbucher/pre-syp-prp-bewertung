@@ -1,0 +1,2000 @@
+{
+  "schemaVersion": 3,
+  "rubriken": [
+    {
+      "id": "rubrik-sprint",
+      "name": "Sprint",
+      "team": [
+        {
+          "id": "t1",
+          "name": "Funktionalität",
+          "beschreibung": "Sprint-Ziel erreicht, User Stories erfüllen die Akzeptanzkriterien",
+          "max": 10
+        },
+        {
+          "id": "t2",
+          "name": "Code-Qualität",
+          "beschreibung": "Struktur, Namensgebung, Wiederverwendbarkeit, Einhaltung der Coding-Standards",
+          "max": 10
+        },
+        {
+          "id": "t3",
+          "name": "Tests",
+          "beschreibung": "Unit-Tests für neue Features, sinnvolle Testfälle, lauffähiger Testlauf",
+          "max": 8
+        },
+        {
+          "id": "t4",
+          "name": "Dokumentation",
+          "beschreibung": "README, Architekturskizze, Kommentare, Änderungsprotokoll",
+          "max": 6
+        },
+        {
+          "id": "t5",
+          "name": "Versionsverwaltung",
+          "beschreibung": "Aussagekräftige Commits, Branch-Strategie, Pull Requests mit Review",
+          "max": 6
+        },
+        {
+          "id": "t6",
+          "name": "Sprint Review",
+          "beschreibung": "Demo läuft, Ergebnisse werden nachvollziehbar präsentiert",
+          "max": 5
+        }
+      ],
+      "prozess": [
+        {
+          "id": "p1",
+          "name": "Sprint Planning",
+          "beschreibung": "Stories geschätzt, Sprint Backlog realistisch gefüllt",
+          "max": 5,
+          "zeitpunkt": "planning"
+        },
+        {
+          "id": "p2",
+          "name": "Daily Standup",
+          "beschreibung": "Regelmäßig, kurz, Hindernisse werden benannt",
+          "max": 5,
+          "zeitpunkt": "daily"
+        },
+        {
+          "id": "p3",
+          "name": "Backlog-Pflege",
+          "beschreibung": "Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done",
+          "max": 5
+        },
+        {
+          "id": "p4",
+          "name": "Board & Transparenz",
+          "beschreibung": "Board aktuell, Burndown bzw. Velocity gepflegt",
+          "max": 5
+        },
+        {
+          "id": "p5",
+          "name": "Retrospektive",
+          "beschreibung": "Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt",
+          "max": 5
+        }
+      ],
+      "individuell": [
+        {
+          "id": "i1",
+          "name": "Umfang & Schwierigkeit",
+          "beschreibung": "Anspruch der übernommenen Aufgaben im Verhältnis zum Team",
+          "max": 10
+        },
+        {
+          "id": "i2",
+          "name": "Selbstständigkeit",
+          "beschreibung": "Löst Probleme eigenständig, holt gezielt Hilfe",
+          "max": 8
+        },
+        {
+          "id": "i3",
+          "name": "Termintreue",
+          "beschreibung": "Zugesagte Stories sind am Sprint-Ende fertig",
+          "max": 6
+        },
+        {
+          "id": "i4",
+          "name": "Beitrag zum Team",
+          "beschreibung": "Unterstützung anderer, Kommunikation, Verlässlichkeit gegenüber dem Team",
+          "max": 6
+        },
+        {
+          "id": "i5",
+          "name": "Eigene Spur",
+          "beschreibung": "Nachvollziehbare eigene Commits, gegebene Code-Reviews",
+          "max": 6
+        }
+      ],
+      "peer": [
+        {
+          "id": "q1",
+          "name": "Verlässlichkeit",
+          "beschreibung": "hält Zusagen ein",
+          "max": 5
+        },
+        {
+          "id": "q2",
+          "name": "Fachlicher Beitrag",
+          "beschreibung": "trägt zum Ergebnis bei",
+          "max": 5
+        },
+        {
+          "id": "q3",
+          "name": "Zusammenarbeit",
+          "beschreibung": "kommuniziert, hilft, nimmt Feedback an",
+          "max": 5
+        },
+        {
+          "id": "q4",
+          "name": "Eigeninitiative",
+          "beschreibung": "bringt von sich aus Aufgaben ein",
+          "max": 5
+        }
+      ],
+      "gewichte": {
+        "team": 45,
+        "prozess": 20,
+        "individuell": 35,
+        "peer": 0
+      },
+      "selbstZaehlt": false
+    },
+    {
+      "id": "rubrik-vorbereitungssprint",
+      "name": "Vorbereitungssprint",
+      "team": [
+        {
+          "id": "v1",
+          "name": "Fachliches Konzept",
+          "beschreibung": "Problem, Zielgruppe und Nutzen sind beschrieben; der fachliche Ablauf ist in eigenen Worten dargestellt",
+          "max": 10
+        },
+        {
+          "id": "v2",
+          "name": "Anforderungsspezifikation",
+          "beschreibung": "Anforderungen als überprüfbare Sätze mit Akzeptanzkriterien; Muss und Kann unterschieden",
+          "max": 10
+        },
+        {
+          "id": "v3",
+          "name": "Solution-Design",
+          "beschreibung": "Architekturüberblick, Datenmodell und die tragenden Entscheidungen mit Begründung",
+          "max": 10
+        },
+        {
+          "id": "v4",
+          "name": "CI/CD",
+          "beschreibung": "Pipeline läuft: Bauen und Tests bei jedem Push, ein fehlgeschlagener Lauf wird bemerkt und behoben",
+          "max": 8
+        },
+        {
+          "id": "v5",
+          "name": "Stakeholderanalyse",
+          "beschreibung": "Beteiligte benannt, Interesse und Einfluss eingeschätzt, der Auftraggeber darunter",
+          "max": 6
+        },
+        {
+          "id": "t5",
+          "name": "Versionsverwaltung",
+          "beschreibung": "Repository eingerichtet, aussagekräftige Commits, Branch-Strategie vereinbart und eingehalten",
+          "max": 6
+        }
+      ],
+      "prozess": [
+        {
+          "id": "p1",
+          "name": "Sprint Planning",
+          "beschreibung": "Stories geschätzt, Sprint Backlog realistisch gefüllt",
+          "max": 5,
+          "zeitpunkt": "planning"
+        },
+        {
+          "id": "p2",
+          "name": "Daily Standup",
+          "beschreibung": "Regelmäßig, kurz, Hindernisse werden benannt",
+          "max": 5,
+          "zeitpunkt": "daily"
+        },
+        {
+          "id": "p3",
+          "name": "Backlog-Pflege",
+          "beschreibung": "Stories mit Akzeptanzkriterien, Priorisierung, Definition of Done",
+          "max": 5
+        },
+        {
+          "id": "p4",
+          "name": "Board & Transparenz",
+          "beschreibung": "Board aktuell, Burndown bzw. Velocity gepflegt",
+          "max": 5
+        },
+        {
+          "id": "p5",
+          "name": "Retrospektive",
+          "beschreibung": "Maßnahmen abgeleitet und im Folgesprint sichtbar umgesetzt",
+          "max": 5
+        }
+      ],
+      "individuell": [
+        {
+          "id": "i1",
+          "name": "Umfang & Schwierigkeit",
+          "beschreibung": "Anspruch der übernommenen Aufgaben im Verhältnis zum Team",
+          "max": 10
+        },
+        {
+          "id": "i2",
+          "name": "Selbstständigkeit",
+          "beschreibung": "Löst Probleme eigenständig, holt gezielt Hilfe",
+          "max": 8
+        },
+        {
+          "id": "i3",
+          "name": "Termintreue",
+          "beschreibung": "Zugesagte Stories sind am Sprint-Ende fertig",
+          "max": 6
+        },
+        {
+          "id": "i4",
+          "name": "Beitrag zum Team",
+          "beschreibung": "Unterstützung anderer, Kommunikation, Verlässlichkeit gegenüber dem Team",
+          "max": 6
+        },
+        {
+          "id": "i5",
+          "name": "Eigene Spur",
+          "beschreibung": "Nachvollziehbare eigene Commits, gegebene Code-Reviews",
+          "max": 6
+        }
+      ],
+      "peer": [
+        {
+          "id": "q1",
+          "name": "Verlässlichkeit",
+          "beschreibung": "hält Zusagen ein",
+          "max": 5
+        },
+        {
+          "id": "q2",
+          "name": "Fachlicher Beitrag",
+          "beschreibung": "trägt zum Ergebnis bei",
+          "max": 5
+        },
+        {
+          "id": "q3",
+          "name": "Zusammenarbeit",
+          "beschreibung": "kommuniziert, hilft, nimmt Feedback an",
+          "max": 5
+        },
+        {
+          "id": "q4",
+          "name": "Eigeninitiative",
+          "beschreibung": "bringt von sich aus Aufgaben ein",
+          "max": 5
+        }
+      ],
+      "gewichte": {
+        "team": 50,
+        "prozess": 15,
+        "individuell": 35,
+        "peer": 0
+      },
+      "selbstZaehlt": false
+    },
+    {
+      "id": "rubrik-diplomarbeit",
+      "name": "Diplomarbeitsvorbereitung",
+      "team": [
+        {
+          "id": "d1",
+          "name": "Themenqualität",
+          "beschreibung": "Fachlicher Anspruch, Abgrenzung, Umsetzbarkeit im verfügbaren Zeitrahmen",
+          "max": 12
+        },
+        {
+          "id": "d2",
+          "name": "Auftragsklarheit",
+          "beschreibung": "Realer Auftraggeber vorhanden, seine Erwartung schriftlich festgehalten",
+          "max": 10
+        },
+        {
+          "id": "d3",
+          "name": "Präsentation",
+          "beschreibung": "Aufbau, Verständlichkeit, vereinbarte Zeit eingehalten",
+          "max": 8
+        }
+      ],
+      "prozess": [
+        {
+          "id": "da-p1",
+          "name": "Akquise",
+          "beschreibung": "Eigenständige Suche, Beharrlichkeit nach Absagen, Qualität der Kontaktaufnahme",
+          "max": 8
+        },
+        {
+          "id": "da-p2",
+          "name": "Absprachen festhalten",
+          "beschreibung": "Gesprächsnotizen, Zusagen schriftlich, nachvollziehbar",
+          "max": 6
+        },
+        {
+          "id": "da-p3",
+          "name": "Termintreue",
+          "beschreibung": "Die Zwischenschritte bis zur Präsentation wurden gehalten",
+          "max": 6
+        }
+      ],
+      "individuell": [
+        {
+          "id": "da-i1",
+          "name": "Anteil an der Themenfindung",
+          "beschreibung": "Eigener Beitrag zu Suche und Zuschnitt, im Verhältnis zum Team",
+          "max": 8
+        },
+        {
+          "id": "da-i2",
+          "name": "Auftritt im Gremium",
+          "beschreibung": "Eigener Redeanteil, Adressatenbezug",
+          "max": 7
+        },
+        {
+          "id": "da-i3",
+          "name": "Rückfragen",
+          "beschreibung": "Beantwortet fachlich und ohne Ausweichen",
+          "max": 6
+        },
+        {
+          "id": "da-i4",
+          "name": "Risiken benennen",
+          "beschreibung": "Kennt die Risiken des eigenen Themas und spricht sie von sich aus an",
+          "max": 4
+        }
+      ],
+      "peer": [
+        {
+          "id": "da-q1",
+          "name": "Verlässlichkeit",
+          "beschreibung": "hält Zusagen ein",
+          "max": 5
+        },
+        {
+          "id": "da-q2",
+          "name": "Fachlicher Beitrag",
+          "beschreibung": "trägt zum Ergebnis bei",
+          "max": 5
+        },
+        {
+          "id": "da-q3",
+          "name": "Zusammenarbeit",
+          "beschreibung": "kommuniziert, hilft, nimmt Feedback an",
+          "max": 5
+        },
+        {
+          "id": "da-q4",
+          "name": "Eigeninitiative",
+          "beschreibung": "bringt von sich aus Aufgaben ein",
+          "max": 5
+        }
+      ],
+      "gewichte": {
+        "team": 30,
+        "prozess": 20,
+        "individuell": 50,
+        "peer": 0
+      },
+      "selbstZaehlt": false
+    },
+    {
+      "id": "rubrik-test-scrum",
+      "name": "Test: Scrum-Grundlagen",
+      "team": [],
+      "prozess": [],
+      "individuell": [
+        {
+          "id": "f1",
+          "name": "Frage 1",
+          "beschreibung": "Multiple Choice",
+          "max": 2
+        },
+        {
+          "id": "f2",
+          "name": "Frage 2",
+          "beschreibung": "Multiple Choice",
+          "max": 2
+        },
+        {
+          "id": "f3",
+          "name": "Frage 3",
+          "beschreibung": "Multiple Choice",
+          "max": 2
+        },
+        {
+          "id": "f4",
+          "name": "Offene Frage",
+          "beschreibung": "Anwendung auf eine neue Situation. Bewertungsschema 0–4 hier eintragen.",
+          "max": 4
+        }
+      ],
+      "peer": [],
+      "gewichte": {
+        "team": 0,
+        "prozess": 0,
+        "individuell": 100,
+        "peer": 0
+      },
+      "selbstZaehlt": false
+    }
+  ],
+  "vorgabeRubrikId": "rubrik-sprint",
+  "notenschluessel": [
+    {
+      "note": 1,
+      "ab": 90,
+      "bezeichnung": "Sehr gut"
+    },
+    {
+      "note": 2,
+      "ab": 80,
+      "bezeichnung": "Gut"
+    },
+    {
+      "note": 3,
+      "ab": 65,
+      "bezeichnung": "Befriedigend"
+    },
+    {
+      "note": 4,
+      "ab": 51,
+      "bezeichnung": "Genügend"
+    },
+    {
+      "note": 5,
+      "ab": 0,
+      "bezeichnung": "Nicht genügend"
+    }
+  ],
+  "strangGewichte": {
+    "praxis": 75,
+    "theorie": 25
+  },
+  "peerDeckelung": 5,
+  "verstehensAnteil": 30,
+  "befundSchwelle": 15,
+  "zeitfaktorZweiteHaelfte": 2,
+  "sperreAktiv": true,
+  "stichtage": [
+    {
+      "id": "stichtag-semester",
+      "name": "Semesterzeugnis",
+      "bis": "2027-01-31",
+      "art": "zeugnis"
+    },
+    {
+      "id": "stichtag-fruehwarnung",
+      "name": "Frühwarnung",
+      "bis": "2027-04-30",
+      "art": "kontrolle"
+    },
+    {
+      "id": "stichtag-jahr",
+      "name": "Jahreszeugnis",
+      "bis": "2027-06-10",
+      "art": "zeugnis"
+    }
+  ],
+  "gesamtstand": {},
+  "notenstaende": {},
+  "klassen": [
+    {
+      "id": "k1",
+      "name": "3AHIF"
+    }
+  ],
+  "teams": [
+    {
+      "id": "kepler",
+      "klasseId": "k1",
+      "name": "Kepler",
+      "repository": "htl-beispiel/buchung-kepler",
+      "kennungen": {
+        "lena-b": "p1",
+        "jonas-s": "p2",
+        "felix-m": "p3",
+        "amira-h": "p4"
+      }
+    },
+    {
+      "id": "curie",
+      "klasseId": "k1",
+      "name": "Curie",
+      "repository": "htl-beispiel/lager-curie",
+      "kennungen": {
+        "nina-p": "p5",
+        "tobias-w": "p6",
+        "sarah-l": "p7",
+        "david-b": "p8"
+      }
+    },
+    {
+      "id": "turing",
+      "klasseId": "k1",
+      "name": "Turing"
+    }
+  ],
+  "personen": [
+    {
+      "id": "p1",
+      "klasseId": "k1",
+      "name": "Berger Lena",
+      "teamId": "kepler"
+    },
+    {
+      "id": "p2",
+      "klasseId": "k1",
+      "name": "Steiner Jonas",
+      "teamId": "kepler"
+    },
+    {
+      "id": "p3",
+      "klasseId": "k1",
+      "name": "Moser Felix",
+      "teamId": "kepler"
+    },
+    {
+      "id": "p4",
+      "klasseId": "k1",
+      "name": "Haider Amira",
+      "teamId": "kepler"
+    },
+    {
+      "id": "p5",
+      "klasseId": "k1",
+      "name": "Pichler Nina",
+      "teamId": "curie"
+    },
+    {
+      "id": "p6",
+      "klasseId": "k1",
+      "name": "Wagner Tobias",
+      "teamId": "curie"
+    },
+    {
+      "id": "p7",
+      "klasseId": "k1",
+      "name": "Leitner Sarah",
+      "teamId": "curie"
+    },
+    {
+      "id": "p8",
+      "klasseId": "k1",
+      "name": "Brunner David",
+      "teamId": "curie"
+    },
+    {
+      "id": "p9",
+      "klasseId": "k1",
+      "name": "Fuchs Elias",
+      "teamId": "turing"
+    },
+    {
+      "id": "p10",
+      "klasseId": "k1",
+      "name": "Kaiser Mira",
+      "teamId": "turing"
+    },
+    {
+      "id": "p11",
+      "klasseId": "k1",
+      "name": "Ebner Lukas",
+      "teamId": "turing"
+    }
+  ],
+  "abschnitte": [
+    {
+      "id": "a1",
+      "klasseId": "k1",
+      "nummer": 1,
+      "name": "Sprint 1 – Vorbereitung",
+      "art": "sprint",
+      "strang": "praxis",
+      "rubrikId": "rubrik-vorbereitungssprint",
+      "von": "2026-08-02",
+      "bis": "2026-08-16",
+      "faktor": 1,
+      "peerAktiv": true
+    },
+    {
+      "id": "a2",
+      "klasseId": "k1",
+      "nummer": 2,
+      "name": "Sprint 2",
+      "art": "sprint",
+      "strang": "praxis",
+      "rubrikId": "rubrik-sprint",
+      "von": "2026-08-17",
+      "bis": "2026-08-31",
+      "faktor": 1,
+      "peerAktiv": false
+    },
+    {
+      "id": "a3",
+      "klasseId": "k1",
+      "nummer": 3,
+      "name": "Sprint 3",
+      "art": "sprint",
+      "strang": "praxis",
+      "rubrikId": "rubrik-sprint",
+      "von": "2026-09-01",
+      "bis": "2026-09-15",
+      "faktor": 1,
+      "peerAktiv": false
+    },
+    {
+      "id": "a4",
+      "klasseId": "k1",
+      "nummer": 4,
+      "name": "Sprint 4",
+      "art": "sprint",
+      "strang": "praxis",
+      "rubrikId": "rubrik-sprint",
+      "von": "2026-09-16",
+      "bis": "2026-09-30",
+      "faktor": 1,
+      "peerAktiv": false
+    },
+    {
+      "id": "a5",
+      "klasseId": "k1",
+      "nummer": 1,
+      "name": "Test: Scrum-Grundlagen",
+      "art": "test",
+      "strang": "theorie",
+      "rubrikId": "rubrik-test-scrum",
+      "von": "2026-08-29",
+      "bis": "2026-08-29",
+      "faktor": 1,
+      "peerAktiv": false,
+      "angekuendigtAm": "2026-08-22",
+      "arbeitszeitMinuten": 30
+    },
+    {
+      "id": "a6",
+      "klasseId": "k1",
+      "nummer": 1,
+      "name": "Diplomarbeitsvorbereitung",
+      "art": "diplomarbeit",
+      "strang": "praxis",
+      "rubrikId": "rubrik-diplomarbeit",
+      "von": "2026-08-04",
+      "bis": "2027-01-11",
+      "faktor": 1,
+      "peerAktiv": false
+    }
+  ],
+  "teamabschnitte": [
+    {
+      "abschnittId": "a1",
+      "teamId": "kepler",
+      "ziel": "Fachkonzept und Anforderungen für die Zimmerbuchung",
+      "von": "2026-08-02",
+      "bis": "2026-08-16",
+      "geplantAm": "2026-08-01T14:20:00.000Z",
+      "fixiertAm": "2026-08-02T08:20:00.000Z",
+      "abgeschlossenAm": "2026-08-16T16:20:00.000Z",
+      "massnahmen": [
+        {
+          "id": "m-k1",
+          "text": "Daily am Anfang jeder Einheit, höchstens fünf Minuten"
+        },
+        {
+          "id": "m-k2",
+          "text": "Akzeptanzkriterien vor der Umsetzung schreiben, nicht danach"
+        }
+      ]
+    },
+    {
+      "abschnittId": "a1",
+      "teamId": "curie",
+      "ziel": "Lagerverwaltung: Konzept, Anforderungen, CI aufsetzen",
+      "von": "2026-08-02",
+      "bis": "2026-08-16",
+      "geplantAm": "2026-08-01T14:20:00.000Z",
+      "fixiertAm": "2026-08-02T08:20:00.000Z",
+      "abgeschlossenAm": "2026-08-16T16:20:00.000Z",
+      "massnahmen": [
+        {
+          "id": "m-c1",
+          "text": "Board am Ende jeder Einheit aktualisieren"
+        }
+      ]
+    },
+    {
+      "abschnittId": "a1",
+      "teamId": "turing",
+      "ziel": "Vereinsverwaltung: Konzept und Solution-Design",
+      "von": "2026-08-02",
+      "bis": "2026-08-16",
+      "geplantAm": "2026-08-01T14:20:00.000Z",
+      "fixiertAm": "2026-08-02T08:20:00.000Z",
+      "abgeschlossenAm": "2026-08-17T10:20:00.000Z",
+      "massnahmen": [
+        {
+          "id": "m-t1",
+          "text": "Aufgaben im Planning schneiden, nicht erst beim Bauen"
+        }
+      ]
+    },
+    {
+      "abschnittId": "a2",
+      "teamId": "kepler",
+      "ziel": "Buchungsmodul mit Storno",
+      "von": "2026-08-17",
+      "bis": "2026-08-31",
+      "geplantAm": "2026-08-16T14:20:00.000Z",
+      "fixiertAm": "2026-08-17T08:20:00.000Z",
+      "abgeschlossenAm": "2026-08-31T16:20:00.000Z",
+      "nachschau": {
+        "m-k1": {
+          "stand": "ja",
+          "notiz": "Daily lief in jeder Einheit"
+        },
+        "m-k2": {
+          "stand": "teilweise",
+          "notiz": "bei zwei Stories nachgeholt"
+        }
+      },
+      "massnahmen": [
+        {
+          "id": "m-k3",
+          "text": "Pull Requests erst nach Review eines anderen zusammenführen"
+        }
+      ]
+    },
+    {
+      "abschnittId": "a2",
+      "teamId": "curie",
+      "ziel": "Artikelstamm und Wareneingang",
+      "von": "2026-08-17",
+      "bis": "2026-08-31",
+      "geplantAm": "2026-08-16T14:20:00.000Z",
+      "fixiertAm": "2026-08-17T08:20:00.000Z",
+      "abgeschlossenAm": "2026-09-01T09:20:00.000Z",
+      "nachschau": {
+        "m-c1": {
+          "stand": "nein",
+          "notiz": "Board war zweimal zwei Wochen alt"
+        }
+      },
+      "massnahmen": [
+        {
+          "id": "m-c2",
+          "text": "Board-Pflege übernimmt pro Sprint eine benannte Person"
+        }
+      ]
+    },
+    {
+      "abschnittId": "a2",
+      "teamId": "turing",
+      "ziel": "Mitgliederverwaltung mit Suche",
+      "von": "2026-08-17",
+      "bis": "2026-08-31",
+      "geplantAm": "2026-08-16T14:20:00.000Z",
+      "fixiertAm": "2026-08-17T08:20:00.000Z",
+      "nachschau": {
+        "m-t1": {
+          "stand": "teilweise",
+          "notiz": ""
+        }
+      }
+    },
+    {
+      "abschnittId": "a3",
+      "teamId": "kepler",
+      "ziel": "Zahlung anbinden und Buchungsbestätigung",
+      "von": "2026-09-01",
+      "bis": "2026-09-15",
+      "geplantAm": "2026-08-31T14:20:00.000Z",
+      "fixiertAm": "2026-09-01T08:20:00.000Z",
+      "nachschau": {
+        "m-k3": {
+          "stand": "ja",
+          "notiz": "kein direkter Push mehr auf main"
+        }
+      },
+      "auswertung": {
+        "standAm": "2026-09-12T18:20:00.000Z",
+        "von": "2026-09-01",
+        "bis": "2026-09-12",
+        "anteile": {
+          "lena-b": 34,
+          "jonas-s": 29,
+          "amira-h": 24,
+          "felix-m": 6,
+          "gast-ci": 7
+        },
+        "reviews": [
+          {
+            "von": "lena-b",
+            "an": "jonas-s",
+            "anzahl": 4
+          },
+          {
+            "von": "jonas-s",
+            "an": "lena-b",
+            "anzahl": 3
+          },
+          {
+            "von": "amira-h",
+            "an": "lena-b",
+            "anzahl": 2
+          },
+          {
+            "von": "lena-b",
+            "an": "amira-h",
+            "anzahl": 2
+          }
+        ],
+        "prAnteil": 78,
+        "direktePushes": 3,
+        "jeTag": {
+          "2026-09-01": 2,
+          "2026-09-02": 5,
+          "2026-09-04": 7,
+          "2026-09-05": 4,
+          "2026-09-08": 9,
+          "2026-09-09": 6,
+          "2026-09-11": 11,
+          "2026-09-12": 8
+        },
+        "nichtZugeordnet": [
+          "gast-ci"
+        ]
+      }
+    },
+    {
+      "abschnittId": "a3",
+      "teamId": "curie",
+      "ziel": "Wareneingang mit Beleg-Druck",
+      "von": "2026-09-02",
+      "bis": "2026-09-16",
+      "geplantAm": "2026-09-01T14:20:00.000Z",
+      "fixiertAm": "2026-09-02T08:20:00.000Z",
+      "nachschau": {
+        "m-c2": {
+          "stand": "ja",
+          "notiz": "Nina übernimmt in diesem Sprint"
+        }
+      }
+    },
+    {
+      "abschnittId": "a3",
+      "teamId": "turing",
+      "ziel": "Beitragsvorschreibung",
+      "von": "2026-09-01",
+      "bis": "2026-09-14",
+      "geplantAm": "2026-08-31T14:20:00.000Z",
+      "fixiertAm": "2026-09-01T08:20:00.000Z"
+    },
+    {
+      "abschnittId": "a4",
+      "teamId": "kepler",
+      "ziel": "Auswertung und Berichte",
+      "von": "2026-09-16",
+      "bis": "2026-09-30",
+      "geplantAm": "2026-09-10T14:20:00.000Z"
+    },
+    {
+      "abschnittId": "a4",
+      "teamId": "curie",
+      "ziel": "Inventur",
+      "von": "2026-09-17",
+      "bis": "2026-10-01",
+      "geplantAm": "2026-09-11T14:20:00.000Z"
+    }
+  ],
+  "zugehoerigkeiten": [
+    {
+      "abschnittId": "a1",
+      "personId": "p1",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p2",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p3",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p4",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p5",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p6",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p7",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p8",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p9",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p10",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a1",
+      "personId": "p11",
+      "teamId": null
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p1",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p2",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p3",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p4",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p5",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p6",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p7",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p8",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p9",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p10",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a2",
+      "personId": "p11",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p1",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p2",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p3",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p4",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p5",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p6",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p7",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p8",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p9",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p10",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a3",
+      "personId": "p11",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p1",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p2",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p3",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p4",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p5",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p6",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p7",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p8",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p9",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p10",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a4",
+      "personId": "p11",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p1",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p2",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p3",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p4",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p5",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p6",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p7",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p8",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p9",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p10",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a5",
+      "personId": "p11",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p1",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p2",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p3",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p4",
+      "teamId": "kepler"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p5",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p6",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p7",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p8",
+      "teamId": "curie"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p9",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p10",
+      "teamId": "turing"
+    },
+    {
+      "abschnittId": "a6",
+      "personId": "p11",
+      "teamId": "turing"
+    }
+  ],
+  "bewertungen": [
+    {
+      "abschnittId": "a1",
+      "teamId": "kepler",
+      "team": {
+        "v1": 9,
+        "v2": 8,
+        "v3": 8,
+        "v4": 6,
+        "v5": 5,
+        "t5": 5
+      },
+      "prozess": {
+        "p1": 4,
+        "p2": 4,
+        "p3": 4,
+        "p4": 3,
+        "p5": 4
+      },
+      "individuell": {
+        "p1": {
+          "punkte": {
+            "i1": 9,
+            "i2": 7,
+            "i3": 6,
+            "i4": 5,
+            "i5": 5
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Anforderungsdokument, Kapitel 3 und 4"
+          },
+          "verstehen": {
+            "stufe": "sicher",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          },
+          "rueckmeldung": {
+            "staerken": "Schneidet Anforderungen überprüfbar und fragt beim Auftraggeber nach",
+            "entwicklung": "Übernimmt viel selbst – Aufgaben früher abgeben",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        },
+        "p2": {
+          "punkte": {
+            "i1": 8,
+            "i2": 6,
+            "i3": 5,
+            "i4": 5,
+            "i5": 4
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Solution-Design, Datenmodell"
+          },
+          "verstehen": {
+            "stufe": "sicher",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        },
+        "p3": {
+          "punkte": {
+            "i1": 4,
+            "i2": 3,
+            "i3": 3,
+            "i4": 2,
+            "i5": 2
+          },
+          "notiz": "Im Review kaum eigene Aussagen zum Konzept",
+          "spur": {
+            "bezeichnung": "Stakeholderliste, zwei Einträge"
+          },
+          "verstehen": {
+            "stufe": "teilweise",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        },
+        "p4": {
+          "punkte": {
+            "i1": 7,
+            "i2": 6,
+            "i3": 5,
+            "i4": 5,
+            "i5": 4
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "CI-Pipeline, Testlauf bei jedem Push"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        }
+      },
+      "peer": {
+        "p1": {
+          "p2": {
+            "q1": 5,
+            "q2": 5,
+            "q3": 4,
+            "q4": 4
+          },
+          "p3": {
+            "q1": 2,
+            "q2": 2,
+            "q3": 3,
+            "q4": 2
+          },
+          "p4": {
+            "q1": 4,
+            "q2": 4,
+            "q3": 5,
+            "q4": 4
+          }
+        },
+        "p2": {
+          "p1": {
+            "q1": 5,
+            "q2": 5,
+            "q3": 5,
+            "q4": 5
+          },
+          "p3": {
+            "q1": 2,
+            "q2": 2,
+            "q3": 2,
+            "q4": 2
+          },
+          "p4": {
+            "q1": 4,
+            "q2": 4,
+            "q3": 4,
+            "q4": 4
+          }
+        },
+        "p3": {
+          "p1": {
+            "q1": 5,
+            "q2": 5,
+            "q3": 4,
+            "q4": 5
+          },
+          "p2": {
+            "q1": 4,
+            "q2": 4,
+            "q3": 4,
+            "q4": 4
+          },
+          "p4": {
+            "q1": 4,
+            "q2": 4,
+            "q3": 4,
+            "q4": 3
+          }
+        },
+        "p4": {
+          "p1": {
+            "q1": 5,
+            "q2": 5,
+            "q3": 5,
+            "q4": 4
+          },
+          "p2": {
+            "q1": 4,
+            "q2": 5,
+            "q3": 4,
+            "q4": 4
+          },
+          "p3": {
+            "q1": 3,
+            "q2": 2,
+            "q3": 3,
+            "q4": 2
+          }
+        }
+      },
+      "notiz": "Konzept steht, Anforderungen überprüfbar. Stakeholderanalyse dünn.",
+      "gesetzt": {
+        "sprintwert": {
+          "prozent": 84,
+          "begruendung": "Unterlagen tragen, die Stakeholderanalyse fehlt noch in der Tiefe",
+          "gesetztAm": "2026-08-16T17:20:00.000Z"
+        }
+      }
+    },
+    {
+      "abschnittId": "a1",
+      "teamId": "curie",
+      "team": {
+        "v1": 8,
+        "v2": 7,
+        "v3": 7,
+        "v5": 5,
+        "t5": 4
+      },
+      "prozess": {
+        "p1": 4,
+        "p2": 3,
+        "p3": 4,
+        "p4": 2,
+        "p5": 3
+      },
+      "individuell": {
+        "p5": {
+          "punkte": {
+            "i1": 8,
+            "i2": 7,
+            "i3": 5,
+            "i4": 5,
+            "i5": 4
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Fachkonzept, Ablauf Wareneingang"
+          },
+          "verstehen": {
+            "stufe": "sicher",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        },
+        "p6": {
+          "punkte": {
+            "i1": 7,
+            "i2": 6,
+            "i3": 4,
+            "i4": 4,
+            "i5": 4
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Anforderungen, Muss-Kann-Trennung"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        },
+        "p7": {
+          "punkte": {
+            "i1": 7,
+            "i2": 6,
+            "i3": 5,
+            "i4": 5,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Datenmodell, erste Fassung"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        },
+        "p8": {
+          "punkte": {
+            "i1": 6,
+            "i2": 5,
+            "i3": 4,
+            "i4": 4,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Stakeholderanalyse"
+          },
+          "verstehen": {
+            "stufe": "teilweise",
+            "notiz": "",
+            "gesetztAm": "2026-08-16T14:20:00.000Z"
+          }
+        }
+      },
+      "peer": {},
+      "notiz": "CI noch nicht eingerichtet – im Folgesprint nachzuholen."
+    },
+    {
+      "abschnittId": "a1",
+      "teamId": "turing",
+      "team": {
+        "v1": 7,
+        "v2": 6,
+        "v3": 6,
+        "v4": 5,
+        "v5": 4,
+        "t5": 4
+      },
+      "prozess": {},
+      "individuell": {
+        "p9": {
+          "punkte": {
+            "i1": 7,
+            "i2": 6,
+            "i3": 5,
+            "i4": 4,
+            "i5": 4
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Fachkonzept Verein"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-17T14:20:00.000Z"
+          }
+        },
+        "p10": {
+          "punkte": {
+            "i1": 6,
+            "i2": 5,
+            "i3": 4,
+            "i4": 4,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Anforderungen Mitglieder"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-17T14:20:00.000Z"
+          }
+        }
+      },
+      "peer": {},
+      "notiz": "Erst in der zweiten Woche in Fahrt gekommen."
+    },
+    {
+      "abschnittId": "a2",
+      "teamId": "kepler",
+      "team": {
+        "t1": 9,
+        "t2": 8,
+        "t3": 6,
+        "t4": 5,
+        "t5": 5,
+        "t6": 4
+      },
+      "prozess": {
+        "p1": 4,
+        "p2": 5,
+        "p3": 4,
+        "p4": 4,
+        "p5": 4
+      },
+      "individuell": {
+        "p1": {
+          "punkte": {
+            "i1": 9,
+            "i2": 7,
+            "i3": 6,
+            "i4": 5,
+            "i5": 5
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #42, Storno-Validierung",
+            "verweis": "https://example.invalid/pr/42"
+          },
+          "verstehen": {
+            "stufe": "sicher",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        },
+        "p2": {
+          "punkte": {
+            "i1": 8,
+            "i2": 7,
+            "i3": 5,
+            "i4": 5,
+            "i5": 5
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #45, Buchungsübersicht"
+          },
+          "verstehen": {
+            "stufe": "sicher",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        },
+        "p3": {
+          "punkte": {
+            "i1": 4,
+            "i2": 3,
+            "i3": 2,
+            "i4": 2,
+            "i5": 1
+          },
+          "notiz": "Keine eigene Stelle benannt; Erklärung im Review dünn",
+          "verstehen": {
+            "stufe": "teilweise",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        },
+        "p4": {
+          "punkte": {
+            "i1": 7,
+            "i2": 6,
+            "i3": 5,
+            "i4": 5,
+            "i5": 4
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #48, Tests für Storno"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        }
+      },
+      "peer": {},
+      "notiz": "Storno läuft, Review ohne Nacharbeit.",
+      "gesetzt": {
+        "sprintwert": {
+          "prozent": 86,
+          "begruendung": "Ziel erreicht, Demo lief ohne Nacharbeit",
+          "gesetztAm": "2026-08-31T17:20:00.000Z"
+        }
+      }
+    },
+    {
+      "abschnittId": "a2",
+      "teamId": "curie",
+      "team": {
+        "t1": 7,
+        "t2": 6,
+        "t3": 4,
+        "t4": 4,
+        "t5": 4,
+        "t6": 4
+      },
+      "prozess": {
+        "p1": 3,
+        "p2": 3,
+        "p3": 3,
+        "p4": 2,
+        "p5": 2
+      },
+      "individuell": {
+        "p5": {
+          "punkte": {
+            "i1": 8,
+            "i2": 7,
+            "i3": 5,
+            "i4": 5,
+            "i5": 4
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #21, Artikelstamm"
+          },
+          "verstehen": {
+            "stufe": "sicher",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        },
+        "p6": {
+          "punkte": {
+            "i1": 7,
+            "i2": 5,
+            "i3": 4,
+            "i4": 4,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #23, Wareneingang"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        },
+        "p7": {
+          "punkte": {
+            "i1": 6,
+            "i2": 5,
+            "i3": 4,
+            "i4": 4,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Commits Suchfilter"
+          },
+          "verstehen": {
+            "stufe": "teilweise",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        },
+        "p8": {
+          "punkte": {
+            "i1": 6,
+            "i2": 5,
+            "i3": 4,
+            "i4": 3,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #25, Beleg-Vorlage"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-08-31T14:20:00.000Z"
+          }
+        }
+      },
+      "peer": {},
+      "notiz": "Board-Pflege war das Hauptproblem.",
+      "gesetzt": {
+        "kategorie": {
+          "prozess": {
+            "prozent": 55,
+            "begruendung": "Board zweimal wochenlang alt, Daily fiel oft aus – Punkte allein sagen das nicht",
+            "gesetztAm": "2026-08-31T18:20:00.000Z"
+          }
+        }
+      }
+    },
+    {
+      "abschnittId": "a2",
+      "teamId": "turing",
+      "team": {
+        "t1": 6,
+        "t2": 5,
+        "t3": 3,
+        "t4": 3,
+        "t5": 3,
+        "t6": 3
+      },
+      "prozess": {
+        "p1": 3,
+        "p2": 2,
+        "p3": 3,
+        "p4": 2,
+        "p5": 2
+      },
+      "individuell": {
+        "p9": {
+          "punkte": {
+            "i1": 6,
+            "i2": 5,
+            "i3": 4,
+            "i4": 4,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Commits Mitgliedersuche"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-09-01T14:20:00.000Z"
+          }
+        },
+        "p10": {
+          "punkte": {
+            "i1": 6,
+            "i2": 5,
+            "i3": 4,
+            "i4": 4,
+            "i5": 3
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #12, Stammdatenmaske"
+          },
+          "verstehen": {
+            "stufe": "ueberwiegend",
+            "notiz": "",
+            "gesetztAm": "2026-09-01T14:20:00.000Z"
+          }
+        },
+        "p11": {
+          "punkte": {
+            "i1": 5,
+            "i2": 4,
+            "i3": 3,
+            "i4": 3,
+            "i5": 2
+          },
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Commits Validierung"
+          },
+          "verstehen": {
+            "stufe": "teilweise",
+            "notiz": "",
+            "gesetztAm": "2026-09-01T14:20:00.000Z"
+          }
+        }
+      },
+      "peer": {},
+      "notiz": "Sprintreview steht noch aus – Abschluss offen."
+    },
+    {
+      "abschnittId": "a3",
+      "teamId": "kepler",
+      "team": {},
+      "prozess": {
+        "p1": 4,
+        "p2": 4
+      },
+      "individuell": {
+        "p1": {
+          "punkte": {},
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #57, Zahlungsschnittstelle"
+          }
+        },
+        "p2": {
+          "punkte": {},
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "PR #59, Bestätigungsmail-Vorlage"
+          }
+        },
+        "p4": {
+          "punkte": {},
+          "notiz": "",
+          "spur": {
+            "bezeichnung": "Commits Fehlerbehandlung Zahlung"
+          }
+        }
+      },
+      "peer": {},
+      "notiz": ""
+    },
+    {
+      "abschnittId": "a3",
+      "teamId": "curie",
+      "team": {},
+      "prozess": {
+        "p1": 4,
+        "p2": 3
+      },
+      "individuell": {},
+      "peer": {},
+      "notiz": ""
+    },
+    {
+      "abschnittId": "a5",
+      "teamId": null,
+      "team": {},
+      "prozess": {},
+      "individuell": {
+        "p1": {
+          "punkte": {
+            "f1": 2,
+            "f2": 2,
+            "f3": 2,
+            "f4": 4
+          },
+          "notiz": ""
+        },
+        "p2": {
+          "punkte": {
+            "f1": 2,
+            "f2": 2,
+            "f3": 1,
+            "f4": 3
+          },
+          "notiz": ""
+        },
+        "p3": {
+          "punkte": {
+            "f1": 1,
+            "f2": 0,
+            "f3": 1,
+            "f4": 1
+          },
+          "notiz": ""
+        },
+        "p4": {
+          "punkte": {
+            "f1": 2,
+            "f2": 2,
+            "f3": 2,
+            "f4": 3
+          },
+          "notiz": ""
+        },
+        "p5": {
+          "punkte": {
+            "f1": 2,
+            "f2": 2,
+            "f3": 2,
+            "f4": 4
+          },
+          "notiz": ""
+        },
+        "p6": {
+          "punkte": {
+            "f1": 2,
+            "f2": 1,
+            "f3": 2,
+            "f4": 3
+          },
+          "notiz": ""
+        },
+        "p7": {
+          "punkte": {
+            "f1": 1,
+            "f2": 2,
+            "f3": 2,
+            "f4": 2
+          },
+          "notiz": ""
+        },
+        "p9": {
+          "punkte": {
+            "f1": 2,
+            "f2": 1,
+            "f3": 1,
+            "f4": 2
+          },
+          "notiz": ""
+        },
+        "p10": {
+          "punkte": {
+            "f1": 1,
+            "f2": 2,
+            "f3": 2,
+            "f4": 3
+          },
+          "notiz": ""
+        },
+        "p11": {
+          "punkte": {
+            "f1": 1,
+            "f2": 1,
+            "f3": 1,
+            "f4": 2
+          },
+          "notiz": ""
+        }
+      },
+      "peer": {},
+      "notiz": "Nach § 8 LBVO angekündigt, 30 Minuten Arbeitszeit."
+    }
+  ],
+  "peerEntscheidungen": [
+    {
+      "abschnittId": "a2",
+      "am": "2026-08-31T18:20:00.000Z",
+      "antwort": "nein"
+    }
+  ]
+}

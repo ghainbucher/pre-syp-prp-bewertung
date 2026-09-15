@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   berechtigungPruefen,
   inOrdnerSchreiben,
+  ordnerwahlMoeglich,
   type Berechtigung,
   type Zielordner,
 } from './ordner';
@@ -49,6 +50,55 @@ function ordnerAttrappe(
 
   return { ordner, geschrieben, gefragt };
 }
+
+/*
+ * Vorher der Durchstich „bietet die automatische Sicherung nur an, wo der
+ * Browser sie kann". Der musste zweigleisig laufen – je nachdem, ob der
+ * Testbrowser die Schnittstelle kennt –, und prüfte in Wahrheit dieselbe eine
+ * Entscheidung. Hier lassen sich beide Fälle nebeneinander stellen, und zwar
+ * auch der, den kein installierter Browser mehr herstellt (Solution-Design 8.1).
+ */
+describe('Kennt der Browser die Ordnerwahl (FA-64 AK-7, NFA-05)', () => {
+  /** Die Prüfung einmal in einer nachgestellten Umgebung laufen lassen. */
+  function mitFenster(fenster: unknown, mitIndexedDb = true): boolean {
+    const welt = globalThis as Record<string, unknown>;
+    const vorherFenster = welt.window;
+    const vorherDb = welt.indexedDB;
+    if (fenster === undefined) delete welt.window;
+    else welt.window = fenster;
+    if (mitIndexedDb) welt.indexedDB = welt.indexedDB ?? {};
+    else delete welt.indexedDB;
+    try {
+      return ordnerwahlMoeglich();
+    } finally {
+      if (vorherFenster === undefined) delete welt.window;
+      else welt.window = vorherFenster;
+      if (vorherDb === undefined) delete welt.indexedDB;
+      else welt.indexedDB = vorherDb;
+    }
+  }
+
+  it('sagt ja, wo es die Schnittstelle gibt', () => {
+    expect(mitFenster({ showDirectoryPicker: () => undefined })).toBe(true);
+  });
+
+  it('sagt nein ohne die Schnittstelle', () => {
+    // Firefox und Safari. Dort bleibt der Weg von Hand (FA-33) der einzige –
+    // die Anwendung muss vollständig bedienbar bleiben (NFA-05).
+    expect(mitFenster({})).toBe(false);
+    expect(mitFenster({ showDirectoryPicker: 'ja' })).toBe(false);
+  });
+
+  it('sagt nein ohne IndexedDB', () => {
+    // Ohne sie lässt sich der gewählte Ordner nicht merken. Einen Ordner bei
+    // jedem Start neu zu wählen wäre keine automatische Sicherung.
+    expect(mitFenster({ showDirectoryPicker: () => undefined }, false)).toBe(false);
+  });
+
+  it('sagt nein außerhalb eines Fensters', () => {
+    expect(mitFenster(undefined)).toBe(false);
+  });
+});
 
 describe('Berechtigung (FA-64 AK-6)', () => {
   it('meldet eine bestehende Berechtigung, ohne nachzufragen', async () => {

@@ -4,12 +4,12 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung – Bewertung von Schüler-Softwareprojekten in Sprints |
 | **Dokument** | Solution-Design / Technisches Konzept |
-| **Version** | 0.15 |
-| **Datum** | 2026-09-12 |
+| **Version** | 0.27 |
+| **Datum** | 2026-09-14 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.3.0 |
-| **Zuletzt geprüft** | 2026-09-12 |
+| **Gültig für Softwarestand** | 0.8.0 |
+| **Zuletzt geprüft** | 2026-09-15 |
 | **Nächste Prüfung** | Ende Sprint 1 |
 | **Bezug** | [Anforderungen](anforderungen.md) v0.22 · [Fachkonzept](fachkonzept-unterricht.md) v0.19 · [Risiken](risiken.md) |
 | **Rahmenbedingung** | RB-02 |
@@ -20,6 +20,18 @@
 
 | Version | Datum | Autor | Änderung | Status |
 |---|---|---|---|---|
+| 0.26 | 2026-09-14 | G. Hainbucher | **Kapitel 8.1 aufgenommen: welche Durchstiche es geben soll** – fünf, in der Sprache des Unterrichts, jeder mit seiner fachlichen Grundlage. Die Teststrategie sagte seit jeher „wenige Durchstiche“ und nannte einen; es sind 21 geworden. Modulliste auf die neuen Sichten gebracht | Entwurf |
+| 0.27 | 2026-09-14 | G. Hainbucher | Kapitel 8.1 auf den Stand nach der Straffung gebracht: elf Durchstiche statt 21, mit Tabelle, wohin jeder umgezogene Fall gewandert ist – und mit der Liste dessen, was dabei maschinell ungeprüft bleibt (OP-F37). `Teamabschnitt` bekommt zwei additive Textfelder (FA-96); der Klassenfilter ist `null`-fähig geworden (FA-95) – beides ohne Migration, weil rein additiv | Entwurf |
+| 0.25 | 2026-09-14 | G. Hainbucher | **Kapitel 5 auf Schemastand 4 gebracht** (5.0c): Projekt ohne Klasse, Mitgliedschaft als eigene Größe, Sprint am Projekt, `Teamabschnitt` und `Zugehoerigkeit` entfallen. Davor eine Zuordnungstabelle fachlich → technisch gegen [Fachkonzept 15](fachkonzept-unterricht.md). Das bisherige ERD zeigte noch Schemastand 1/2 und war seit Monaten falsch. Die Abschnitte 5.0 und 5.0a sind als Geschichte gekennzeichnet | Entwurf |
+| 0.24 | 2026-09-13 | G. Hainbucher | Oberfläche auf fünf Bereiche umgestellt (FA-34): `ansichten/ProjektAnsicht.tsx` und `ansichten/StammdatenAnsicht.tsx` neu, `ui/projekte.ts` als Ableitungsschicht der Projektsicht. `StrukturAnsicht` bleibt und ist unter den Stammdaten eingebettet | Entwurf |
+| 0.23 | 2026-09-13 | G. Hainbucher | `scripts/auswertung-deuten.mjs` aufgenommen; `hilfen.mjs` liest die Team-Repositories aus einer Sicherungsdatei, damit die Adresse nur in der Anwendung gepflegt wird | Entwurf |
+| 0.22 | 2026-09-13 | G. Hainbucher | Auswertungen landen in `scripts/Review-Auswertungen/JJJJ-MM/`, ein Ordner je Monat über alle Teams. Der Ordner ist von Git ausgenommen: Die Berichte enthalten GitHub-Kennungen | Entwurf |
+| 0.21 | 2026-09-13 | G. Hainbucher | `scripts/hilfen.mjs` aufgenommen: die drei Skripte teilen sich Parameter, Anonymisierung, Repo-Umsetzung und Zeitraumprüfung, statt sie zu kopieren | Entwurf |
+| 0.20 | 2026-09-13 | G. Hainbucher | `scripts/pull-requests-auswerten.mjs` in die Modulliste aufgenommen: Auswertung je Pull Request, Kennzahlen ohne KI getrennt vom KI-Teil | Entwurf |
+| 0.19 | 2026-09-13 | G. Hainbucher | `scripts/review-vorbereitung.mjs` in die Modulliste aufgenommen: Reviewvorbereitung aus dem Git-Diff, außerhalb der Anwendung, ohne Personenbezug im Prompt | Entwurf |
+| 0.18 | 2026-09-12 | G. Hainbucher | Sprintwert je Team am `gesetzt`-Zweig (FA-82); `export/teamrueckmeldung.ts` in die Modulliste aufgenommen (FA-83) | Entwurf |
+| 0.17 | 2026-09-12 | G. Hainbucher | Datenmodell um Spur je Person (FA-78), Maßnahmen und Nachschau (FA-80) und den eingelesenen Auswertungsstand (FA-81) ergänzt; `scripts/github-auswertung.mjs` in die Modulliste aufgenommen | Entwurf |
+| 0.16 | 2026-09-12 | G. Hainbucher | Zustände einer Teamplanung im Datenmodell: `fixiertAm` und `abgeschlossenAm` (FA-77), additiv in Schemastand 3 | Entwurf |
 | 0.15 | 2026-09-12 | G. Hainbucher | Schemastand 3 (Kap. 5.0a): Planung je Team mit Ziel, Zeitraum und eigener Kriterienkopie; Auflösungsregeln für Kriterien und Zeitraum; Fortschreibung aus dem vorigen Sprint; Migration 2 auf 3 | Entwurf |
 | 0.14 | 2026-09-11 | G. Hainbucher | Release 0.3.0: Kap. 6.4a Verstehensnachweis im individuellen Beitrag (FA-40), Kap. 6.6a Tendenz (FA-51); Modulliste um `export/belegfassung.ts` und `export/rueckmeldung.ts` ergänzt; Rechenbeispiel in 6.8 berichtigt | Entwurf |
 | 0.13 | 2026-09-11 | G. Hainbucher | Umsetzung nachgezogen: Modulliste um `domain/zuordnung.ts`, `store/sicherung.ts`, `store/ordner.ts` und `export/rubrikblatt.ts` ergänzt; Kap. 5.0 berichtigt (Notenschlüssel im Bestand, `Person.teamId` bleibt als Vorbelegung, `sperreAktiv` erst mit FA-61, `peerEntscheidungen` additiv); Kap. 7.2 zur Berechtigung und zum Schreibtakt berichtigt | Entwurf |
@@ -128,6 +140,12 @@ ist die Berechnungslogik ohne Oberfläche testbar (NFA-06).
 | `domain/types.ts` | Datenstrukturen | – |
 | `domain/scoring.ts` | Reine Funktionen für Prozente, Gewichtung, Note, Abschluss eines Abschnitts | Zustand halten, Seiteneffekte |
 | `domain/zuordnung.ts` | Welche Rubrik gilt für einen Abschnitt (FA-65), wer war wann in welchem Team (FA-58) | Rechnen, Zustand halten |
+| `scripts/hilfen.mjs` | Gemeinsame Hilfen der Skripte: Aufrufparameter, Abbruch, Anonymisierung eines Diffs, Umsetzung eines Repositorys auf `eigentuemer/name` (auch aus einer URL), Zeitraumprüfung und das Ausgabeziel `scripts/Review-Auswertungen/JJJJ-MM/` | Netzwerk anfassen |
+| `scripts/auswertung-deuten.mjs` | Aus der GitHub-Auswertung einen Bericht mit **Interpretation** und Gesprächsfragen machen. Optional dazu: Wissensinseln aus einer Arbeitskopie (`--klon`), Issues und Pipeline über `gh` (`--repo`), Teams samt Repository aus einer Sicherungsdatei (`--bestand`). Die Deutung folgt festen Regeln – für jedes Team dieselben (G11). Vor dem Versand an ein KI-Werkzeug werden alle Kennungen durch Pseudonyme ersetzt | bewerten; Punkte vorschlagen (das rechnet FA-81 AK-5) |
+| `scripts/github-auswertung.mjs` | Kennzahlen zur Zusammenarbeit über die GitHub-CLI abfragen und als Datei schreiben (FA-81). **Steht außerhalb der Anwendung** – deshalb bleibt ADR-001 unberührt | Teil der Anwendung sein; Inhalte lesen |
+| `scripts/review-vorbereitung.mjs` | Aus dem Git-Diff eines Teamrepositorys einen **Reviewzettel** erzeugen: Änderung, Akzeptanzkriterien ohne Test, Verdoppelungen, drei Fragen mit Fundstelle ([Zusammenarbeit mit KI, Kap. 6.5](zusammenarbeit-mit-ki.md)). Ebenfalls **außerhalb der Anwendung**. In den Prompt geht der Diff ohne Autoren und ohne Adressen; die Zuordnung Kennung → Person bleibt in der Anwendung (FA-81 AK-3) | bewerten; Namen an ein Werkzeug geben; Teil der Anwendung sein |
+| `scripts/pull-requests-auswerten.mjs` | Pull Requests eines Zeitraums **im Nachhinein** auswerten: zuerst zählbare Kennzahlen ohne KI (fremdes Review vorhanden, Lesezeit bis zur Genehmigung, Größe, Nachschieben nach der Genehmigung), danach vier Fragen je Pull Request mit KI – im Bericht getrennt ausgewiesen. Holt über `gh`, **ohne Klon**; Personen als Pseudonyme. Nutzt die Hilfsfunktionen von `review-vorbereitung.mjs` mit | bewerten; Kennungen an ein Werkzeug geben; Teil der Anwendung sein |
+| `export/teamrueckmeldung.ts` | Rückmeldung an das Team und an eine Person als **Text** (FA-83). Erzeugt eine Zeichenkette, nichts weiter – wohin sie gelangt, entscheidet die Lehrkraft | Versenden, Formatieren für einen bestimmten Dienst |
 | `domain/defaults.ts` | Ausgelieferte Rubriken und Standard-Notenschlüssel | – |
 | `store/persistence.ts` | Serialisieren, Laden, Schemamigration, Export/Import | Rechnen |
 | `store/storeReducer.ts` | Alle Änderungen am Datenbestand | Rechnen, Darstellung |
@@ -138,125 +156,236 @@ ist die Berechnungslogik ohne Oberfläche testbar (NFA-06).
 | `export/belegfassung.ts` | Vollständige Herleitung je Person als HTML (FA-32) | interne Bezeichner ausgeben |
 | `export/rueckmeldung.ts` | Rückmeldung an eine Person als HTML (FA-42) | Punkte, Herleitung oder Note zeigen |
 | `ui/*` | Wiederverwendete Bausteine, Auswahl-Hilfen, Oberflächenzustand | Rechnen |
-| `ansichten/*` | Die vier Bereiche: Darstellung und Eingabe | Rechnen |
+| `ui/projekte.ts` | Ableitungen der Projektsicht: Projektzeilen, Filter, Sprintliste, „gemischt“ (FA-90, FA-91). Filtert und ordnet – rechnet nicht | Bewerten; Darstellen |
+| `ansichten/*` | Die fünf Bereiche und die drei Teile eines Sprints: Darstellung und Eingabe | Rechnen |
+| `ansichten/ProjektAnsicht.tsx` | Einstieg: Filter, Projektliste mit dem Sprint, in dem jedes Projekt steht, und die Sprintliste des gewählten Projekts | Rechnen; Zuordnungsfragen entscheiden |
+| `ansichten/KlassenAnsicht.tsx` | Stammdatenblatt Klassen | Schüler führen |
+| `ansichten/SchuelerAnsicht.tsx` | Stammdatenblatt Schüler: Klasse, Name, GitHub-Kennung, Schul-E-Mail (FA-88) | Projektzuordnung ändern |
+| `ansichten/ProjektStammdatenAnsicht.tsx` | Stammdatenblatt Projekte samt Schülerzuordnung und Überschneidungswarnung (FA-87) | Rechnen |
+| `ansichten/TestStammdatenAnsicht.tsx` | Stammdatenblatt Tests: Ankündigung, Arbeitszeit, Fragenliste (FA-60) | Punkte erfassen |
+| `ansichten/StichtagAnsicht.tsx` | Stammdatenblatt Stichtage (FA-48) | Rechnen |
+
+*`StrukturAnsicht.tsx` und `StammdatenAnsicht.tsx` sind am 14.09.2026 entfallen: Sie trugen
+Klassen, Projekte, Schüler, Abschnitte und Stichtage in einer Sicht. Ihre Teile liegen jetzt je
+auf einem Blatt (FA-34 AK-3).*
 
 ---
 
 ## 5 Datenmodell
 
+**Geltend ist Schemastand 4** (Abschnitt 5.0c). Die Abschnitte 5.0 und 5.0a halten fest, wie
+er entstanden ist – sie sind **Geschichte und keine Vorgabe**. Wer wissen will, wie der
+Bestand heute aussieht, liest 5.0c und sonst nichts.
+
+Das fachliche Modell, gegen das sich dieses Kapitel prüfen lassen muss, steht im
+[Fachkonzept, Kapitel 15](fachkonzept-unterricht.md). Dort stehen die Gegenstände in der
+Sprache des Unterrichts; hier steht, wie sie abgelegt werden.
+
+### 5.0c Schemastand 4: Schüler gehören zu Projekten (ADR-012, FA-87)
+
+**In zwei Schritten.** Der Umbau aus ADR-012 ist auf **zwei Schemastände** aufgeteilt, weil
+zwei kleine Migrationen weniger riskant sind als eine große – und weil die erste allein schon
+die Sicht trägt, die der Auftraggeber abgenommen hat.
+
+| | Schemastand 4 (umgesetzt am 14.09.2026) | Schemastand 5 (offen, 5.0d) |
+|---|---|---|
+| Zuordnung | `Mitgliedschaft` statt `Zugehoerigkeit`; `Person.teamId` entfällt | – |
+| Projekt | `Team` ohne Pflichtklasse in der Sache; `typ`, `beschreibung`, `von`, `bis`; `kennungen` entfallen | `klasseId` entfällt auch technisch |
+| Sprint | unverändert am Abschnitt der Klasse | `Abschnitt.projektId`; `Teamabschnitt` verschmilzt mit dem Abschnitt |
+| Bewertung | Schlüssel weiterhin `abschnittId + teamId` | Schlüssel nur noch `abschnittId` |
+
+**Zuordnung fachlich → technisch.** Jede Größe aus Fachkonzept 15.1 hat genau einen Ort
+(Stand nach Schemastand 4; die letzte Spalte sagt, was Schemastand 5 noch ändert):
+
+| Fachkonzept 15.1 | Technisch | Anmerkung |
+|---|---|---|
+| Klasse | `klassen: Klasse[]` | – |
+| Schüler | `personen: Person[]` mit `klasseId` | Die Klasse hängt hier und nur hier. |
+| Projekt | `teams: Team[]` | Fachlich **Projekt**. `klasseId` steht technisch noch da, hat aber keine fachliche Bedeutung mehr und wird nirgends angezeigt; sie entfällt mit Stand 5. |
+| Mitgliedschaft | `mitgliedschaften: Mitgliedschaft[]` | Eigene Größe, weil ein Schüler in mehreren Projekten sein darf. |
+| Sprint | `abschnitte[]` mit `art: 'sprint'`; die Planung je Projekt steht noch in `teamabschnitte[]` | **Stand 5:** `projektId` am Abschnitt, Planung verschmolzen |
+| Test | `abschnitte[]` mit `art: 'test'` und `klasseId` | – |
+| Kriterienkatalog | `rubriken: Rubrik[]`, je Abschnitt `rubrikId` und ab dem ersten Punkt `rubrikKopie` | Bei einem Test ist die Rubrik seine Fragenliste. |
+| Beurteilung | `bewertungen: Bewertung[]` mit `abschnittId + teamId` | **Stand 5:** `teamId` entfällt. |
+| Beurteilungszeitpunkt | `stichtage: Stichtag[]` | – |
+
+**Eine Struktur für Sprint und Test, nicht zwei.** Fachlich sind es zwei Dinge mit
+verschiedenen Eltern; in der Rechnung verhalten sie sich gleich (FA-56 AK-2), und
+`domain/scoring.ts` behandelt sie einheitlich. Zwei getrennte Strukturen wären sauberer,
+kosteten aber einen Eingriff in die Bewertungslogik – und die ist der Teil, der stimmen muss.
+Deshalb: ein `Abschnitt` mit `art`, und **genau eines** von `projektId`/`klasseId` ist gesetzt.
+Ein Test hält das fest.
+
 ```mermaid
 erDiagram
-    KLASSE ||--o{ TEAM : "hat"
-    KLASSE ||--o{ PERSON : "hat"
-    KLASSE ||--o{ SPRINT : "hat"
-    TEAM   ||--o{ PERSON : "umfasst"
-    SPRINT ||--o{ BEWERTUNG : "je Team"
-    TEAM   ||--o{ BEWERTUNG : "je Sprint"
-    BEWERTUNG ||--o{ EINZELBEWERTUNG : "je Person"
-    BEWERTUNG ||--o{ PEERURTEIL : "Bewertender→Bewerteter"
-    RUBRIK ||--o{ KRITERIUM : "enthält"
+    KLASSE     ||--o{ PERSON : "klasseId"
+    KLASSE     ||--o{ ABSCHNITT : "klasseId, nur art=test"
+    PERSON     ||--o{ MITGLIEDSCHAFT : "personId"
+    PROJEKT    ||--o{ MITGLIEDSCHAFT : "projektId"
+    PROJEKT    ||--o{ ABSCHNITT : "projektId, nur art=sprint"
+    ABSCHNITT  ||--o| BEWERTUNG : "abschnittId"
+    BEWERTUNG  ||--o{ EINZELBEWERTUNG : "je personId"
+    BEWERTUNG  ||--o{ PEERURTEIL : "von personId an personId"
+    RUBRIK     ||--o{ ABSCHNITT : "rubrikId"
+    ABSCHNITT  ||--o| RUBRIKKOPIE : "ab dem ersten Punkt maßgeblich"
+    STICHTAG   ||--o{ NOTENSTAND : "je personId"
 ```
 
-Der gesamte Bestand ist ein einziges JSON-Dokument:
+Der gesamte Bestand bleibt **ein einziges JSON-Dokument** (ADR-001):
 
 ```ts
 type Datenbestand = {
-  schemaVersion: number;          // 1 bis 0.1.0, ab 0.2.0: 2
-  rubrik: Rubrik;                 // Schemastand 1 – wird zu rubriken[0]
+  schemaVersion: 4;
+  rubriken: Rubrik[];
+  vorgabeRubrikId: Id;
+  notenschluessel: Notenstufe[];
+  strangGewichte: Record<Strang, number>;
+  peerDeckelung: number;          // FA-45 AK-4
+  verstehensAnteil: number;       // FA-40 AK-2
+  zeitfaktorZweiteHaelfte: number;// FA-54 AK-6
+  sperreAktiv: boolean;           // FA-61 AK-6
+  befundSchwelle: number;         // FA-79 AK-4a
+  stichtage: Stichtag[];
+  gesamtstand: Record<StichtagId, Record<PersonId, GesetzterWert>>;
+  notenstaende: Record<StichtagId, Record<PersonId, Notenstand>>;
   klassen: Klasse[];
-  teams: Team[];
   personen: Person[];
-  sprints: Sprint[];
-  bewertungen: Bewertung[];       // Schlüssel: sprintId + teamId
+  teams: Team[];                  // fachlich: Projekte
+  mitgliedschaften: Mitgliedschaft[];   // neu; ersetzt `zugehoerigkeiten`
+  abschnitte: Abschnitt[];
+  teamabschnitte: Teamabschnitt[];// entfällt mit Stand 5
+  bewertungen: Bewertung[];       // Schlüssel: abschnittId + teamId
+  peerEntscheidungen: PeerEntscheidung[];
+};
+
+type Team = {                     // fachlich: Projekt
+  id: Id;
+  klasseId: Id;                   // ohne fachliche Bedeutung, entfällt mit Stand 5
+  name: string;
+  typ?: Projekttyp;               // 'syp-pre-4' | 'syp-pre-5' | 'diplomarbeit'
+  repository?: string;            // 'eigentuemer/name', FA-81 AK-3
+  von?: string;                   // Information für den Leser, keine Rechnung
+  bis?: string;
+  beschreibung?: string;
+};
+
+type Mitgliedschaft = {
+  projektId: Id;
+  personId: Id;
+  /** Gesetzt, sobald die Überschneidung mit einem anderen Projekt bestätigt wurde. */
+  ueberschneidungBestaetigtAm?: string;
+};
+
+// Stand 5 fasst `Abschnitt` und `Teamabschnitt` zusammen; heute sind es zwei.
+type Abschnitt = {
+  id: Id;
+  art: 'sprint' | 'test' | 'diplomarbeit';
+  klasseId: Id;                   // mit Stand 5: `projektId` bei art 'sprint'
+  nummer: number;                 // fortlaufend je Elternteil
+  name: string;
+  strang: Strang;
+  rubrikId: Id;
+  rubrikKopie?: Rubrik;           // ab dem ersten Punkt maßgeblich (FA-65)
+  eingefrorenAm?: string;
+  angeglichenAm?: string;
+  von: string;
+  bis: string;
+  faktor: number;                 // FA-04, Lernsprint 0,5
+  peerAktiv: boolean;
+  // nur bei art 'sprint' – kam bis Schemastand 3 aus `Teamabschnitt`:
+  ziel?: string;
+  geplantAm?: string;
+  herkunft?: Herkunft;            // FA-67 AK-9
+  fixiertAm?: string;             // FA-77 AK-3
+  abgeschlossenAm?: string;       // FA-77 AK-5
+  massnahmen?: Massnahme[];       // FA-80
+  geplanteAnforderungen?: string; // FA-96 – Freitext aus dem Planning
+  umgesetzteAnforderungen?: string; // FA-96 – Freitext aus dem Review
+  nachschau?: Record<MassnahmeId, Nachschau>;
+  auswertung?: GithubAuswertung;  // FA-81
+  // nur bei art 'test':
+  angekuendigtAm?: string;        // § 8 LBVO, FA-60 AK-5
+  arbeitszeitMinuten?: number;
 };
 
 type Bewertung = {
-  sprintId: string;
-  teamId: string;
-  team: Record<KriteriumId, number>;        // Punkte je Kriterium
+  abschnittId: Id;
+  teamId: Id | null;              // entfällt mit Stand 5
+  team: Record<KriteriumId, number>;
   prozess: Record<KriteriumId, number>;
-  individuell: Record<PersonId, { punkte: Record<KriteriumId, number>; notiz: string }>;
-  peer: Record<PersonId /*bewertet von*/, Record<PersonId /*bewertet*/, Record<KriteriumId, 1|2|3|4|5>>>;
+  individuell: Record<PersonId, { punkte: Record<KriteriumId, number>; notiz: string; /* … */ }>;
+  peer: Record<PersonId, Record<PersonId, Record<KriteriumId, 1|2|3|4|5>>>;
   notiz: string;
+  gesetzt?: { /* siehe 5.1 */ };
 };
 ```
 
 **Entwurfsentscheidungen**
 
-- Eine Bewertung je Sprint **und** Team – nicht je Person. Team- und Prozesspunkte gelten
-  ohnehin für alle Mitglieder; das vermeidet Redundanz und Inkonsistenz.
-- Ein leeres Feld wird **nicht gespeichert** (Schlüssel fehlt). Nur so ist
-  „nicht bewertet“ von „0 Punkte“ unterscheidbar (FA-12 Akzeptanzkriterium).
-- Kriterien haben stabile IDs. Wird ein Kriterium umbenannt, bleiben erfasste Punkte gültig;
-  wird es gelöscht, verschwinden seine Punkte aus der Berechnung, bleiben aber im Bestand,
-  bis der Datensatz erneut gespeichert wird.
+- **Eine Bewertung je Abschnitt und Team.** Team- und Prozesspunkte gelten ohnehin für alle
+  Mitglieder; das vermeidet Redundanz und Widerspruch. Der zweite Teil des Schlüssels entfällt
+  mit Stand 5, wenn ein Sprint genau einem Projekt gehört.
+- **`Zugehoerigkeit` ist verschwunden.** Die Zuordnung liegt am Projekt und nicht mehr je
+  Abschnitt (Fachkonzept 15.2, A8). Der Fall „kommt im dritten Sprint dazu“ wird damit nicht
+  mehr abgebildet – eine bewusste Festlegung des Auftraggebers vom 14.09.2026.
+- **Ein leeres Feld wird nicht gespeichert** (Schlüssel fehlt). Nur so ist „nicht bewertet“
+  von „0 Punkte“ unterscheidbar (ADR-004).
 - **Die maßgebliche Rubrik eines Abschnitts ist `rubrikKopie`, sobald sie existiert** (FA-65).
-  Sie entsteht beim ersten Punkteintrag als vollständige Kopie und wird von späteren
-  Änderungen an `rubriken[]` nicht berührt. Jede Funktion, die Kriterien oder Gewichte eines
-  Abschnitts braucht, liest `rubrikKopie ?? rubrik(rubrikId)` – **nie** die aktuelle Rubrik
-  direkt. Eine Verletzung dieser Regel ist von außen nicht zu sehen und fällt erst auf, wenn
-  eine Belegfassung im Juni die Kriterien von Juni zeigt.
-- Personen sind der Klasse zugeordnet, nicht dem Team. **Ab Schemastand 2 ist die
-  Teamzugehörigkeit eine Beziehung je Abschnitt** (`Zugehoerigkeit`, FA-58) und keine
-  Eigenschaft der Person mehr. Ein Teamwechsel zwischen zwei Abschnitten – und der Wechsel
-  zur Diplomarbeitsgruppe im Mai – verliert dadurch keine Daten: Erfasste Punkte hängen am
-  Paar Abschnitt/Team und werden von einem späteren Wechsel nicht berührt.
+  Jede Funktion, die Kriterien oder Gewichte braucht, liest `rubrikKopie ?? rubrik(rubrikId)` –
+  **nie** die aktuelle Rubrik direkt. Eine Verletzung ist von außen nicht zu sehen und fällt
+  erst auf, wenn eine Belegfassung im Juni die Kriterien von Juni zeigt.
+- **Der Zeitraum eines Projekts geht in keine Rechnung ein.** Er ist Information für den
+  Leser (Fachkonzept 15.1). Der Zeitfaktor nach § 20 Abs. 1 LBVO rechnet weiterhin über die
+  Hälften des **Beurteilungszeitraums**, nicht über das Projekt.
+- **Die Klasse eines Projekts wird abgeleitet, nicht gespeichert** – aus den Klassen seiner
+  Mitglieder. Ein eigenes Feld daneben wäre die zweite Wahrheit, die auseinanderläuft.
 
-**Erweiterungen für 0.2.0** (aus Fachkonzept v0.2 und Risikoanalyse v0.1):
+**Migration 3 → 4** (FA-87 AK-6), umgesetzt in `vonStand3`:
 
-```ts
-type Team = {
-  // …
-  auftraggeber?: { name: string; art: 'lehrkraft' | 'kollegium' | 'extern' };  // FA-43
-};
+| Schritt | Regel |
+|---|---|
+| 1 | `zugehoerigkeiten` mit Team und `person.teamId` → `mitgliedschaften`, ohne Doppel. `teamId: null` bedeutete „in diesem Abschnitt keinem Team zugeordnet" und entfällt ersatzlos: Wer in keinem Projekt war, hat keine Mitgliedschaft |
+| 2 | Jede Kennung aus `team.kennungen` wandert an die Person, sofern diese noch keine trägt (FA-88 AK-3); `kennungen` entfällt |
+| 3 | `person.teamId` entfällt |
+| 4 | `schemaVersion` wird auf 4 gesetzt – als letzter Schritt |
 
-type Beurteilungszeitraum = {                 // FA-48, FA-54 AK-3
-  id: StichtagId;
-  bezeichnung: string;                        // „1. Semester“
-  stichtag: string;                           // ISO-Datum
-};
+**Die Rechnung ändert sich dadurch nicht.** Ein Schüler, der in allen Abschnitten demselben
+Team zugeordnet war – der Normalfall –, ist danach Mitglied genau dieses Projekts, und
+`teamIn` liefert dasselbe Ergebnis wie vorher. Verloren geht nur der Sonderfall „wechselt im
+dritten Sprint das Team"; das ist keine Panne, sondern die Festlegung des Auftraggebers vom
+14.09.2026 (Fachkonzept 15.2, A8).
 
-type Abschnitt = {                            // FA-56 – ersetzt Sprint ab Schemastand 2
-  id: Id;
-  klasseId: Id;
-  bezeichnung: string;
-  art: 'sprint' | 'diplomarbeitsvorbereitung' | 'test';   // FA-56 AK-1, FA-60 AK-1
-  strang: 'praxis' | 'theorie';               // FA-59 AK-1
-  angekuendigtAm?: string;                    // FA-60 AK-5, nur bei art 'test'
-  rubrikId: Id;                               // FA-55 AK-2 – eine Rubrik je Abschnitt
-  rubrikKopie?: Rubrik;                       // FA-65 – ab dem ersten Eintrag maßgeblich
-  eingefrorenAm?: string;                     // FA-65 AK-5
-  von: string;
-  bis: string;
-  beurteilungszeitraumId: StichtagId;         // bestimmt den Halbierungspunkt
-  faktor: number;                             // FA-04, Vorgabe 1, Lernsprint 0,5
-  peerAktiv: boolean;                         // FA-52, Vorgabe false
-  peerNachfrage?: {                           // FA-53 AK-4
-    beantwortetAm: string;
-    antwort: 'ja' | 'noch-nicht';
-  };
-};
+**`teamIn` bleibt als Name stehen.** Die Funktion beantwortet jetzt „welches Projekt dieser
+Person gilt für diesen Abschnitt": bei genau einer Mitgliedschaft diese, bei mehreren die, die
+für diesen Abschnitt geplant hat, sonst `null`. Sie heißt weiter `teamIn`, weil sie an rund
+dreißig Stellen steht und Schemastand 5 sie ohnehin überflüssig macht.
 
-type Bewertung = {
-  // …
-  auftraggeberRueckmeldung?: {                       // FA-44
-    einstufung: number;
-    text: string;
-    herkunft: 'eigene-beobachtung' | 'fremdangabe';  // ergibt sich aus Team.auftraggeber.art
-  };
-  individuell: Record<PersonId, {
-    punkte: Record<KriteriumId, number>;
-    notiz: string;
-    verstehensnachweis?: { einstufung: number; text: string };  // FA-40
-    reflexion?: string;                                          // FA-41
-  }>;
-};
-```
+### 5.0d Schemastand 5: Der Sprint gehört dem Projekt (offen)
 
-Alle Erweiterungen sind optional; ein Bestand nach Schema 1 bleibt ohne Migration lesbar.
-Die Herkunft der Auftraggeber-Rückmeldung wird **mitgespeichert** und nicht bei der Anzeige
-aus der Auftraggeberart abgeleitet – sonst ginge sie verloren, wenn der Auftraggeber später
-wechselt.
+Der zweite Schritt aus ADR-012. **Noch nicht umgesetzt**; hier steht, was zu tun ist.
+
+| Schritt | Regel |
+|---|---|
+| 1 | Der bisherige Bestand wird unverändert gesichert, **bevor** etwas verändert wird |
+| 2 | Jeder `teamabschnitt` wird zu einem Abschnitt `art: 'sprint'` mit `projektId = teamId`; die Felder des früheren Abschnitts (Faktor, Strang, Rubrik) und die der Planung (Ziel, Zeitraum, Kopie, Fixierung, Abschluss, Maßnahmen, Auswertung) stehen danach in **einem** Datensatz. Die Nummern werden je Projekt neu vergeben |
+| 3 | Bewertungen werden vom Paar `abschnittId + teamId` auf den daraus entstandenen Sprint umgehängt |
+| 4 | Abschnitte der Art `diplomarbeit` werden zu Sprints des Projekts, das sie geplant hat – die Abschnittsart entfällt, und mit ihr der Reiter „Diplomarbeitsvorbereitung" (FA-34 AK-6) |
+| 5 | `Team.klasseId` entfällt; Tests behalten ihre `klasseId` |
+| 6 | `schemaVersion` wird auf 5 gesetzt – als letzter Schritt |
+
+**Was die Migration nicht raten darf.** Ein Sprint-Abschnitt ohne jede Planung gehörte im
+alten Modell der ganzen Klasse und lässt sich keinem Projekt zuordnen. Er wird **nicht
+verteilt**, sondern beim Einlesen **benannt** und übersprungen. Stilles Verteilen hieße,
+Punkte zu erfinden.
+
+**Bedingung wie bei jeder Migration:** Danach ergibt der Bestand dieselben Prozentwerte,
+Notenvorschläge und Sperren wie vorher. Eine Umstellung, die Noten verschiebt, wäre eine
+stille Neubewertung.
+
+---
+
+*Die folgenden beiden Abschnitte sind **Geschichte**. Sie erklären, wie Schemastand 2 und 3
+entstanden sind, und gelten nicht mehr.*
 
 ### 5.0 Schemastand 2: Abschnitt statt Sprint (FA-55 bis FA-57)
 
@@ -350,7 +479,15 @@ type Teamabschnitt = {            // die Planung eines Teams für einen Abschnit
   eingefrorenAm?: string;
   angeglichenAm?: string;         // FA-47 AK-6
   herkunft?: Herkunft;            // FA-67 AK-9
+  fixiertAm?: string;             // FA-77 AK-3 – ohne: Vorschlag
+  abgeschlossenAm?: string;       // FA-77 AK-5 – mit dem Sprintreview gesetzt
+  massnahmen?: Massnahme[];       // FA-80 AK-1 – aus der Retrospektive dieses Sprints
+  nachschau?: Record<Id, Nachschau>;  // FA-80 AK-4 – über die Maßnahmen des vorigen
+  auswertung?: GithubAuswertung;  // FA-81 – eingelesener Stand, kein Live-Wert
 };
+
+// Am `Bewertung.gesetzt`-Zweig kommt hinzu (FA-82):
+//   sprintwert?: GesetzterWert;  // Aussage an das Team, geht in keine Note ein
 
 type Herkunft =
   | { art: 'vorlage'; rubrikId: Id }
@@ -723,10 +860,76 @@ flowchart TB
 |---|---|---|
 | **Unit** | `domain/*`, `store/persistence` | ≥ 90 % Zweigabdeckung (NFA-06); enthält Grenzfälle: keine Daten, nur eine Kategorie, Gewicht 0, Punkte über Maximum, fehlende Peer-Urteile, Notenschlüsselgrenzen |
 | **Komponenten** | Erfassungsmaske, Auswertung | Eingabe erzeugt erwarteten angezeigten Wert; leere Felder bleiben leer *(ab 0.2.0 – in 0.1.0 durch Unit- und E2E-Tests abgedeckt)* |
-| **E2E** | Durchstich: Klasse anlegen → Team → Personen → Sprint → bewerten → Auswertung → CSV | Zusätzlich: kein ausgehender Netzwerkverkehr während der Bedienung (NFA-03), Neuladen erhält Daten |
+| **E2E** | **Wenige Durchstiche**, siehe 8.1 | Jeder Durchstich folgt einem Arbeitsgang aus [Fachkonzept 15.2](fachkonzept-unterricht.md) und belegt mehrere Anforderungen zugleich |
 
 Ein Fehler, der in Betrieb auffällt, wird zuerst durch einen fehlschlagenden Test
 abgebildet und erst dann behoben.
+
+### 8.1 Welche Durchstiche es geben soll
+
+Ein **Durchstich** ist ein Arbeitsgang, den die Lehrkraft tatsächlich so ausführt – nicht ein
+einzelnes Akzeptanzkriterium. Die zweite Spalte ist deshalb in der Sprache des Unterrichts
+geschrieben und vom Auftraggeber prüfbar; wie geklickt wird, ist Sache der Testdatei.
+
+| Nr. | Durchstich | Fachliche Grundlage | belegt |
+|---|---|---|---|
+| **D1** | Von der Klasse zur Note: Klasse, Schüler, Projekt, Zuordnung, Sprint planen, bewerten, Auswertung, CSV | 15.2 A1, A2 | FA-01 bis FA-04, FA-12, FA-18, FA-28, FA-29, FA-30 |
+| **D2** | Einen Sprint durchlaufen: planen, im Daily beobachten, im Review abschließen – jedes Kriterium in der Phase, in der es beobachtet wurde | 15.2 **A4**, **A5** | FA-66, FA-67, FA-70 bis FA-72, FA-75, FA-77 |
+| **D3** | Einen Test erfassen: anlegen, ankündigen, Punkte je Frage, ohne Projekt | 15.2 **A1**, **A3** | FA-56, FA-60, FA-74 |
+| **D4** | Projekte ordnen: mehrere Projekte über Klassen hinweg, Zuordnung mit Überschneidung, Sprintliste | 15.2 **A2**, **A8**, **A9** | FA-34, FA-87, FA-88, FA-90, FA-91 |
+| **D5** | Die Anwendung verlässt den Rechner nicht und verliert nichts: kein Netzwerkverkehr, Neuladen erhält den Bestand, Löschen verlangt eine zweite Bestätigung und sagt, was daran hängt | – (NFA/DS) | NFA-03, DS-02, FA-19, FA-35, FA-36, FA-94 |
+
+**Stand 14.09.2026: elf Fälle in `e2e/durchstich.spec.ts`** – zwei für D1, vier für D2, einer
+für D3, zwei für D4, drei für D5 (zwei Bereiche eines Durchstichs dürfen getrennt laufen,
+solange beide zu ihm gehören).
+
+**Alles, was kein Durchstich ist, gehört eine Ebene tiefer.** Ein Akzeptanzkriterium, das sich
+mit einem Unit- oder Komponententest belegen lässt, wird dort belegt: Der E2E-Lauf kostet
+Sekunden je Fall und bricht bei jeder Umbenennung eines Knopfes.
+
+#### Die Straffung vom 14.09.2026
+
+Die Testdatei enthielt **21 Fälle** – mehr Durchstiche, als es Durchstiche gibt. Sie waren
+Anforderung für Anforderung gewachsen, weil ein E2E-Test bequem alles zugleich beweist. Der
+Anlass, es nicht dabei zu belassen, war messbar: Eine einzige Umstellung – Stammdaten nur noch
+in den Stammdatenblättern (FA-94) – ließ zwei Fälle umschlagen, keiner davon wegen eines
+Fehlers in der Anwendung. Beide zeigten auf eine verschobene Beschriftung.
+
+**Zehn Fälle sind auf die tiefere Ebene gezogen worden**, elf sind geblieben:
+
+| Bisher als Durchstich | Jetzt geprüft in | Was der Umzug gebracht hat |
+|---|---|---|
+| Herleitung erst auf Abruf (FA-51) | `scoring.test.ts` – Tendenz und offene Kategorien | Die Rechnung war dort ohnehin belegt; im Browser blieb nur das Ein- und Ausblenden |
+| Automatische Sicherung nur, wo der Browser sie kann (FA-64 AK-7) | `ordner.test.ts` – `ordnerwahlMoeglich` | Der Durchstich musste sich verzweigen, je nachdem, was der Testbrowser kann. Jetzt stehen beide Fälle nebeneinander – auch der ohne IndexedDB, den kein installierter Browser mehr herstellt |
+| Diplomarbeit als Projekt eines Typs (FA-73, FA-87 AK-2) | `storeReducer.test.ts` – `zuordnungBrauchtBestaetigung` | Die Entscheidung stand in der Ansicht und war nur über den Browser erreichbar. Sie steht jetzt in der Domäne (NFA-06) |
+| Nur im laufenden Sprint schreiben (FA-76) | `scoring.test.ts` – laufender Abschnitt; `uizustand.test.ts` – `dauerhafterTeil` | Dass die Freigabe ein Neuladen **nicht** übersteht, war eine Zeile im Effekt und ein halber Browserlauf. Jetzt ist es eine Funktion mit einem Test |
+| Spur und Befund (FA-78, FA-79) | `scoring.test.ts`; `persistence.test.ts` – Spur ohne Punkte | Die eigentliche Aussage betraf das Speichern: Ein Eintrag ohne einen einzigen Punkt darf nicht als leer weggeworfen werden |
+| Maßnahmen fortschreiben (FA-80) | `storeReducer.test.ts` – `massnahmenZurNachschau`, Nachschau | War auf der tieferen Ebene bereits vollständig belegt |
+| GitHub-Auswertung einlesen (FA-81) | `repoauswertung.test.ts` | Das Lesen der fremden Datei stand in der Karte. Jetzt in der Domäne – samt der Fälle, die von Hand kaum herzustellen sind: abgeschnittene Datei, ältere Fassung des Skripts, `NaN` statt Zahl |
+| Sprintwert und Kanaltext (FA-82, FA-83) | `teamrueckmeldung.test.ts` – Text und Bausteinliste | Dass es keinen Baustein für die Rückmeldung je Person gibt (AK-4), hängt an der Liste und nicht an der Oberfläche |
+| Doppelte GitHub-Kennung (FA-88 AK-4) | `storeReducer.test.ts` – `kennungDoppelt` | Die Prüfung stand in der Ansicht; sie steht jetzt in der Domäne |
+| Hinweis auf ausstehende Überarbeitung (FA-93) | `zwischenstaende.test.ts` | Der Browserlauf prüfte, dass ein Absatz da steht. Geprüft gehört, dass er den offenen Punkt nennt – und das ist jetzt eine Tabelle |
+
+**Was der Umzug gekostet hat, und zwar wirklich.** Fünf dieser zehn Fälle prüften nebenbei,
+dass die Ansicht die richtige Funktion überhaupt aufruft. Das prüft jetzt niemand mehr
+maschinell:
+
+- dass der Umschalter „Herleitung zeigen" die Spalten tatsächlich ein- und ausblendet (FA-51),
+- dass das Kästchen bei einer Überschneidung sichtbar zurückspringt (FA-87 AK-5),
+- dass ein gesperrter Sprint seine Eingabefelder wirklich abschaltet (FA-76 AK-2),
+- dass der Absatz mit dem Zwischenstand gerendert wird (FA-93 AK-1),
+- dass die Schalterliste der Rückmeldung genau die fünf Bausteine zeigt (FA-83 AK-4).
+
+Das ist eine bewusste Entscheidung und keine Lücke aus Versehen: Diese fünf Aussagen sind
+beim Bedienen sofort sichtbar, während ein falsch gelesener Zahlenwert es nicht ist. Ein
+Komponententest-Aufbau (jsdom, Testing Library) würde sie zurückholen; er ist bislang nicht
+eingerichtet, weil `vitest.config.ts` mit `environment: 'node'` läuft. Das bleibt als **OP-R5**
+offen.
+
+**Die Regel für künftige Anforderungen:** Ein neuer E2E-Fall wird nur angelegt, wenn er einem
+der fünf Durchstiche zuzuordnen ist. Sonst gehört die Prüfung nach unten – und wenn die
+Entscheidung dort nicht erreichbar ist, weil sie in einer Komponente steht, gehört zuerst die
+Entscheidung verschoben und dann geprüft (NFA-06).
 
 ---
 

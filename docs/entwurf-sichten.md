@@ -1,5 +1,15 @@
 # Entwurf: Acht Sichten entlang des Unterrichts
 
+> **Stillgelegt am 14.09.2026. Dieses Papier gilt nicht mehr.**
+>
+> Sein Ergebnis steht in [FA-34](anforderungen.md) – dort allerdings in der **neu gefassten**
+> Form: Aus den acht Sichten entlang des Ablaufs sind vier Bereiche geworden, geordnet nach
+> der Häufigkeit der Benutzung. Der Maßstab dafür steht im
+> [Fachkonzept, Kapitel 15.2](fachkonzept-unterricht.md); die Begründung der Umkehr in
+> [ADR-012](adr/0012-projekt-als-ordnungsachse.md).
+>
+> Erhalten bleibt es als Beleg, wie die Entscheidung entstanden ist – nicht als Vorgabe.
+
 Stand 12.09.2026 · Entwurf zur Entscheidung · betrifft docs/anforderungen.md
 Kapitel 10 und das Kapitel „Bewertung erfassen"
 

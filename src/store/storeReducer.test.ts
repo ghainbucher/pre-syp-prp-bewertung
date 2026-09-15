@@ -9,13 +9,22 @@ import {
   testRubrik,
 } from '../domain/defaults';
 import {
+  abschnittIstLeer,
+  abschnitteVon,
+  abschnittsinhalt,
+  kennungDoppelt,
+  massnahmenZurNachschau,
   kriterienVorrat,
+  paralleleProjekte,
   planungVon,
+  sprintZustand,
   rubrikFuer,
   rueckmeldungOffen,
   teamIn,
+  zuordnungBrauchtBestaetigung,
 } from '../domain/zuordnung';
 import type { Abschnitt, Datenbestand } from '../domain/types';
+import { nurAktive } from '../domain/loeschen';
 import { bewertungsIndex, storeReducer, type Aktion } from './storeReducer';
 
 function anwenden(start: Datenbestand, ...aktionen: Aktion[]): Datenbestand {
@@ -68,59 +77,306 @@ describe('Stammdaten (FA-01 bis FA-04)', () => {
     const daten = anwenden(grundbestand(), { art: 'team/loeschen', id: 'team1' });
     expect(daten.teams).toHaveLength(0);
     expect(daten.personen).toHaveLength(2);
-    expect(daten.personen.every((p) => p.teamId === null)).toBe(true);
-    expect(daten.zugehoerigkeiten.every((z) => z.teamId === null)).toBe(true);
+    expect(daten.mitgliedschaften).toHaveLength(0);
   });
 
-  it('entfernt mit der Klasse auch Teams, Personen, Abschnitte und Bewertungen', () => {
+  it('entfernt eine Klasse ohne Bewertungen endgültig (FA-94)', () => {
+    const daten = anwenden(grundbestand(), { art: 'klasse/loeschen', id: 'k1' });
+    expect(daten).toEqual(leererDatenbestand());
+  });
+
+  it('behält eine Klasse, an der Bewertungen hängen, und blendet sie nur aus (FA-94, G7)', () => {
     const daten = anwenden(
       grundbestand(),
       { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 5 },
       { art: 'klasse/loeschen', id: 'k1' },
     );
-    expect(daten).toEqual(leererDatenbestand());
+    expect(Boolean(daten.klassen[0].geloeschtAm)).toBe(true);
+    // Nichts darunter wird angefasst: Die Begründung der Note bleibt lesbar.
+    expect(daten.personen).toHaveLength(2);
+    expect(daten.abschnitte).toHaveLength(1);
+    expect(daten.bewertungen).toHaveLength(1);
+    // Aus den Auswahllisten ist sie trotzdem verschwunden.
+    expect(nurAktive(daten.klassen)).toHaveLength(0);
   });
 
-  it('entfernt mit einer Person auch ihre Einzel-, Peer- und Zugehörigkeitsangaben', () => {
+  it('macht ein logisches Löschen rückgängig (FA-94)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 5 },
+      { art: 'klasse/loeschen', id: 'k1' },
+      { art: 'stammdaten/wiederherstellen', was: 'klasse', id: 'k1' },
+    );
+    expect(daten.klassen[0].geloeschtAm).toBeUndefined();
+    expect(nurAktive(daten.klassen)).toHaveLength(1);
+  });
+
+  it('entfernt eine Person ohne Bewertungen endgültig (FA-94)', () => {
+    const daten = anwenden(grundbestand(), { art: 'person/loeschen', id: 'p1' });
+    expect(daten.personen).toHaveLength(1);
+    expect(daten.mitgliedschaften.some((m) => m.personId === 'p1')).toBe(false);
+  });
+
+  it('behält eine bewertete Person samt ihren Punkten (FA-94, G7)', () => {
     const daten = anwenden(
       grundbestand(),
       { art: 'bewertung/individuell', abschnittId: 's1', teamId: 'team1', personId: 'p1', kriteriumId: 'i1', wert: 8 },
       { art: 'bewertung/peer', abschnittId: 's1', teamId: 'team1', bewerterId: 'p2', bewerteterId: 'p1', kriteriumId: 'q1', wert: 4 },
       { art: 'person/loeschen', id: 'p1' },
     );
-    expect(daten.personen).toHaveLength(1);
-    expect(daten.bewertungen).toHaveLength(0);
-    expect(daten.zugehoerigkeiten.some((z) => z.personId === 'p1')).toBe(false);
+    expect(daten.personen).toHaveLength(2);
+    expect(Boolean(daten.personen.find((p) => p.id === 'p1')?.geloeschtAm)).toBe(true);
+    expect(daten.bewertungen[0].individuell.p1.punkte).toEqual({ i1: 8 });
+    expect(nurAktive(daten.personen).map((p) => p.id)).toEqual(['p2']);
   });
 });
 
-describe('Teamzugehörigkeit je Abschnitt (FA-58)', () => {
-  it('übernimmt beim Anlegen eines Abschnitts die Zuordnung des vorherigen (AK-2)', () => {
+/*
+ * Was früher der Durchstich „führt die Diplomarbeit als Projekt eines Typs"
+ * geprüft hat, steht seit der Straffung der Teststrategie hier: Die
+ * Entscheidung, ob nachgefragt werden muss, ist eine Frage an den Datenbestand
+ * und keine an den Browser (Solution-Design 8.1).
+ */
+describe('Überschneidung zwischen Projekten (FA-87 AK-5)', () => {
+  function zweiProjekte(): Datenbestand {
+    return anwenden(grundbestand(), {
+      art: 'team/anlegen',
+      id: 'team2',
+      klasseId: 'k1',
+      name: 'Energiemonitor',
+    });
+  }
+
+  it('fragt beim ersten Projekt nicht nach', () => {
+    const daten = zweiProjekte();
+    expect(paralleleProjekte(daten, 'team1', 'p1')).toEqual([]);
+    expect(zuordnungBrauchtBestaetigung(daten, 'team1', 'p1')).toBe(false);
+  });
+
+  it('nennt beim zweiten Projekt, wo der Schüler schon ist', () => {
+    const daten = zweiProjekte();
+    expect(zuordnungBrauchtBestaetigung(daten, 'team2', 'p1')).toBe(true);
+    expect(paralleleProjekte(daten, 'team2', 'p1').map((t) => t.name)).toEqual(['Team Kepler']);
+  });
+
+  it('schreibt die Zuordnung erst mit der Bestätigung, und mit Datum', () => {
+    const daten = anwenden(zweiProjekte(), {
+      art: 'mitgliedschaft/setzen',
+      projektId: 'team2',
+      personId: 'p1',
+      dabei: true,
+      bestaetigtAm: '2026-09-14T10:00:00.000Z',
+    });
+    const eintrag = daten.mitgliedschaften.find(
+      (m) => m.projektId === 'team2' && m.personId === 'p1',
+    );
+    expect(eintrag?.ueberschneidungBestaetigtAm).toBe('2026-09-14T10:00:00.000Z');
+    // Und danach ist es keine Überraschung mehr, sondern eine Auskunft.
+    expect(paralleleProjekte(daten, 'team1', 'p1').map((t) => t.name)).toEqual(['Energiemonitor']);
+  });
+
+  it('zählt ein ausgeblendetes Projekt nicht mit (FA-94)', () => {
+    const daten = anwenden(zweiProjekte(), { art: 'team/loeschen', id: 'team1' });
+    expect(zuordnungBrauchtBestaetigung(daten, 'team2', 'p1')).toBe(false);
+  });
+});
+
+/*
+ * Vorher der Durchstich „meldet eine zweimal vergebene GitHub-Kennung". Die
+ * Prüfung selbst stand in der Ansicht; sie steht jetzt in der Domäne und wird
+ * hier geprüft (NFA-06).
+ */
+describe('Doppelt vergebene GitHub-Kennung (FA-88 AK-4)', () => {
+  function mitKennungen(erste: string, zweite: string): Datenbestand {
+    return anwenden(
+      grundbestand(),
+      { art: 'person/stammdaten', id: 'p1', githubKennung: erste },
+      { art: 'person/stammdaten', id: 'p2', githubKennung: zweite },
+    );
+  }
+
+  it('findet die Dopplung von beiden Seiten', () => {
+    const daten = mitKennungen('lberger', 'lberger');
+    // Beide Zeilen sagen es: In welcher der Fehler steckt, weiß die Anwendung
+    // nicht.
+    expect(kennungDoppelt(daten, 'p1', 'lberger')?.name).toBe('Steiner Jonas');
+    expect(kennungDoppelt(daten, 'p2', 'lberger')?.name).toBe('Berger Lena');
+  });
+
+  it('unterscheidet nicht nach Groß- und Kleinschreibung', () => {
+    const daten = mitKennungen('LBerger', ' lberger ');
+    expect(kennungDoppelt(daten, 'p1', 'LBerger')?.id).toBe('p2');
+  });
+
+  it('meldet verschiedene Kennungen nicht', () => {
+    const daten = mitKennungen('lberger', 'jsteiner');
+    expect(kennungDoppelt(daten, 'p1', 'lberger')).toBeNull();
+    expect(kennungDoppelt(daten, 'p2', 'jsteiner')).toBeNull();
+  });
+
+  it('ist bei einer leeren Kennung keine Dopplung', () => {
+    // Noch nicht erfasst ist nicht dasselbe wie zweimal vergeben.
+    const daten = mitKennungen('', '');
+    expect(kennungDoppelt(daten, 'p1', '')).toBeNull();
+  });
+
+  it('zählt einen ausgeblendeten Schüler nicht mit (FA-94)', () => {
+    const daten = anwenden(
+      mitKennungen('lberger', 'lberger'),
+      {
+        art: 'bewertung/individuell',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p2',
+        kriteriumId: 'i1',
+        wert: 4,
+      },
+      { art: 'person/loeschen', id: 'p2' },
+    );
+    expect(Boolean(daten.personen.find((p) => p.id === 'p2')?.geloeschtAm)).toBe(true);
+    expect(kennungDoppelt(daten, 'p1', 'lberger')).toBeNull();
+  });
+});
+
+describe('Geplante und umgesetzte Anforderungen (FA-96)', () => {
+  function geplant(): Datenbestand {
+    return anwenden(grundbestand(), {
+      art: 'planung/festhalten',
+      abschnittId: 's1',
+      teamId: 'team1',
+      ziel: 'Buchungsmodul',
+    });
+  }
+
+  it('hält den Plantext an der Planung des Teams, nicht am Abschnitt', () => {
+    // Zwei Teams planen denselben Sprint verschieden (Fachkonzept 15.1: Der
+    // Sprint hängt am Projekt).
+    const daten = anwenden(
+      geplant(),
+      { art: 'team/anlegen', id: 'team2', klasseId: 'k1', name: 'Team Galilei' },
+      { art: 'planung/festhalten', abschnittId: 's1', teamId: 'team2' },
+      {
+        art: 'planung/aendern',
+        abschnittId: 's1',
+        teamId: 'team1',
+        aenderung: { geplanteAnforderungen: 'Storno einer Buchung\nÜbersicht je Kunde' },
+      },
+    );
+    expect(planungVon(daten, 's1', 'team1')?.geplanteAnforderungen).toBe(
+      'Storno einer Buchung\nÜbersicht je Kunde',
+    );
+    expect(planungVon(daten, 's1', 'team2')?.geplanteAnforderungen).toBeUndefined();
+  });
+
+  it('hält den Ist-Text getrennt vom Plantext', () => {
+    // Beide bleiben nebeneinander lesbar – der Vergleich ist der Zweck.
+    const daten = anwenden(
+      geplant(),
+      {
+        art: 'planung/aendern',
+        abschnittId: 's1',
+        teamId: 'team1',
+        aenderung: { geplanteAnforderungen: 'Storno einer Buchung' },
+      },
+      {
+        art: 'planung/aendern',
+        abschnittId: 's1',
+        teamId: 'team1',
+        aenderung: { umgesetzteAnforderungen: 'Storno einer Buchung (ohne Stornogrund)' },
+      },
+    );
+    const planung = planungVon(daten, 's1', 'team1');
+    expect(planung?.geplanteAnforderungen).toBe('Storno einer Buchung');
+    expect(planung?.umgesetzteAnforderungen).toBe('Storno einer Buchung (ohne Stornogrund)');
+  });
+
+  it('lässt sich leeren, ohne den anderen Text anzurühren', () => {
+    const daten = anwenden(
+      geplant(),
+      {
+        art: 'planung/aendern',
+        abschnittId: 's1',
+        teamId: 'team1',
+        aenderung: { geplanteAnforderungen: 'A', umgesetzteAnforderungen: 'B' },
+      },
+      {
+        art: 'planung/aendern',
+        abschnittId: 's1',
+        teamId: 'team1',
+        aenderung: { umgesetzteAnforderungen: '' },
+      },
+    );
+    expect(planungVon(daten, 's1', 'team1')?.geplanteAnforderungen).toBe('A');
+    expect(planungVon(daten, 's1', 'team1')?.umgesetzteAnforderungen).toBe('');
+  });
+
+  it('geht in keine Rechnung ein (G9)', () => {
+    // Der Text ist eine Aufzeichnung, kein Maßstab: Er darf das Ergebnis eines
+    // Sprints nicht verändern.
+    const mitPunkten = anwenden(geplant(), {
+      art: 'bewertung/punkte',
+      abschnittId: 's1',
+      teamId: 'team1',
+      kategorie: 'team',
+      kriteriumId: 't1',
+      wert: 7,
+    });
+    const vorher = JSON.stringify(mitPunkten.bewertungen);
+    const nachher = anwenden(mitPunkten, {
+      art: 'planung/aendern',
+      abschnittId: 's1',
+      teamId: 'team1',
+      aenderung: { umgesetzteAnforderungen: 'alles offen geblieben' },
+    });
+    expect(JSON.stringify(nachher.bewertungen)).toBe(vorher);
+  });
+});
+
+describe('Mitgliedschaft im Projekt (FA-87, Fachkonzept 15.2 A8)', () => {
+  it('gilt für alle Abschnitte des Projekts, nicht je Abschnitt', () => {
     const daten = anwenden(grundbestand(), {
       art: 'abschnitt/anlegen',
       abschnitt: abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }),
     });
+    expect(teamIn(daten, 's1', 'p1')).toBe('team1');
     expect(teamIn(daten, 's2', 'p1')).toBe('team1');
   });
 
-  it('lässt einen Teamwechsel zu, ohne den früheren Abschnitt zu ändern (AK-1)', () => {
+  it('lässt einen Schüler in zwei Projekten zugleich zu (AK-5)', () => {
     const daten = anwenden(
       grundbestand(),
       { art: 'team/anlegen', id: 'team2', klasseId: 'k1', name: 'Team Galilei' },
-      { art: 'abschnitt/anlegen', abschnitt: abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }) },
-      { art: 'zugehoerigkeit/setzen', abschnittId: 's2', personId: 'p1', teamId: 'team2' },
+      {
+        art: 'mitgliedschaft/setzen',
+        projektId: 'team2',
+        personId: 'p1',
+        dabei: true,
+        bestaetigtAm: '2026-09-14T10:00:00.000Z',
+      },
     );
-    expect(teamIn(daten, 's1', 'p1')).toBe('team1');
-    expect(teamIn(daten, 's2', 'p1')).toBe('team2');
-    expect(teamIn(daten, 's2', 'p2')).toBe('team1');
+    expect(daten.mitgliedschaften.filter((m) => m.personId === 'p1')).toHaveLength(2);
+    expect(
+      daten.mitgliedschaften.find((m) => m.personId === 'p1' && m.projektId === 'team2')
+        ?.ueberschneidungBestaetigtAm,
+    ).toBe('2026-09-14T10:00:00.000Z');
   });
 
-  it('erlaubt „kein Team“ in einem Abschnitt (AK-3)', () => {
+  it('trägt eine Mitgliedschaft nicht doppelt ein', () => {
     const daten = anwenden(grundbestand(), {
-      art: 'zugehoerigkeit/setzen',
-      abschnittId: 's1',
+      art: 'mitgliedschaft/setzen',
+      projektId: 'team1',
+      personId: 'p1',
+      dabei: true,
+    });
+    expect(daten.mitgliedschaften.filter((m) => m.personId === 'p1')).toHaveLength(1);
+  });
+
+  it('entfernt eine Mitgliedschaft wieder', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'mitgliedschaft/setzen',
+      projektId: 'team1',
       personId: 'p2',
-      teamId: null,
+      dabei: false,
     });
     expect(teamIn(daten, 's1', 'p2')).toBeNull();
   });
@@ -143,7 +399,7 @@ describe('Tests als Abschnittsart (FA-60)', () => {
       rubrik: testRubrik('rubrik-test-1', 'Test 1'),
     });
     expect(daten.rubriken.some((r) => r.id === 'rubrik-test-1')).toBe(true);
-    expect(daten.zugehoerigkeiten.some((z) => z.abschnittId === 'x1')).toBe(false);
+    expect(daten.abschnitte.find((a) => a.id === 'x1')?.art).toBe('test');
     expect(daten.abschnitte.find((a) => a.id === 'x1')?.arbeitszeitMinuten).toBe(25);
   });
 
@@ -531,13 +787,27 @@ describe('Nachfrage zur Peer-Bewertung (FA-53)', () => {
     expect(daten.peerEntscheidungen[0].antwort).toBe('nein');
   });
 
-  it('entfernt die Entscheidung mit dem Abschnitt', () => {
+  it('entfernt die Entscheidung mit einem unbewerteten Abschnitt (FA-94)', () => {
+    // s2 trägt keine Punkte – s1 schon, der ginge nur logisch.
+    const daten = anwenden(
+      zweiSprints(),
+      { art: 'peer/entscheidung', abschnittId: 's2', antwort: 'nein' },
+      { art: 'abschnitt/loeschen', id: 's2' },
+    );
+    expect(daten.peerEntscheidungen).toEqual([]);
+    expect(daten.abschnitte.some((a) => a.id === 's2')).toBe(false);
+  });
+
+  it('behält Abschnitt und Entscheidung, sobald Punkte erfasst sind (FA-94, G7)', () => {
     const daten = anwenden(
       zweiSprints(),
       { art: 'peer/entscheidung', abschnittId: 's1', antwort: 'nein' },
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 5 },
       { art: 'abschnitt/loeschen', id: 's1' },
     );
-    expect(daten.peerEntscheidungen).toEqual([]);
+    expect(Boolean(daten.abschnitte.find((a) => a.id === 's1')?.geloeschtAm)).toBe(true);
+    expect(daten.peerEntscheidungen).toHaveLength(1);
+    expect(abschnitteVon(daten, 'k1').some((a) => a.id === 's1')).toBe(false);
   });
 });
 
@@ -664,7 +934,7 @@ describe('Gesetzte Werte (FA-50)', () => {
     expect(daten.gesamtstand['stichtag-jahr'].p1.prozent).toBe(78);
   });
 
-  it('nimmt gesetzte Werte mit, wenn die Person gelöscht wird', () => {
+  it('behält gesetzte Werte, wenn die Person gelöscht wird (FA-94, G7)', () => {
     const daten = anwenden(
       grundbestand(),
       { art: 'gesetzt/abschnitt', abschnittId: 's1', teamId: 'team1', personId: 'p1', wert: 70 },
@@ -672,9 +942,11 @@ describe('Gesetzte Werte (FA-50)', () => {
       { art: 'notenstand', stichtagId: null, personId: 'p1', note: 3 },
       { art: 'person/loeschen', id: 'p1' },
     );
-    expect(daten.bewertungen).toHaveLength(0);
-    expect(daten.gesamtstand['gesamter-durchgang']?.p1).toBeUndefined();
-    expect(daten.notenstaende['gesamter-durchgang']?.p1).toBeUndefined();
+    // Ein gesetzter Wert ist eine Entscheidung der Lehrkraft. Sie mit dem
+    // Namen zu löschen hieße, ein Zeugnis ohne Begründung zurückzulassen.
+    expect(Boolean(daten.personen.find((p) => p.id === 'p1')?.geloeschtAm)).toBe(true);
+    expect(daten.gesamtstand['gesamter-durchgang']?.p1?.prozent).toBe(70);
+    expect(daten.notenstaende['gesamter-durchgang']?.p1?.note).toBe(3);
   });
 });
 
@@ -784,12 +1056,12 @@ describe('Rückmeldung an die Person (FA-42)', () => {
     expect(offen.map((p) => p.id)).toEqual(['p2']);
   });
 
-  it('zählt niemanden ohne Teamzuordnung zu den offenen', () => {
+  it('zählt niemanden ohne Projektzuordnung zu den offenen', () => {
     const daten = anwenden(grundbestand(), {
-      art: 'zugehoerigkeit/setzen',
-      abschnittId: 's1',
+      art: 'mitgliedschaft/setzen',
+      projektId: 'team1',
       personId: 'p2',
-      teamId: null,
+      dabei: false,
     });
     expect(rueckmeldungOffen(daten, 's1', bewertungsIndex(daten)).map((p) => p.id)).toEqual(['p1']);
   });
@@ -966,14 +1238,378 @@ describe('Sprintplanung je Team (FA-66)', () => {
     expect(daten.teamabschnitte.some((tp) => tp.abschnittId === 'x1')).toBe(false);
   });
 
-  it('räumt Planungen mit dem Abschnitt und mit dem Team weg', () => {
+  it('behält eine festgehaltene Planung beim Löschen (FA-94, G7)', () => {
     const mitPlanung = anwenden(grundbestand(), {
       art: 'planung/festhalten',
       abschnittId: 's1',
       teamId: 'team1',
     });
-    expect(anwenden(mitPlanung, { art: 'abschnitt/loeschen', id: 's1' }).teamabschnitte).toHaveLength(0);
-    expect(anwenden(mitPlanung, { art: 'team/loeschen', id: 'team1' }).teamabschnitte).toHaveLength(0);
+    // Eine festgehaltene Planung trägt die eingefrorenen Kriterien – sie
+    // belegt, wonach beurteilt werden sollte, und bleibt deshalb stehen.
+    const ohneAbschnitt = anwenden(mitPlanung, { art: 'abschnitt/loeschen', id: 's1' });
+    expect(ohneAbschnitt.teamabschnitte).toHaveLength(1);
+    expect(Boolean(ohneAbschnitt.abschnitte.find((a) => a.id === 's1')?.geloeschtAm)).toBe(true);
+
+    const ohneTeam = anwenden(mitPlanung, { art: 'team/loeschen', id: 'team1' });
+    expect(ohneTeam.teamabschnitte).toHaveLength(1);
+    expect(Boolean(ohneTeam.teams[0].geloeschtAm)).toBe(true);
+  });
+
+  it('räumt eine Planung ohne Kriterien mit dem Abschnitt weg (FA-94)', () => {
+    const ohnePlanung = anwenden(grundbestand(), { art: 'abschnitt/loeschen', id: 's1' });
+    expect(ohnePlanung.abschnitte).toHaveLength(0);
+    expect(ohnePlanung.teamabschnitte).toHaveLength(0);
+  });
+});
+
+describe('Sprintwert je Team (FA-82)', () => {
+  it('setzt den Wert mit Begründung und nimmt ihn zurück (AK-1, AK-6)', () => {
+    const gesetzt = anwenden(grundbestand(), {
+      art: 'gesetzt/sprintwert',
+      abschnittId: 's1',
+      teamId: 'team1',
+      wert: 82,
+      begruendung: 'Ziel erreicht',
+    });
+    const wert = gesetzt.bewertungen[0].gesetzt?.sprintwert;
+    expect(wert?.prozent).toBe(82);
+    expect(wert?.begruendung).toBe('Ziel erreicht');
+    expect(wert?.gesetztAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    const zurueck = anwenden(gesetzt, {
+      art: 'gesetzt/sprintwert',
+      abschnittId: 's1',
+      teamId: 'team1',
+      wert: null,
+    });
+    // Ohne gesetzten Wert gibt es keinen – und die leere Bewertung verschwindet.
+    expect(zurueck.bewertungen).toHaveLength(0);
+  });
+
+  it('lässt die Rechnung darunter unberührt (AK-1, G9)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      {
+        art: 'bewertung/punkte',
+        abschnittId: 's1',
+        teamId: 'team1',
+        kategorie: 'team',
+        kriteriumId: 't1',
+        wert: 7,
+      },
+      { art: 'gesetzt/sprintwert', abschnittId: 's1', teamId: 'team1', wert: 50 },
+    );
+    expect(daten.bewertungen[0].team.t1).toBe(7);
+    expect(daten.bewertungen[0].gesetzt?.sprintwert?.prozent).toBe(50);
+  });
+});
+
+describe('Spur je Person (FA-78)', () => {
+  it('hält Bezeichnung und Verweis fest (AK-1)', () => {
+    const daten = anwenden(grundbestand(), {
+      art: 'bewertung/spur',
+      abschnittId: 's1',
+      teamId: 'team1',
+      personId: 'p1',
+      bezeichnung: 'PR #42, Storno-Validierung',
+      verweis: 'https://example.invalid/pr/42',
+    });
+    const spur = daten.bewertungen[0].individuell.p1.spur;
+    expect(spur?.bezeichnung).toBe('PR #42, Storno-Validierung');
+    expect(spur?.verweis).toBe('https://example.invalid/pr/42');
+  });
+
+  it('behält den Verweis, wenn nur die Bezeichnung geändert wird', () => {
+    const daten = anwenden(
+      grundbestand(),
+      {
+        art: 'bewertung/spur',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        bezeichnung: 'PR 42',
+        verweis: 'https://example.invalid/pr/42',
+      },
+      {
+        art: 'bewertung/spur',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        bezeichnung: 'PR 42, Storno',
+      },
+    );
+    expect(daten.bewertungen[0].individuell.p1.spur?.verweis).toBe(
+      'https://example.invalid/pr/42',
+    );
+  });
+
+  it('entfernt sie, wenn beides leer ist (AK-2)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      {
+        art: 'bewertung/spur',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        bezeichnung: 'PR 42',
+      },
+      {
+        art: 'bewertung/spur',
+        abschnittId: 's1',
+        teamId: 'team1',
+        personId: 'p1',
+        bezeichnung: '   ',
+        verweis: '',
+      },
+    );
+    // Eine leere Spur zählte sonst als erfasst und fiele aus der Meldung.
+    expect(daten.bewertungen).toHaveLength(0);
+  });
+});
+
+describe('Maßnahmen aus der Retrospektive (FA-80)', () => {
+  function geplant(): Datenbestand {
+    return anwenden(
+      grundbestand(),
+      { art: 'abschnitt/anlegen', abschnitt: abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }) },
+      { art: 'planung/festhalten', abschnittId: 's1', teamId: 'team1' },
+      { art: 'planung/festhalten', abschnittId: 's2', teamId: 'team1' },
+    );
+  }
+
+  it('legt eine Maßnahme an und ändert sie (AK-1)', () => {
+    const einmal = anwenden(geplant(), {
+      art: 'planung/massnahme',
+      abschnittId: 's1',
+      teamId: 'team1',
+      massnahmeId: 'm1',
+      text: 'Jeden Tag ein kurzes Daily',
+    });
+    expect(planungVon(einmal, 's1', 'team1')?.massnahmen).toEqual([
+      { id: 'm1', text: 'Jeden Tag ein kurzes Daily' },
+    ]);
+
+    const geaendert = anwenden(einmal, {
+      art: 'planung/massnahme',
+      abschnittId: 's1',
+      teamId: 'team1',
+      massnahmeId: 'm1',
+      text: 'Daily am Anfang jeder Einheit',
+    });
+    expect(planungVon(geaendert, 's1', 'team1')?.massnahmen?.[0].text).toBe(
+      'Daily am Anfang jeder Einheit',
+    );
+  });
+
+  it('entfernt sie mit leerem Text', () => {
+    const daten = anwenden(
+      geplant(),
+      { art: 'planung/massnahme', abschnittId: 's1', teamId: 'team1', massnahmeId: 'm1', text: 'X' },
+      { art: 'planung/massnahme', abschnittId: 's1', teamId: 'team1', massnahmeId: 'm1', text: '  ' },
+    );
+    expect(planungVon(daten, 's1', 'team1')?.massnahmen).toBeUndefined();
+  });
+
+  it('stellt die Maßnahmen des vorigen Sprints zur Nachschau (AK-3)', () => {
+    const daten = anwenden(geplant(), {
+      art: 'planung/massnahme',
+      abschnittId: 's1',
+      teamId: 'team1',
+      massnahmeId: 'm1',
+      text: 'Jeden Tag ein kurzes Daily',
+    });
+    const s2 = daten.abschnitte.find((a) => a.id === 's2')!;
+    const zurNachschau = massnahmenZurNachschau(daten, s2, 'team1');
+    expect(zurNachschau?.herkunft.id).toBe('s1');
+    expect(zurNachschau?.massnahmen.map((m) => m.id)).toEqual(['m1']);
+    // Und andersherum nicht: Der erste Sprint hat keinen Vorgänger.
+    const s1 = daten.abschnitte.find((a) => a.id === 's1')!;
+    expect(massnahmenZurNachschau(daten, s1, 'team1')).toBeUndefined();
+  });
+
+  it('hält den Umsetzungsstand am Folgesprint (AK-4)', () => {
+    const daten = anwenden(
+      geplant(),
+      { art: 'planung/massnahme', abschnittId: 's1', teamId: 'team1', massnahmeId: 'm1', text: 'X' },
+      {
+        art: 'planung/nachschau',
+        abschnittId: 's2',
+        teamId: 'team1',
+        massnahmeId: 'm1',
+        stand: 'teilweise',
+        notiz: 'zweimal ausgefallen',
+      },
+    );
+    expect(planungVon(daten, 's2', 'team1')?.nachschau?.m1).toEqual({
+      stand: 'teilweise',
+      notiz: 'zweimal ausgefallen',
+    });
+    // Am Sprint, in dem die Maßnahme entstand, steht keine Nachschau.
+    expect(planungVon(daten, 's1', 'team1')?.nachschau).toBeUndefined();
+  });
+
+  it('räumt die Nachschau mit der Maßnahme weg', () => {
+    const daten = anwenden(
+      geplant(),
+      { art: 'planung/massnahme', abschnittId: 's1', teamId: 'team1', massnahmeId: 'm1', text: 'X' },
+      {
+        art: 'planung/nachschau',
+        abschnittId: 's2',
+        teamId: 'team1',
+        massnahmeId: 'm1',
+        stand: 'ja',
+      },
+      { art: 'planung/massnahmeEntfernen', abschnittId: 's1', teamId: 'team1', massnahmeId: 'm1' },
+    );
+    // Ein Umsetzungsstand ohne Maßnahme wäre unsichtbar und stünde trotzdem
+    // in der Sicherungsdatei.
+    expect(planungVon(daten, 's2', 'team1')?.nachschau).toBeUndefined();
+  });
+});
+
+describe('GitHub-Auswertung einlesen (FA-81)', () => {
+  const auswertung = {
+    standAm: '2026-10-18T10:00:00.000Z',
+    von: '2026-10-03',
+    bis: '2026-10-17',
+    anteile: { anna: 60, bert: 40 },
+    reviews: [{ von: 'anna', an: 'bert', anzahl: 2 }],
+    prAnteil: 80,
+    direktePushes: 3,
+    jeTag: { '2026-10-06': 4 },
+    nichtZugeordnet: [],
+  };
+
+  it('legt den Stand an der Planung ab (AK-1, AK-4)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'planung/festhalten', abschnittId: 's1', teamId: 'team1' },
+      { art: 'planung/auswertungEinlesen', abschnittId: 's1', teamId: 'team1', auswertung },
+    );
+    expect(planungVon(daten, 's1', 'team1')?.auswertung?.prAnteil).toBe(80);
+  });
+
+  it('ersetzt einen früheren Stand vollständig (AK-4)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'planung/festhalten', abschnittId: 's1', teamId: 'team1' },
+      { art: 'planung/auswertungEinlesen', abschnittId: 's1', teamId: 'team1', auswertung },
+      {
+        art: 'planung/auswertungEinlesen',
+        abschnittId: 's1',
+        teamId: 'team1',
+        auswertung: { ...auswertung, anteile: { cem: 100 }, prAnteil: 10 },
+      },
+    );
+    const gespeichert = planungVon(daten, 's1', 'team1')?.auswertung;
+    expect(gespeichert?.prAnteil).toBe(10);
+    // Teile zusammenzuführen würde einen Stand erzeugen, den es nie gab.
+    expect(Object.keys(gespeichert?.anteile ?? {})).toEqual(['cem']);
+  });
+
+  it('hält Repository am Projekt und Kennung an der Person (FA-81 AK-3, FA-88 AK-3)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'team/repository', id: 'team1', repository: 'htl/kepler' },
+      { art: 'person/stammdaten', id: 'p1', githubKennung: 'anna' },
+    );
+    expect(daten.teams[0].repository).toBe('htl/kepler');
+    expect(daten.personen.find((p) => p.id === 'p1')?.githubKennung).toBe('anna');
+  });
+
+  it('nimmt die Kennung mit der gelöschten Person mit (FA-88 AK-3)', () => {
+    const daten = anwenden(
+      grundbestand(),
+      { art: 'person/stammdaten', id: 'p1', githubKennung: 'anna' },
+      { art: 'person/loeschen', id: 'p1' },
+    );
+    // Eine Kennung, die niemandem gehört, gibt es nicht mehr: Sie hing an der
+    // Person und nicht am Projekt.
+    expect(daten.personen.some((p) => p.id === 'p1')).toBe(false);
+    expect(daten.personen.some((p) => (p.githubKennung ?? '') === 'anna')).toBe(false);
+  });
+});
+
+describe('Sprint fixieren und abschließen (FA-77)', () => {
+  /** Zwei geplante Sprints eines Teams. */
+  function zweiGeplante(): Datenbestand {
+    return anwenden(
+      grundbestand(),
+      { art: 'abschnitt/anlegen', abschnitt: abschnitt({ id: 's2', nummer: 2, name: 'Sprint 2' }) },
+      { art: 'planung/festhalten', abschnittId: 's1', teamId: 'team1' },
+      { art: 'planung/festhalten', abschnittId: 's2', teamId: 'team1' },
+    );
+  }
+
+  it('macht aus dem ersten Vorschlag den geltenden Sprint (AK-3)', () => {
+    const daten = anwenden(zweiGeplante(), {
+      art: 'planung/fixieren',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+    expect(planungVon(daten, 's1', 'team1')?.fixiertAm).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(sprintZustand(daten, 's1', 'team1')).toBe('fixiert');
+  });
+
+  it('fixiert den zweiten nicht, solange der erste kein Review hat (AK-3)', () => {
+    const daten = anwenden(zweiGeplante(), {
+      art: 'planung/fixieren',
+      abschnittId: 's2',
+      teamId: 'team1',
+    });
+    expect(planungVon(daten, 's2', 'team1')?.fixiertAm).toBeUndefined();
+    expect(sprintZustand(daten, 's2', 'team1')).toBe('vorschlag');
+  });
+
+  it('gibt den zweiten frei, sobald der erste abgeschlossen ist (AK-3, AK-5)', () => {
+    const daten = anwenden(
+      zweiGeplante(),
+      { art: 'planung/fixieren', abschnittId: 's1', teamId: 'team1' },
+      { art: 'planung/abschliessen', abschnittId: 's1', teamId: 'team1', abgeschlossen: true },
+      { art: 'planung/fixieren', abschnittId: 's2', teamId: 'team1' },
+    );
+    expect(sprintZustand(daten, 's1', 'team1')).toBe('abgeschlossen');
+    expect(sprintZustand(daten, 's2', 'team1')).toBe('fixiert');
+  });
+
+  it('hält beim Abschluss auch die Fixierung fest, wenn sie fehlt (AK-9)', () => {
+    const daten = anwenden(zweiGeplante(), {
+      art: 'planung/abschliessen',
+      abschnittId: 's1',
+      teamId: 'team1',
+      abgeschlossen: true,
+    });
+    const planung = planungVon(daten, 's1', 'team1')!;
+    expect(planung.abgeschlossenAm).toBeDefined();
+    expect(planung.fixiertAm).toBe(planung.abgeschlossenAm);
+  });
+
+  it('nimmt den Abschluss zurück, ohne den Folgesprint zu entfixieren (AK-6)', () => {
+    const daten = anwenden(
+      zweiGeplante(),
+      { art: 'planung/abschliessen', abschnittId: 's1', teamId: 'team1', abgeschlossen: true },
+      { art: 'planung/fixieren', abschnittId: 's2', teamId: 'team1' },
+      { art: 'planung/abschliessen', abschnittId: 's1', teamId: 'team1', abgeschlossen: false },
+    );
+    expect(sprintZustand(daten, 's1', 'team1')).toBe('fixiert');
+    expect(sprintZustand(daten, 's2', 'team1')).toBe('fixiert');
+  });
+
+  it('friert die Kriterien mit der Fixierung ein (FA-65 AK-1a)', () => {
+    const ohnePlanung = anwenden(grundbestand(), {
+      art: 'planung/fixieren',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+    // Ohne Planung gibt es nichts zu fixieren.
+    expect(planungVon(ohnePlanung, 's1', 'team1')).toBeUndefined();
+
+    const daten = anwenden(zweiGeplante(), {
+      art: 'planung/fixieren',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+    expect(planungVon(daten, 's1', 'team1')?.eingefrorenAm).toBeDefined();
   });
 });
 
@@ -1095,5 +1731,64 @@ describe('Kriterien je Team (FA-67)', () => {
     );
     expect(rubrikFuer(daten, daten.abschnitte[0], 'team1').team.map((k) => k.id)).not.toContain('t1');
     expect(rubrikFuer(daten, daten.abschnitte[0], null).team.map((k) => k.id)).toContain('t1');
+  });
+});
+
+describe('Abschnitt für ein Team entfernen (FA-70 AK-8, FA-36 AK-3)', () => {
+  function zweiTeamsEinSprint(): Datenbestand {
+    return anwenden(
+      grundbestand(),
+      { art: 'team/anlegen', id: 'team2', klasseId: 'k1', name: 'Doppler' },
+      { art: 'planung/festhalten', abschnittId: 's1', teamId: 'team1', ziel: 'Buchung' },
+      { art: 'planung/festhalten', abschnittId: 's1', teamId: 'team2', ziel: 'Storno' },
+      { art: 'bewertung/punkte', abschnittId: 's1', teamId: 'team1', kategorie: 'team', kriteriumId: 't1', wert: 8 },
+    );
+  }
+
+  it('nimmt den Sprint nur diesem Team weg', () => {
+    const daten = anwenden(zweiTeamsEinSprint(), {
+      art: 'abschnitt/vonTeamEntfernen',
+      abschnittId: 's1',
+      teamId: 'team1',
+    });
+    expect(daten.abschnitte.some((a) => a.id === 's1')).toBe(true);
+    expect(planungVon(daten, 's1', 'team1')).toBeUndefined();
+    expect(planungVon(daten, 's1', 'team2')?.ziel).toBe('Storno');
+    // Die Bewertung dieses Teams geht mit – sie hätte sonst keinen Träger.
+    expect(daten.bewertungen.some((b) => b.abschnittId === 's1' && b.teamId === 'team1')).toBe(false);
+  });
+
+  it('löscht den Abschnitt ganz, wenn kein Team mehr übrig ist', () => {
+    const daten = anwenden(
+      zweiTeamsEinSprint(),
+      { art: 'abschnitt/vonTeamEntfernen', abschnittId: 's1', teamId: 'team1' },
+      { art: 'abschnitt/vonTeamEntfernen', abschnittId: 's1', teamId: 'team2' },
+    );
+    expect(daten.abschnitte).toHaveLength(0);
+    expect(daten.teamabschnitte).toHaveLength(0);
+  });
+
+  it('zählt vor dem Löschen, was daran hängt (FA-36 AK-3)', () => {
+    const daten = anwenden(
+      zweiTeamsEinSprint(),
+      { art: 'bewertung/rueckmeldung', abschnittId: 's1', teamId: 'team1', personId: 'p1', staerken: 'sauber dokumentiert', entwicklung: 'früher anfangen' },
+      { art: 'bewertung/notiz', abschnittId: 's1', teamId: 'team1', notiz: 'Board gepflegt' },
+    );
+    const ganz = abschnittsinhalt(daten, 's1');
+    expect(ganz.planungen).toBe(2);
+    expect(ganz.punkte).toBe(1);
+    expect(ganz.rueckmeldungen).toBe(1);
+    expect(ganz.notizen).toBe(1);
+
+    // Auf ein Team eingegrenzt zählt nur, was diesem Team gehört.
+    const nurDoppler = abschnittsinhalt(daten, 's1', 'team2');
+    expect(nurDoppler.planungen).toBe(1);
+    expect(nurDoppler.punkte).toBe(0);
+    expect(abschnittIstLeer(abschnittsinhalt(daten, 's1', 'team1'))).toBe(false);
+  });
+
+  it('meldet einen frisch angelegten Abschnitt als leer', () => {
+    const daten = grundbestand();
+    expect(abschnittIstLeer(abschnittsinhalt(daten, 's1'))).toBe(true);
   });
 });

@@ -1,5 +1,16 @@
 # Entwurf: Planung je Team (Schemastand 3)
 
+> **Stillgelegt am 14.09.2026. Dieses Papier gilt nicht mehr.**
+>
+> Es hat Schemastand 3 hervorgebracht – die Planung je Team als eigene Größe neben dem
+> Abschnitt. **Schemastand 4 schafft diese Größe wieder ab**: Seit der Sprint dem Projekt
+> gehört, gibt es nichts mehr, was mehrere Teams zugleich betrifft, und Abschnitt und Planung
+> sind ein Datensatz. Siehe [Solution-Design 5.0c](solution-design.md) und
+> [ADR-012](adr/0012-projekt-als-ordnungsachse.md).
+>
+> Das ist kein Fehler dieses Papiers: Solange ein Abschnitt der Klasse gehörte, war die
+> zweite Größe richtig. Erhalten bleibt es als Beleg dafür.
+
 Stand 12.09.2026 · Entwurf zur Entscheidung · betrifft docs/anforderungen.md und
 docs/solution-design.md
 

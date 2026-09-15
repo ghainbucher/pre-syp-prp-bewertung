@@ -26,10 +26,12 @@ import type {
   Rubrik,
   Strang,
   Strangergebnis,
+  GithubAuswertung,
   Verstehensnachweis,
   Zeitraum,
 } from './types';
 import {
+  BEFUND_SCHWELLE,
   OHNE_STICHTAG,
   PEER_DECKELUNG,
   VERSTEHENS_ANTEIL,
@@ -37,10 +39,13 @@ import {
   ZEITFAKTOR_ZWEITE_HAELFTE,
 } from './defaults';
 import {
+  abschnitteOhneSpur,
   abschnitteVon,
   auslassungen,
+  gehoertZu,
   imZeitraumFuer,
   mitgliederIn,
+  planungVon,
   rubrikFuer,
   teamIn,
   teamsIn,
@@ -357,6 +362,256 @@ export function abschnittsErgebnis(
 }
 
 /**
+ * Vorschlag für den Sprintwert eines Teams (FA-82 AK-2).
+ *
+ * Der **Team-Anteil**: Team-Ergebnis und Scrum-Prozess zusammen, auf 100 %
+ * umgerechnet. Das sind die beiden Kategorien, die ein Team gemeinsam
+ * verantwortet. Individueller Beitrag und Peer-Korrektur bleiben draußen –
+ * sie betreffen Personen, und ein Mittel daraus wäre in einem Dreierteam auf
+ * die Werte der übrigen zurückrechenbar.
+ *
+ * Eine fehlende Kategorie fällt aus der Gewichtung (ADR-004), sie zählt nicht
+ * als 0. Fehlen beide, gibt es keinen Vorschlag.
+ */
+export function sprintwertVorschlag(
+  bewertung: Bewertung | undefined,
+  rubrik: Rubrik,
+): number | null {
+  const teile: Array<{ prozent: number; gewicht: number }> = [];
+  const team = kategorieErgebnis(bewertung?.team, rubrik.team);
+  const prozess = kategorieErgebnis(bewertung?.prozess, rubrik.prozess);
+  if (team?.prozent !== null && team?.prozent !== undefined) {
+    teile.push({ prozent: team.prozent, gewicht: rubrik.gewichte.team });
+  }
+  if (prozess?.prozent !== null && prozess?.prozent !== undefined) {
+    teile.push({ prozent: prozess.prozent, gewicht: rubrik.gewichte.prozess });
+  }
+  const summe = teile.reduce((s, t) => s + t.gewicht, 0);
+  if (teile.length === 0 || summe <= 0) return null;
+  return teile.reduce((s, t) => s + t.prozent * t.gewicht, 0) / summe;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Befund: agiert das Team als Team? (FA-79)                                  */
+/* -------------------------------------------------------------------------- */
+
+/** Die drei Muster aus Fachkonzept 8.2a (FA-79 AK-2). */
+export type Muster = 'zusammen' | 'zusammen-schwach' | 'ungleich' | 'unklar';
+
+/** Die drei Signale zu einer Person (FA-79 AK-4). */
+export interface Personensignal {
+  person: Person;
+  /** Individueller Beitrag in Prozent, `null` wenn nichts erfasst ist. */
+  individuell: number | null;
+  /** Abstand zum Median der Mitglieder in Prozentpunkten (AK-4). */
+  abstand: number | null;
+  /** Abstand zum Team-Ergebnis – nur zur Anzeige, nicht Signalgröße. */
+  abstandTeam: number | null;
+  /** Abstand des Peer-Werts zum Mittel des Teams in Prozentpunkten. */
+  peerAbstand: number | null;
+  /** Abgeschlossene Sprints dieses Teams ohne Spur dieser Person (FA-78). */
+  ohneSpur: number;
+  /** Wie viele der drei Signale in dieselbe Richtung zeigen. */
+  signale: number;
+  richtung: 'unter' | 'ueber' | null;
+  /** Mindestens zwei Signale in derselben Richtung (AK-4). */
+  auffaellig: boolean;
+}
+
+export interface Befund {
+  muster: Muster;
+  /** Die geltende Schwelle – wird mit dem Befund genannt (AK-4b). */
+  schwelle: number;
+  /** Team-Ergebnis des Abschnitts, für alle Mitglieder gleich. */
+  teamProzent: number | null;
+  /**
+   * Median der individuellen Beiträge – die Bezugsgröße der Signale (AK-4).
+   *
+   * Nicht das Mittel: Ein einziger Ausreißer zieht das Mittel mit sich, und
+   * dann weichen plötzlich **alle** ab. Der Median bleibt liegen, wo das Team
+   * liegt, und die Abweichung fällt dem zu, der abweicht – dieselbe Überlegung
+   * wie bei der Tendenz (FA-51).
+   */
+  bezug: number | null;
+  /** Abstand zwischen höchstem und niedrigstem individuellen Beitrag. */
+  spanne: number | null;
+  personen: Personensignal[];
+}
+
+/**
+ * Agiert das Team als Team (FA-79)?
+ *
+ * **Eine Aussage über das Team**, getragen von den Werten der Personen – nicht
+ * ein Urteil über eine Person (AK-1). Gelesen wird die Verteilung: Dass die
+ * Gleichverteilung der Beiträge etwas trägt, wo die Einzelzahl nichts trägt,
+ * ist der empirische Befund hinter dieser Anforderung (Fachkonzept 14.4, E1a
+ * und E3).
+ *
+ * Rechnet **nichts in die Note** (AK-7): Es wird nur gelesen, was erfasst ist.
+ */
+export function befund(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  teamId: Id | null,
+  bewertungen: Map<string, Bewertung>,
+): Befund {
+  const schwelle = istZahl(daten.befundSchwelle) ? daten.befundSchwelle : BEFUND_SCHWELLE;
+  const mitglieder = mitgliederIn(daten, abschnitt.id, teamId);
+  const ergebnisse = mitglieder.map((person) => ({
+    person,
+    ergebnis: abschnittsErgebnis(daten, abschnitt, person, bewertungen),
+  }));
+
+  const teamProzent = ergebnisse[0]?.ergebnis.team?.prozent ?? null;
+  const werte = ergebnisse
+    .map((e) => e.ergebnis.individuell?.prozent ?? null)
+    .filter((w): w is number => w !== null);
+  const bezug = werte.length > 0 ? median(werte) : null;
+  const spanne = werte.length > 1 ? Math.max(...werte) - Math.min(...werte) : null;
+
+  const peerWerte = ergebnisse
+    .map((e) => e.ergebnis.peer?.prozent ?? null)
+    .filter((w): w is number => w !== null);
+  const peerBezug = peerWerte.length > 1 ? median(peerWerte) : null;
+
+  const personen: Personensignal[] = ergebnisse.map(({ person, ergebnis }) => {
+    const individuell = ergebnis.individuell?.prozent ?? null;
+    // Erstes Signal: Abstand zum **Mittelwert der Mitglieder** (AK-4).
+    //
+    // Nicht zum Team-Ergebnis: Das liegt bei einem guten Team nahe 100 %, also
+    // könnte niemand fünfzehn Prozentpunkte darüber liegen – die Abweichung
+    // nach oben (AK-3) wäre strukturell nie erfüllbar. Der Abstand zum
+    // Team-Ergebnis bleibt als Anzeigegröße erhalten.
+    const abstand = individuell !== null && bezug !== null ? individuell - bezug : null;
+    const abstandTeam =
+      individuell !== null && teamProzent !== null ? individuell - teamProzent : null;
+    const peer = ergebnis.peer?.prozent ?? null;
+    const peerAbstand = peer !== null && peerBezug !== null ? peer - peerBezug : null;
+    // Drittes Signal: Eine fehlende Spur zählt ab dem ersten abgeschlossenen
+    // Sprint. Sie kann nur nach unten zeigen – wer nichts gezeigt hat, trägt
+    // das Team nicht.
+    const ohneSpur = abschnitteOhneSpur(daten, person.id, abschnitt.klasseId, teamId);
+
+    const zaehle = (richtung: 'unter' | 'ueber') => {
+      const vorzeichen = richtung === 'unter' ? -1 : 1;
+      let signale = 0;
+      if (abstand !== null && vorzeichen * abstand >= schwelle) signale += 1;
+      if (peerAbstand !== null && vorzeichen * peerAbstand >= schwelle) signale += 1;
+      if (richtung === 'unter' && ohneSpur > 0) signale += 1;
+      return signale;
+    };
+    const unten = zaehle('unter');
+    const oben = zaehle('ueber');
+    const signale = Math.max(unten, oben);
+    const richtung = signale === 0 ? null : unten >= oben ? 'unter' : 'ueber';
+    // AK-4c: Ein Abstand von mindestens der doppelten Schwelle trägt allein.
+    // Fünfzehn Prozentpunkte können ein schwacher Sprint sein, fünfzig nicht –
+    // und solange die Peer-Bewertung noch nicht läuft, bliebe sonst nur ein
+    // Signal übrig und „zwei von drei“ könnte nie ansprechen.
+    const deutlich = abstand !== null && Math.abs(abstand) >= 2 * schwelle;
+
+    return {
+      person,
+      individuell,
+      abstand,
+      abstandTeam,
+      peerAbstand,
+      ohneSpur,
+      signale,
+      richtung,
+      auffaellig: signale >= 2 || deutlich,
+    };
+  });
+
+  const muster: Muster =
+    werte.length < 2
+      ? 'unklar'
+      : personen.some((p) => p.auffaellig)
+        ? 'ungleich'
+        : bezug !== null && bezug < genuegendGrenze(daten.notenschluessel)
+          ? 'zusammen-schwach'
+          : 'zusammen';
+
+  return { muster, schwelle, teamProzent, bezug, spanne, personen };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Vorschlag für die Versionsverwaltung aus der GitHub-Auswertung (FA-81)      */
+/* -------------------------------------------------------------------------- */
+
+export interface Versionsvorschlag {
+  /** Vorgeschlagener Punktewert. */
+  punkte: number;
+  max: number;
+  /** Anteil der Änderungen über Pull Requests mit Review, in Prozent. */
+  prAnteil: number;
+  /** Anteil der Kennungen, die mindestens ein Review gegeben haben, in Prozent. */
+  reviewBeteiligung: number;
+  direktePushes: number;
+}
+
+/**
+ * Vorschlag für das Team-Kriterium „Versionsverwaltung“ (FA-81 AK-5).
+ *
+ * Er deckt **nur den mechanisch beobachtbaren Teil** des Kriteriums: PR-Anteil
+ * und Review-Beteiligung, je zur Hälfte. „Aussagekräftige Commits“ bleibt
+ * Urteil der Lehrkraft – ein Skript kann es nicht beurteilen, und für die
+ * Qualität von Commit-Nachrichten ist kein Zusammenhang mit der Leistung
+ * nachweisbar (Fachkonzept 14.4, E1).
+ *
+ * Dass hier überhaupt ein Vorschlag zulässig ist, liegt daran, dass Kennzahl
+ * und Kriterium **dasselbe Konstrukt** sind: Der PR-Anteil ist kein
+ * Stellvertreter für „Pull Requests mit Review“, er ist es.
+ */
+export function versionsverwaltungVorschlag(
+  auswertung: GithubAuswertung | undefined,
+  max: number,
+): Versionsvorschlag | null {
+  if (!auswertung || !istZahl(max) || max <= 0) return null;
+  const kennungen = Object.keys(auswertung.anteile);
+  if (kennungen.length === 0) return null;
+
+  const prAnteil = istZahl(auswertung.prAnteil) ? Math.min(100, Math.max(0, auswertung.prAnteil)) : 0;
+  const gebend = new Set(
+    (auswertung.reviews ?? []).filter((k) => k.anzahl > 0).map((k) => k.von),
+  );
+  const reviewBeteiligung = (100 * kennungen.filter((k) => gebend.has(k)).length) / kennungen.length;
+
+  const punkte = Math.round(((prAnteil / 100) * (max / 2) + (reviewBeteiligung / 100) * (max / 2)) * 2) / 2;
+  return {
+    punkte: Math.min(max, Math.max(0, punkte)),
+    max,
+    prAnteil,
+    reviewBeteiligung,
+    direktePushes: istZahl(auswertung.direktePushes) ? auswertung.direktePushes : 0,
+  };
+}
+
+/**
+ * Steht der Abschluss dieses Sprints an (FA-77 AK-5)?
+ *
+ * Erfüllt, wenn für **dieses Team** jedes Mitglied ein Ergebnis hat und der
+ * Sprint noch nicht abgeschlossen ist. Das ist ein **Vorschlag**, keine
+ * Automatik: Abgeschlossen wird mit einer ausdrücklichen Handlung. Ein bewusst
+ * leer gelassenes Feld hält den nächsten Sprint deshalb nicht auf – es
+ * verhindert nur, dass der Abschluss von selbst angeboten wird.
+ */
+export function abschlussFaellig(
+  daten: Datenbestand,
+  abschnitt: Abschnitt,
+  teamId: Id | null,
+  bewertungen: Map<string, Bewertung>,
+): boolean {
+  if (abschnitt.art !== 'sprint' || !teamId) return false;
+  if (planungVon(daten, abschnitt.id, teamId)?.abgeschlossenAm) return false;
+  const mitglieder = mitgliederIn(daten, abschnitt.id, teamId);
+  if (mitglieder.length === 0) return false;
+  return mitglieder.every(
+    (person) => abschnittsErgebnis(daten, abschnitt, person, bewertungen).prozent !== null,
+  );
+}
+
+/**
  * Ist die Bewertung dieses Abschnitts abgeschlossen (FA-53 AK-1)?
  *
  * Gemessen an dem, was erfasst ist – nicht an einem Schalter „fertig“: Der
@@ -452,11 +707,22 @@ export function strangErgebnis(
   zeitraum: Zeitraum = { von: null, bis: null },
 ): Strangergebnis {
   const imStrang = abschnitteVon(daten, person.klasseId).filter(
-    (a) => a.strang === strang && imZeitraumFuer(daten, a, person.id, zeitraum),
+    (a) =>
+      a.strang === strang &&
+      // OP-F17: Jedes Team hat seine eigenen Sprints. Was diese Person nie
+      // hatte, gehört auch nicht in ihre Zeitreihe.
+      gehoertZu(daten, a, person.id) &&
+      imZeitraumFuer(daten, a, person.id, zeitraum),
   );
-  // Der Zeitfaktor ergibt sich aus der Lage **innerhalb des Strangs**: Ein
-  // Test und ein Sprint liegen in verschiedenen Zeitreihen und dürfen sich
-  // ihre Hälften nicht gegenseitig verschieben (FA-54 AK-3, FA-59).
+  // Der Zeitfaktor ergibt sich aus der Lage **innerhalb des Strangs** und
+  // innerhalb der eigenen Abschnitte: Ein Test und ein Sprint liegen in
+  // verschiedenen Zeitreihen (FA-54 AK-3, FA-59), und die Sprints eines
+  // anderen Teams gehören in gar keine.
+  //
+  // Ohne diese zweite Einschränkung fiele der Zeitfaktor dort ganz aus, wo alle
+  // Sprints eines Teams in derselben Hälfte der Klassenliste liegen: Ein
+  // gemeinsamer Faktor kürzt sich aus dem gewichteten Mittel heraus (TF-N,
+  // TF-O).
   const faktoren = zeitfaktoren(imStrang.length, daten.zeitfaktorZweiteHaelfte);
   const abschnitte = imStrang.map((abschnitt, i) => ({
     abschnitt,

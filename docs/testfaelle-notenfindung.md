@@ -4,14 +4,14 @@
 |---|---|
 | **Projekt** | PRE/SYP-PRP-Bewertung |
 | **Dokument** | Testfälle zur Notenfindung |
-| **Version** | 0.2 |
-| **Datum** | 2026-09-10 |
+| **Version** | 0.3 |
+| **Datum** | 2026-09-12 |
 | **Autor** | Gerald Hainbucher |
 | **Status** | Entwurf – nicht freigegeben |
-| **Gültig für Softwarestand** | 0.3.0 |
-| **Zuletzt geprüft** | 2026-09-11 |
+| **Gültig für Softwarestand** | 0.8.0 |
+| **Zuletzt geprüft** | 2026-09-12 |
 | **Nächste Prüfung** | Ende Sprint 1 |
-| **Bezug** | [Fachkonzept](fachkonzept-unterricht.md) Kap. 10 · FA-24, FA-25, FA-50, FA-54, FA-59, FA-61 |
+| **Bezug** | [Fachkonzept](fachkonzept-unterricht.md) Kap. 10 · FA-24, FA-25, FA-50, FA-54, FA-59, FA-61, FA-70 |
 | **Rahmenbedingung** | RB-01 |
 
 ---
@@ -22,6 +22,7 @@
 |---|---|---|---|---|
 | 0.1 | 2026-09-10 | G. Hainbucher | Ersterstellung: neun Verläufe mit erwarteten Werten, entstanden bei der Entscheidung zu OP-F4 | Entwurf |
 | 0.2 | 2026-09-10 | G. Hainbucher | Vier Fälle zur Sperre bei negativem Strang ergänzt (Kap. 4.2) | Entwurf |
+| 0.3 | 2026-09-12 | G. Hainbucher | TF-N und TF-O: Bezugsgröße des Zeitfaktors ist das Team, nicht die Klasse (Kap. 4.3). Schließt OP-F17 | Entwurf |
 
 ---
 
@@ -131,6 +132,44 @@ dieser Stelle würde jedem Schüler im Oktober ein Nicht genügend anzeigen.
 
 **TF-M sichert die Grenze selbst.** 51 % ist positiv, 50,9 % nicht. Der Test prüft beide
 Seiten der Schwelle.
+
+### 4.3 Fälle zur Bezugsgröße des Zeitfaktors (FA-54, FA-70)
+
+Die Fälle TF-A bis TF-I prüfen, **wie** gewichtet wird. Diese beiden prüfen, **worüber**:
+Werden die beiden Hälften über die Sprints der Klasse gebildet oder über die des Teams?
+
+Seit der Festlegung vom 12.09.2026 hat jedes Team seine eigenen Sprints. Angenommen, zwei
+Teams arbeiten nacheinander – Kepler im ersten Halbjahr, Doppler im zweiten – und beide
+haben vier Sprints mit spiegelbildlichem Verlauf:
+
+| Nr. | Team | Verlauf über vier eigene Sprints |
+|---|---|---|
+| **TF-N** Aufsteiger, früh im Jahr | Kepler, Sprints 1–4 der Klasse | 55 · 65 · 85 · 95 |
+| **TF-O** Absteiger, spät im Jahr | Doppler, Sprints 5–8 der Klasse | 95 · 85 · 65 · 55 |
+
+| Nr. | Hälften über die **Klasse** (acht Sprints) | Hälften über das **Team** (vier Sprints) |
+|---|---|---|
+| **TF-N** | Faktoren 1 · 1 · 1 · 1 → 75,0 % (3) | Faktoren 1 · 1 · 2 · 2 → **80,0 % (2)** |
+| **TF-O** | Faktoren 2 · 2 · 2 · 2 → 75,0 % (3) | Faktoren 1 · 1 · 2 · 2 → **70,0 % (3)** |
+
+**Der Befund ist nicht, dass sich Zahlen verschieben, sondern dass der Zeitfaktor heute ganz
+ausfällt.** Liegen alle Sprints eines Teams in derselben Hälfte der Klassenliste, tragen sie
+alle denselben Faktor – und ein gemeinsamer Faktor kürzt sich aus dem gewichteten Mittel
+heraus. Übrig bleibt der schlichte Durchschnitt. Ein Team, das sich von 55 auf 95 steigert,
+und eines, das von 95 auf 55 abfällt, stehen dann auf demselben Wert. Das ist genau die
+Aussage, die § 20 Abs. 1 LBVO verbietet.
+
+Der Effekt ist hier am größten, weil die Teams sauber getrennt arbeiten. Laufen sie verzahnt,
+fällt er kleiner aus, aber gleichgerichtet: Er benachteiligt immer das Team, das früher
+fertig ist.
+
+**Erwartung an die Lehrkraft:** In beiden Fällen genügt die Rechnung – aber nur mit der
+Bezugsgröße Team. Mit der Bezugsgröße Klasse müsste bei TF-N von Hand nach oben abgewichen
+werden, ohne dass irgendetwas auf den Anlass hinweist. Eine Unterstützung, die stillschweigend
+in eine Richtung danebenliegt, ist schlechter als keine.
+
+*Schließt OP-F17: Teams dürfen verschieden viele Sprints haben. Die Hälften werden je Person
+über die Abschnitte gebildet, die sie tatsächlich hatte.*
 
 ---
 

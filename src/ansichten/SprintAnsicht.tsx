@@ -29,19 +29,34 @@ import {
   formatProzent,
   gesamtErgebnis,
   kategorieErgebnis,
+  abschlussFaellig,
   peerFrageFaellig,
   selbstbildAbweichung,
   tendenz,
 } from '../domain/scoring';
 import {
   abschnitteVon,
+  abschnitteVonTeam,
+  ZUSTAND_BEZEICHNUNG,
+  abschnittKuenftig,
+  istLaufenderAbschnitt,
+  sprintZustand,
+  zuletztGelaufenerAbschnitt,
+  kurzzeichen,
   mitgliederIn,
   planungVon,
   punkteErfasst,
   rubrikFuer,
   rueckmeldungOffen,
 } from '../domain/zuordnung';
+import { AbschnittLoeschen } from './AbschnittLoeschen';
+import { AuswertungsKarte } from './AuswertungsKarte';
+import { AnforderungenKarte } from './AnforderungenKarte';
+import { BefundKarte } from './BefundKarte';
 import { NotizenKarte } from './NotizenKarte';
+import { RetroKarte } from './RetroKarte';
+import { TeamtextKarte } from './TeamtextKarte';
+import { personenrueckmeldungText } from '../export/teamrueckmeldung';
 import { PlanungsKarte } from './PlanungsKarte';
 import type {
   Abschnitt,
@@ -53,12 +68,15 @@ import type {
   Person,
   Punkte,
   Rubrik,
+  Team,
 } from '../domain/types';
 import { dateiAnbieten } from '../export/csv';
 import { rubrikblattDateiname, rubrikblattHtml } from '../export/rubrikblatt';
 import { rueckmeldungDateiname, rueckmeldungHtml } from '../export/rueckmeldung';
 import { bewertungsIndex, type PunkteKategorie } from '../store/storeReducer';
-import { teamsVon } from '../ui/auswahl';
+import { nurAktive } from '../domain/loeschen';
+import { klassen, teamsVon } from '../ui/auswahl';
+import { projektzeile } from '../ui/projekte';
 import {
   GesetztFeld,
   Karte,
@@ -69,13 +87,6 @@ import {
   Textfeld,
 } from '../ui/bausteine';
 import type { AnsichtProps } from './typen';
-
-/** Kurzzeichen für die Abschnittswahl. */
-function zeichen(abschnitt: Abschnitt): string {
-  if (abschnitt.art === 'test') return `T${abschnitt.nummer}`;
-  if (abschnitt.art === 'diplomarbeit') return `DA${abschnitt.nummer}`;
-  return `S${abschnitt.nummer}`;
-}
 
 /** In welcher Phase des Sprints wird gerade gearbeitet (FA-70 bis FA-72)? */
 export type Phase = 'planning' | 'daily' | 'review';
@@ -125,35 +136,57 @@ function Ablauf({
   phase,
   art,
 }: AnsichtProps & { phase: Phase; art: Abschnitt['art'] }) {
-  const alle = abschnitteVon(daten, ui.klasseId);
-  const abschnitte = alle.filter((a) => a.art === art);
+  // Der Klassenfilter der Kopfleiste wirkt auf die **Projektleiste** (FA-95):
+  // Er entscheidet, welche Projekte zur Wahl stehen.
+  const teams = teamsVon(daten, ui.klasseId);
+  // Das Team steht **vor** der Abschnittswahl: Jedes Team hat seine eigenen
+  // Sprints (OP-F17), also hängt die Leiste am Team und nicht umgekehrt.
+  const team = teams.find((t) => t.id === ui.teamId) ?? teams[0] ?? null;
+  /*
+    Ist ein Projekt gewählt, kommt die Klasse **von ihm** und nicht mehr vom
+    Filter. Sonst verschwänden die Sprints eines gemischten Projekts, sobald
+    nach einer der beteiligten Klassen gefiltert wird – die Sprints hängen am
+    Projekt, nicht an der Klasse (Fachkonzept 15.1).
+  */
+  const arbeitsklasse = team?.klasseId ?? ui.klasseId;
+  const alle = abschnitteVon(daten, arbeitsklasse);
+  const abschnitte = abschnitteVonTeam(daten, arbeitsklasse, team?.id ?? null, art);
   const index = useMemo(() => bewertungsIndex(daten), [daten]);
   const istSprint = art === 'sprint';
 
-  if (!ui.klasseId) {
+  if (klassen(daten).length === 0) {
     return (
       <LeerHinweis
         titel="Noch keine Klasse angelegt"
-        text="Unter „Klassen & Teams“ eine Klasse mit Teams und Personen anlegen."
+        text="Unter „Stammdaten“ eine Klasse mit Teams und Personen anlegen."
         aktion={
-          <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
-            Zu Klassen &amp; Teams
+          <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'stammdaten', stammseite: 'klassen' })}>
+            Zu den Stammdaten
           </button>
         }
       />
     );
   }
 
-  /** Einen Sprint anlegen – er entsteht beim Planning (FA-70 AK-1). */
+  /**
+   * Einen Sprint anlegen – er entsteht beim Planning (FA-70 AK-1) und gehört
+   * dem gewählten Team (OP-F17). Deshalb wird er gleich für dieses Team
+   * geplant: Ein Sprint ohne Planung gehörte niemandem und stünde in jeder
+   * Leiste.
+   */
   function sprintAnlegen() {
+    if (!team) return;
     const nummer = alle.reduce((groesste, a) => Math.max(groesste, a.nummer), 0) + 1;
     const id = `abschnitt-${Date.now().toString(36)}`;
     dispatch({
       art: 'abschnitt/anlegen',
       abschnitt: {
         id,
-        klasseId: ui.klasseId!,
+        // Der Sprint gehört dem Projekt; seine Klasse ist die des Projekts.
+        klasseId: team.klasseId,
         nummer,
+        // Gleiche Zählweise wie das Kürzel (FA-04 AK-5): der wievielte Sprint
+        // **dieses Teams**.
         name: `Sprint ${abschnitte.length + 1}`,
         art: 'sprint',
         strang: 'praxis',
@@ -164,34 +197,39 @@ function Ablauf({
         peerAktiv: false,
       },
     });
+    dispatch({ art: 'planung/festhalten', abschnittId: id, teamId: team.id });
     setUi({ abschnittId: id });
   }
 
-  if (abschnitte.length === 0) {
+  if (!team) {
+    // Mit gesetztem Klassenfilter ist die Liste vielleicht nicht leer, sondern
+    // gefiltert (FA-95 AK-6). Das gehört dazugesagt – sonst sucht man ein
+    // Projekt, das es sehr wohl gibt.
+    const gefiltert = ui.klasseId !== null && nurAktive(daten.teams).length > 0;
     return (
       <LeerHinweis
-        titel={istSprint ? 'Noch kein Sprint geplant' : 'Noch keine Diplomarbeitsvorbereitung angelegt'}
+        titel={gefiltert ? 'Kein Projekt in dieser Klasse' : 'Noch kein Projekt angelegt'}
         text={
-          istSprint
-            ? 'Ein Sprint entsteht hier, beim Planning – nicht vorab unter „Klassen & Teams“.'
-            : 'Die Diplomarbeitsvorbereitung läuft ganzjährig neben den Sprints. Sie wird unter „Klassen & Teams“ angelegt.'
+          gefiltert
+            ? 'Der Klassenfilter oben in der Kopfleiste zeigt nur diese Klasse. Auf „alle Klassen" gestellt, stehen wieder alle Projekte zur Wahl.'
+            : 'Sprints gehören einem Projekt. Zuerst unter „Stammdaten · Projekte“ eines anlegen.'
         }
         aktion={
-          istSprint && phase === 'planning' ? (
-            <button type="button" className="schalter haupt" onClick={sprintAnlegen}>
-              Sprint anlegen
-            </button>
-          ) : istSprint ? (
+          gefiltert ? (
             <button
               type="button"
               className="schalter haupt"
-              onClick={() => setUi({ ansicht: 'planning' })}
+              onClick={() => setUi({ klasseId: null, teamId: null, abschnittId: null })}
             >
-              Zum Sprintplanning
+              Alle Klassen zeigen
             </button>
           ) : (
-            <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
-              Zu Klassen &amp; Teams
+            <button
+              type="button"
+              className="schalter haupt"
+              onClick={() => setUi({ ansicht: 'stammdaten', stammseite: 'projekte' })}
+            >
+              Zu den Projekt-Stammdaten
             </button>
           )
         }
@@ -199,29 +237,115 @@ function Ablauf({
     );
   }
 
-  const abschnitt = abschnitte.find((a) => a.id === ui.abschnittId) ?? abschnitte[abschnitte.length - 1];
-
-  const abschnittswahl = (
+  /**
+   * Die Projektleiste (FA-95 AK-10).
+   *
+   * Sie steht **vor** jeder Leermeldung und nicht erst über dem gefüllten
+   * Inhalt: Ein Projekt ohne Sprint hatte sonst keinen Weg zurück – die
+   * Leiste, mit der man das Projekt wechselt, war genau dort verschwunden,
+   * wo man sie braucht. Eine Auswahl, die entscheidet, was zu sehen ist,
+   * muss auch dann erreichbar sein, wenn nichts zu sehen ist.
+   */
+  const projektwahl = (
+    /* Das Team zuerst: Es entscheidet, welche Sprints es überhaupt gibt. */
     <div className="auswahlzeile">
-      <span className="etikett">{istSprint ? 'Sprint' : 'Abschnitt'}</span>
-      {abschnitte.map((eintrag) => (
+      <span className="etikett">Team</span>
+      {teams.map((eintrag) => (
         <button
           key={eintrag.id}
           type="button"
           className="chip"
-          aria-pressed={eintrag.id === abschnitt.id}
-          onClick={() => setUi({ abschnittId: eintrag.id })}
+          aria-pressed={eintrag.id === team.id}
+          // Beim Teamwechsel den Sprint zurücksetzen: Jedes Team hat seine
+          // eigenen, und die Vorgabe ist der letzte dieses Teams.
+          onClick={() => setUi({ teamId: eintrag.id, abschnittId: null, bewerterId: null })}
         >
-          <span className="index">{zeichen(eintrag)}</span>
           {eintrag.name}
+          {/*
+            Ohne Klassenfilter stehen Projekte mehrerer Klassen nebeneinander
+            – dann gehört die Klasse dazu (FA-95). Genannt werden die Klassen
+            der Mitglieder, nicht die Verwaltungsklasse am Projekt
+            (Fachkonzept 15.1).
+          */}
+          {ui.klasseId === null ? (
+            <span className="woanders">
+              {projektzeile(daten, eintrag).klassen.join(', ') || 'ohne Schüler'}
+            </span>
+          ) : null}
         </button>
       ))}
-      {istSprint && phase === 'planning' ? (
-        <button type="button" className="schalter klein" onClick={sprintAnlegen}>
-          + Sprint
-        </button>
-      ) : null}
     </div>
+  );
+
+  if (abschnitte.length === 0) {
+    return (
+      <>
+        {projektwahl}
+        <LeerHinweis
+          titel={
+            istSprint
+              ? `Noch kein Sprint für ${team.name}`
+              : 'Noch keine Diplomarbeitsvorbereitung angelegt'
+          }
+          text={
+            istSprint
+              ? `Ein Sprint entsteht hier, beim Planning – nicht vorab unter „Stammdaten“. Er gehört dann ${team.name}; andere Teams haben ihre eigenen.`
+              : 'Die Diplomarbeitsvorbereitung läuft ganzjährig neben den Sprints. Sie wird unter „Stammdaten“ angelegt.'
+          }
+          aktion={
+            istSprint && phase === 'planning' ? (
+              <button type="button" className="schalter haupt" onClick={sprintAnlegen}>
+                Sprint anlegen
+              </button>
+            ) : istSprint ? (
+              <button
+                type="button"
+                className="schalter haupt"
+                onClick={() => setUi({ ansicht: 'planning' })}
+              >
+                Zum Sprintplanning
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="schalter haupt"
+                onClick={() => setUi({ ansicht: 'stammdaten', stammseite: 'klassen' })}
+              >
+                Zu den Stammdaten
+              </button>
+            )
+          }
+        />
+      </>
+    );
+  }
+
+  const abschnitt = abschnitte.find((a) => a.id === ui.abschnittId) ?? abschnitte[abschnitte.length - 1];
+
+  const auswahl = (
+    <>
+      {projektwahl}
+      <div className="auswahlzeile">
+        <span className="etikett">{istSprint ? 'Sprint' : 'Abschnitt'}</span>
+        {abschnitte.map((eintrag) => (
+          <button
+            key={eintrag.id}
+            type="button"
+            className="chip"
+            aria-pressed={eintrag.id === abschnitt.id}
+            onClick={() => setUi({ abschnittId: eintrag.id })}
+          >
+            <span className="index">{kurzzeichen(daten, eintrag, team.id)}</span>
+            {eintrag.name}
+          </button>
+        ))}
+        {istSprint && phase === 'planning' ? (
+          <button type="button" className="schalter klein" onClick={sprintAnlegen}>
+            + Sprint
+          </button>
+        ) : null}
+      </div>
+    </>
   );
 
   return (
@@ -233,7 +357,8 @@ function Ablauf({
       abschnitt={abschnitt}
       index={index}
       phase={phase}
-      abschnittswahl={abschnittswahl}
+      team={team}
+      auswahl={auswahl}
     />
   );
 }
@@ -246,30 +371,15 @@ function TeamMaske({
   abschnitt,
   index,
   phase,
-  abschnittswahl,
+  team,
+  auswahl,
 }: AnsichtProps & {
   abschnitt: Abschnitt;
   index: Map<string, Bewertung>;
   phase: Phase;
-  abschnittswahl: ReactNode;
+  team: Team;
+  auswahl: ReactNode;
 }) {
-  const teams = teamsVon(daten, ui.klasseId);
-
-  if (teams.length === 0) {
-    return (
-      <LeerHinweis
-        titel="Noch kein Team angelegt"
-        text="Sprints und die Diplomarbeitsvorbereitung werden teamweise bewertet."
-        aktion={
-          <button type="button" className="schalter haupt" onClick={() => setUi({ ansicht: 'struktur' })}>
-            Zu Klassen &amp; Teams
-          </button>
-        }
-      />
-    );
-  }
-
-  const team = teams.find((t) => t.id === ui.teamId) ?? teams[0];
   // FA-67: Die geltenden Kriterien hängen am Team, nicht am Abschnitt.
   const rubrik = rubrikFuer(daten, abschnitt, team.id);
   const planung = planungVon(daten, abschnitt.id, team.id);
@@ -300,6 +410,24 @@ function TeamMaske({
     ? 'Läuft ganzjährig neben den Sprints. Ziel ist hier das Thema, das das Team sucht.'
     : PHASENTEXT[phase].text;
   const mitPlanung = phase === 'planning' || istDiplomarbeit;
+  // FA-76: Geschrieben wird im laufenden Abschnitt. Ein abgeschlossener ist zu
+  // sehen, aber nicht zu ändern – bis er ausdrücklich geöffnet wird.
+  const laufend = istLaufenderAbschnitt(daten, abschnitt, team.id);
+  const schreibbar = laufend || ui.bearbeiten === abschnitt.id;
+  // FA-77: Vorschlag, fixiert oder abgeschlossen. Der Zustand sperrt nicht
+  // (AK-7) – er sagt, ob dieser Sprint schon gilt.
+  const zustand = sprintZustand(daten, abschnitt.id, team.id);
+  // FA-76 AK-1a: Liegt heute in keinem Zeitraum, läuft keiner. Dann hilft der
+  // Hinweis, welcher zuletzt lief – das ist der, den man nachtragen will.
+  const zuletzt = laufend
+    ? undefined
+    : zuletztGelaufenerAbschnitt(daten, abschnitt.klasseId, team.id);
+  // FA-76 AK-1c: Gesperrt ist die Bewertung. Die Planung eines Sprints, der
+  // noch nicht begonnen hat, bleibt änderbar – sonst wäre kein Vorschlag
+  // anlegbar. Ein vergangener ist auch in der Planung gesperrt.
+  const planungSchreibbar = schreibbar || abschnittKuenftig(daten, abschnitt, team.id);
+  // FA-77 AK-5: Steht der Abschluss an?
+  const abschlussAnsteht = abschlussFaellig(daten, abschnitt, team.id, index);
   const teamKriterien = hier(rubrik.team);
   const prozessKriterien = hier(rubrik.prozess);
 
@@ -327,6 +455,9 @@ function TeamMaske({
           </h2>
           <p>
             {zeitraum ? `${zeitraum} · ` : ''}
+            {/* FA-77 AK-1: In welchem Zustand dieser Sprint ist – sichtbar in
+                jeder Phase, nicht nur beim Planen. */}
+            {abschnitt.art === 'sprint' ? `${ZUSTAND_BEZEICHNUNG[zustand]} · ` : ''}
             {einleitung}
           </p>
         </div>
@@ -369,32 +500,133 @@ function TeamMaske({
         </div>
       ) : null}
 
-      {abschnittswahl}
+      {auswahl}
 
-      <div className="auswahlzeile">
-        <span className="etikett">Team</span>
-        {teams.map((eintrag) => (
+      {/* FA-70 AK-8: Eine Fehleingabe muss dort verschwinden können, wo sie
+          entstanden ist – aber nur für dieses Team. */}
+      {phase === 'planning' || istDiplomarbeit ? (
+        <div className="zeile">
+          <span className="dehnen" />
+          <AbschnittLoeschen
+            daten={daten}
+            abschnittId={abschnitt.id}
+            teamId={team.id}
+            beschriftung={`${istDiplomarbeit ? 'Abschnitt' : 'Sprint'} für ${team.name} entfernen`}
+            hinweis={`Der ${istDiplomarbeit ? 'Abschnitt' : 'Sprint'} verschwindet aus der Leiste von ${team.name}; andere Teams behalten ihn.`}
+            onLoeschen={() => {
+              dispatch({
+                art: 'abschnitt/vonTeamEntfernen',
+                abschnittId: abschnitt.id,
+                teamId: team.id,
+              });
+              setUi({ abschnittId: null });
+            }}
+          />
+        </div>
+      ) : null}
+
+      {schreibbar ? null : (
+        <div className="meldung" role="status">
+          <b>Heute liegt außerhalb von {abschnitt.name}.</b>{' '}
+          {zuletzt && zuletzt.id !== abschnitt.id
+            ? `Zuletzt lief ${zuletzt.name}.`
+            : 'Für dieses Team läuft gerade kein Sprint.'}{' '}
+          Hier wird nur angezeigt, damit im Gespräch nichts versehentlich in den falschen Sprint
+          gerät.{' '}
           <button
-            key={eintrag.id}
             type="button"
-            className="chip"
-            aria-pressed={eintrag.id === team.id}
-            onClick={() => setUi({ teamId: eintrag.id, bewerterId: null })}
+            className="schalter schlicht"
+            onClick={() => setUi({ bearbeiten: abschnitt.id })}
           >
-            {eintrag.name}
+            zum Bearbeiten öffnen
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {!laufend && schreibbar ? (
+        <div className="meldung dringend" role="status">
+          <b>{abschnitt.name} ist zum Bearbeiten geöffnet.</b> Heute liegt außerhalb seines
+          Zeitraums; eine Änderung verschiebt einen bereits gebildeten Stand. Die Freigabe gilt nur
+          für diese Sitzung.{' '}
+          <button
+            type="button"
+            className="schalter schlicht"
+            onClick={() => setUi({ bearbeiten: null })}
+          >
+            wieder schützen
+          </button>
+        </div>
+      ) : null}
 
       {mitPlanung ? (
-        <PlanungsKarte
-          daten={daten}
-          dispatch={dispatch}
-          abschnitt={abschnitt}
-          team={team}
-          gesperrt={punkteErfasst(daten, abschnitt.id, team.id)}
-        />
+        <fieldset className="maske" disabled={!planungSchreibbar}>
+          <PlanungsKarte
+            daten={daten}
+            dispatch={dispatch}
+            abschnitt={abschnitt}
+            team={team}
+            gesperrt={punkteErfasst(daten, abschnitt.id, team.id)}
+          />
+        </fieldset>
       ) : null}
+
+      <fieldset className="maske" disabled={!schreibbar}>
+      {/* FA-77 AK-5, AK-5a: Der Sprint wird im Review abgeschlossen – mit einer
+          ausdrücklichen Handlung, nicht von selbst. Erst danach lässt sich der
+          nächste fixieren. Steht **innerhalb** der Maske: Der Abschluss
+          unterliegt dem Schreibschutz wie alles andere im Review (FA-76). Eine
+          halb erreichbare Sicht wäre unvorhersehbar. */}
+      {nurReview && abschnitt.art === 'sprint' ? (
+        zustand === 'abgeschlossen' ? (
+          <div className="meldung" role="status">
+            <b>{abschnitt.name} ist abgeschlossen.</b> {team.name} kann damit den nächsten Sprint
+            fixieren.{' '}
+            <button
+              type="button"
+              className="schalter schlicht"
+              onClick={() =>
+                dispatch({
+                  art: 'planung/abschliessen',
+                  abschnittId: abschnitt.id,
+                  teamId: team.id,
+                  abgeschlossen: false,
+                })
+              }
+            >
+              Abschluss zurücknehmen
+            </button>
+          </div>
+        ) : (
+          <div className={abschlussAnsteht ? 'meldung dringend' : 'meldung'} role="status">
+            {abschlussAnsteht ? (
+              <>
+                <b>Alles erfasst.</b> Damit ist {abschnitt.name} für {team.name} beurteilt – das
+                Review schließt ihn ab.
+              </>
+            ) : (
+              <>
+                <b>{abschnitt.name} ist offen.</b> Abschließen geht auch jetzt: Ein bewusst leeres
+                Feld bleibt „nicht bewertet“ und ist kein Hindernis.
+              </>
+            )}{' '}
+            <button
+              type="button"
+              className="schalter"
+              onClick={() =>
+                dispatch({
+                  art: 'planung/abschliessen',
+                  abschnittId: abschnitt.id,
+                  teamId: team.id,
+                  abgeschlossen: true,
+                })
+              }
+            >
+              Sprint abschließen
+            </button>
+          </div>
+        )
+      ) : null}
+
 
       <div className="zweispaltig">
         <div>
@@ -562,7 +794,7 @@ function TeamMaske({
           ) : (
             <p className="anmerkung">
               Für diesen Abschnitt ist die Peer-Bewertung ausgeschaltet. Sie lässt sich unter
-              „Klassen &amp; Teams“ je Abschnitt einschalten, sobald das Team das Vorgehen
+              „Stammdaten“ je Abschnitt einschalten, sobald das Team das Vorgehen
               tatsächlich einhält (FA-52).
             </p>
           )}
@@ -657,8 +889,8 @@ function TeamMaske({
           {/* FA-40 und FA-41: Was im Review gesprochen wurde. Der Nachweis
               rechnet mit, die Reflexion nicht. */}
           <Karte
-            titel="Verstehensnachweis und Reflexion"
-            hinweis={`Nachweis zählt ${daten.verstehensAnteil} % des individuellen Beitrags`}
+            titel="Spur, Verstehensnachweis und Reflexion"
+            hinweis={`Nachweis zählt ${daten.verstehensAnteil} % des individuellen Beitrags · die Spur zählt nicht`}
             buendig
           >
             {mitglieder.length === 0 ? (
@@ -669,6 +901,7 @@ function TeamMaske({
                   <thead>
                     <tr>
                       <th>Name</th>
+                      <th>Spur</th>
                       <th>Verstehensnachweis</th>
                       <th>Notiz dazu</th>
                       <th>Sicht der Person</th>
@@ -681,6 +914,44 @@ function TeamMaske({
                         <tr key={person.id}>
                           <td style={{ verticalAlign: 'top' }}>
                             <b>{person.name}</b>
+                          </td>
+                          {/* FA-78: Woran diese Person ihren Beitrag zeigt.
+                              Neben dem Verstehensnachweis, weil hier darüber
+                              gesprochen wird – und ohne Punktewert (AK-3). */}
+                          <td style={{ verticalAlign: 'top' }}>
+                            <Textfeld
+                              breit
+                              wert={eintrag?.spur?.bezeichnung ?? ''}
+                              beschriftung={`Spur – ${person.name}`}
+                              platzhalter="PR #42, Storno-Validierung"
+                              onAendern={(bezeichnung) =>
+                                dispatch({
+                                  art: 'bewertung/spur',
+                                  abschnittId: abschnitt.id,
+                                  teamId: team.id,
+                                  personId: person.id,
+                                  bezeichnung,
+                                })
+                              }
+                            />
+                            {eintrag?.spur ? (
+                              <Textfeld
+                                breit
+                                wert={eintrag.spur.verweis ?? ''}
+                                beschriftung={`Verweis zur Spur – ${person.name}`}
+                                platzhalter="Verweis, freiwillig"
+                                onAendern={(verweis) =>
+                                  dispatch({
+                                    art: 'bewertung/spur',
+                                    abschnittId: abschnitt.id,
+                                    teamId: team.id,
+                                    personId: person.id,
+                                    bezeichnung: eintrag.spur!.bezeichnung,
+                                    verweis,
+                                  })
+                                }
+                              />
+                            ) : null}
                           </td>
                           <td style={{ verticalAlign: 'top' }}>
                             <select
@@ -754,7 +1025,10 @@ function TeamMaske({
               <p className="anmerkung" style={{ margin: 0 }}>
                 Der Nachweis fragt nicht, wie der Code entstanden ist, sondern ob die Person für
                 ihn einstehen kann (Fachkonzept 8.3). Die Sicht der Person geht in keine Rechnung
-                ein – sie steht in der Belegfassung, weil sie erhoben wurde.
+                ein – sie steht in der Belegfassung, weil sie erhoben wurde. Die Spur ist die
+                Stelle, über die gesprochen wurde: ein Anker für das Urteil, kein Nachweis von
+                Menge – eine einzige Stelle kann viel oder wenig Arbeit sein. Der Verweis wird
+                gespeichert und angezeigt, nie abgerufen.
               </p>
             </div>
           </Karte>
@@ -798,6 +1072,26 @@ function TeamMaske({
                 'text/html;charset=utf-8',
               );
             }}
+            onKopieren={(person) => {
+              // FA-83 AK-7: Derselbe Inhalt als Text – für ein Einzelgespräch.
+              const e = ergebnisAusRubrik(
+                bewertung,
+                person,
+                mitglieder,
+                rubrik,
+                abschnitt.peerAktiv,
+                daten.peerDeckelung,
+              );
+              void navigator.clipboard?.writeText(
+                personenrueckmeldungText({
+                  abschnitt,
+                  person,
+                  planung,
+                  bewertung,
+                  stand: e.prozent,
+                }),
+              );
+            }}
           />
           </>
           ) : null}
@@ -828,6 +1122,58 @@ function TeamMaske({
             }
           />
           )}
+
+          {/* FA-96: Plan und Ist der Anforderungen nebeneinander – vor dem
+              Befund, weil er die erste Frage des Reviews beantwortet: Ist
+              das entstanden, was vereinbart war? */}
+          {nurReview && abschnitt.art === 'sprint' ? (
+            <AnforderungenKarte
+              daten={daten}
+              dispatch={dispatch}
+              abschnitt={abschnitt}
+              team={team}
+            />
+          ) : null}
+
+          {/* FA-79: Der Befund über das Team – nach den Werten, die ihn tragen,
+              und vor der Retrospektive, in der etwas daraus folgt. */}
+          {nurReview && abschnitt.art === 'sprint' ? (
+            <BefundKarte daten={daten} abschnitt={abschnitt} team={team} index={index} />
+          ) : null}
+
+          {/* FA-81: Eingelesene Kennzahlen und der Vorschlag für die
+              Versionsverwaltung. Die Anwendung ruft nichts ab. */}
+          {nurReview && abschnitt.art === 'sprint' ? (
+            <AuswertungsKarte
+              daten={daten}
+              dispatch={dispatch}
+              abschnitt={abschnitt}
+              team={team}
+              kriterium={rubrik.team.find((k) => k.id === 't5')}
+              punkte={bewertung?.team}
+            />
+          ) : null}
+
+          {/* FA-80: Erst feststellen, dann entwickeln – die Maßnahmen stehen
+              am Ende des Reviews, vor dem Abschließen des Sprints. */}
+          {nurReview && abschnitt.art === 'sprint' ? (
+            <RetroKarte daten={daten} dispatch={dispatch} abschnitt={abschnitt} team={team} />
+          ) : null}
+
+          {/* FA-82, FA-83: Sprintwert festlegen und den Text für den Kanal
+              mitnehmen – nach der Retrospektive, weil die Maßnahmen darin
+              stehen. */}
+          {nurReview && abschnitt.art === 'sprint' ? (
+            <TeamtextKarte
+              daten={daten}
+              dispatch={dispatch}
+              abschnitt={abschnitt}
+              team={team}
+              rubrik={rubrik}
+              bewertung={bewertung}
+              mitglieder={mitglieder}
+            />
+          ) : null}
 
           {phase === 'planning' && !istDiplomarbeit ? null : (
           <Karte titel="Notiz zum Abschnitt" hinweis="Rückmeldung an das Team">
@@ -947,6 +1293,7 @@ function TeamMaske({
           ) : null}
         </div>
       </div>
+      </fieldset>
     </>
   );
 }
@@ -965,12 +1312,15 @@ function RueckmeldungsKarte({
   offen,
   onAendern,
   onAusgeben,
+  onKopieren,
 }: {
   personen: Person[];
   bewertung: Bewertung | undefined;
   offen: Set<string>;
   onAendern: (personId: string, staerken: string, entwicklung: string) => void;
   onAusgeben: (person: Person) => void;
+  /** FA-83 AK-7: Text für ein Einzelgespräch – nicht für den Teamkanal. */
+  onKopieren: (person: Person) => void;
 }) {
   if (personen.length === 0) return null;
   const offeneHier = personen.filter((p) => offen.has(p.id));
@@ -1033,6 +1383,14 @@ function RueckmeldungsKarte({
                       onClick={() => onAusgeben(person)}
                     >
                       ausgeben
+                    </button>{' '}
+                    <button
+                      type="button"
+                      className="schalter schlicht klein"
+                      disabled={r === undefined}
+                      onClick={() => onKopieren(person)}
+                    >
+                      kopieren
                     </button>
                   </td>
                 </tr>
@@ -1045,6 +1403,9 @@ function RueckmeldungsKarte({
         <p className="anmerkung" style={{ margin: 0 }}>
           Je Person eine eigene Datei – so enthält jedes Blatt nur die Daten einer Person. Die
           vollständige Herleitung ist die Belegfassung (FA-32) und geht nicht mit hinaus.
+          „Kopieren“ legt denselben Text in die Zwischenablage, für ein Einzelgespräch oder
+          einen Einzelchat. <b>Nicht für den Teamkanal:</b> Hier steht der Stand dieser Person,
+          und der ist keine Sache des Teams.
         </p>
       </div>
     </Karte>

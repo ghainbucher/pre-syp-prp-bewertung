@@ -93,11 +93,40 @@ body {
 
 h1,
 h2,
-h3 {
+h3,
+h4 {
   font-family: var(--font-ui);
   margin: 0;
   text-wrap: balance;
   letter-spacing: -0.01em;
+}
+
+/*
+ * Zwischentitel innerhalb einer Karte – Planung, Befund, Retrospektive
+ * (FA-67, FA-79, FA-80, FA-81). Eine Karte mit mehreren Teilen braucht eine
+ * Gliederung, die leiser ist als eine zweite Karte.
+ */
+h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gedaempft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 16px 0 8px;
+}
+
+.karte .inhalt > h4:first-child {
+  margin-top: 0;
+}
+
+/* Verweise und Aufrufe im Fließtext: lesbar, aber nicht laut. */
+code {
+  font-family: ui-monospace, 'SFMono-Regular', 'Consolas', monospace;
+  font-size: 12px;
+  background: var(--flaeche-2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  overflow-wrap: anywhere;
 }
 
 button,
@@ -264,10 +293,135 @@ main {
   align-items: start;
 }
 
+/*
+ * Umgekehrte Gewichtung für die Stammdatenblätter (FA-34 AK-3).
+ *
+ * Dort steht links eine **Liste** aus vier schmalen Spalten und rechts das
+ * **gewählte Objekt** mit seinen Feldern. Die Voreinstellung oben würde der
+ * Liste den ganzen Platz geben und die Felder in 320 px quetschen – genau
+ * verkehrt herum. Hier bekommt die Liste, was sie braucht, und der Rest geht
+ * an die Bearbeitung.
+ */
+.zweispaltig.listeschmal {
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+}
+
 @media (max-width: 920px) {
-  .zweispaltig {
+  .zweispaltig,
+  .zweispaltig.listeschmal {
     grid-template-columns: 1fr;
   }
+}
+
+/*
+ * Zwei Dinge, die nur nebeneinander etwas aussagen (FA-96).
+ *
+ * Plan und Ist der Anforderungen: Einzeln ist jede Liste belanglos, erst der
+ * Vergleich trägt die Aussage. Untereinander gestellt wäre er nicht möglich,
+ * ohne zu scrollen – und damit wäre der Zweck der Karte verfehlt.
+ */
+.gegenueber {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px 20px;
+  align-items: start;
+}
+
+/* Ein festgehaltener Text, wie er eingegeben wurde – Zeilenumbrüche zählen. */
+.vorlage {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--grund);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  font-size: 14px;
+}
+
+/*
+ * Ein Blatt, das nicht die ganze Breite braucht (FA-34 AK-3).
+ *
+ * Klassen und Stichtage sind kurze Listen aus schmalen Spalten. Über 1180 px
+ * gezogen stünde zwischen „Bezeichnung“ und „löschen“ eine Handbreit Leere,
+ * und das Auge müsste den Weg jedes Mal zurücklegen.
+ */
+.blattschmal {
+  max-width: 860px;
+}
+
+/*
+ * Ein Raster für die Felder eines Stammdatenobjekts.
+ *
+ * Zwei Spalten, solange Platz ist: Datumsfelder und kurze Angaben stehen
+ * nebeneinander, statt eine Spalte lang hinunterzulaufen. `breit` nimmt beide –
+ * für die Beschreibung, die sonst zu schmal wäre, um gelesen zu werden.
+ */
+.feldgitter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.feldgitter .feld.breit {
+  grid-column: 1 / -1;
+}
+
+.feldgitter .feld > span {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+}
+
+/*
+ * Die Schülerzuordnung eines Projekts (FA-87 AK-5).
+ *
+ * Eine Zeile je Schüler, mehrspaltig, solange Platz ist: Eine Klasse mit
+ * dreißig Namen soll nicht drei Bildschirme hoch werden. Die Zeile bleibt
+ * anklickbar – Kästchen und beide Beschriftungen gehören zusammen.
+ */
+.schuelerliste {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2px 14px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.schuelerzeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.schuelerzeile:hover {
+  background: var(--grund);
+}
+
+.schuelerzeile.drin {
+  background: var(--grund);
+  font-weight: 600;
+}
+
+.schuelerzeile .klasse {
+  color: var(--gedaempft);
+  font-size: 12px;
+  min-width: 46px;
+}
+
+.schuelerzeile label {
+  cursor: pointer;
+}
+
+/* Wo ein Schüler sonst noch mitarbeitet – Auskunft, kein Fehler. */
+.woanders {
+  color: var(--gedaempft);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- Karten */
@@ -663,6 +817,31 @@ textarea {
   font-size: 14px;
 }
 
+/*
+ * Hinweis und Warnung innerhalb einer Karte.
+ *
+ * `.hinweis` erklärt, `.warnung` weist auf etwas hin, das zu berichtigen ist –
+ * ein verdrehter Zeitraum, eine Überschneidung (FA-66 AK-8), ein noch nicht
+ * fixierter Sprint (FA-77 AK-4). Beides ist Text und kein Kasten: Eine Karte
+ * voller Kästen liest niemand.
+ */
+.karte .inhalt > p.hinweis,
+.karte .inhalt > p.warnung {
+  font-size: 13px;
+  margin: 0 0 10px;
+  line-height: 1.45;
+}
+
+.karte .inhalt > p.hinweis {
+  color: var(--gedaempft);
+}
+
+.karte .inhalt > p.warnung {
+  color: var(--achtung);
+  border-left: 3px solid var(--achtung);
+  padding-left: 10px;
+}
+
 /* Feld für einen gesetzten Wert (FA-50, FA-51). */
 .gesetzt {
   display: flex;
@@ -705,4 +884,116 @@ td.gefaehrdet .prozent {
   padding: 18px 0;
   color: var(--gedaempft);
   font-size: 13px;
+}
+
+/*
+ * Schreibschutz für abgeschlossene Abschnitte (FA-76).
+ *
+ * Ein `fieldset` sperrt alle Eingaben in seinem Inneren auf einen Schlag –
+ * verlässlicher, als jedem Feld einzeln ein Merkmal mitzugeben, das man
+ * irgendwann vergisst. Ohne eigene Rahmen, damit es die Gliederung nicht
+ * verändert.
+ */
+fieldset.maske {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+fieldset.maske:disabled {
+  opacity: 0.75;
+}
+
+/* --------------------------------------------- Zweite Reiterzeile (FA-34) */
+
+/*
+ * Die Teile eines Sprints stehen unter den fünf Hauptbereichen (FA-91 AK-4).
+ *
+ * Eine eigene Zeile und nicht acht gleichrangige Reiter: Planning, Daily und
+ * Review sind keine Bereiche, sondern Schritte **innerhalb** eines Projekts.
+ * Kleiner gesetzt und mit einer Trennlinie darüber – die Rangordnung soll man
+ * sehen, ohne sie zu lesen.
+ */
+.reiter .unterreiter {
+  border-top: 1px solid var(--linie);
+  background: var(--flaeche-2);
+  align-items: center;
+}
+
+.reiter .unterreiter button {
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.reiter .unterreiter > .nr {
+  margin-right: 4px;
+  flex: none;
+}
+
+/* ------------------------------------------------------ Hinweis in Zellen */
+
+/*
+ * `.warnung` ist als Absatz im Karteninhalt gesetzt (siehe oben). In einer
+ * Tabellenzelle braucht es eine eigene Klasse: derselbe Ton, aber ohne den
+ * Balken links, der in einer Zelle nur die Spaltenbreite stört.
+ */
+.warnhinweis {
+  color: var(--achtung);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+/* Die gewählte Zeile einer Liste – ruhig, nur ein Grundton. */
+tbody tr.gewaehlt {
+  background: var(--flaeche-2);
+}
+
+/* Ein Etikett darf hervorstechen, wenn es den laufenden Sprint meint. */
+.etikett.haupt {
+  color: var(--akzent);
+}
+
+/*
+ * Eine Sicht kann einen zweiten, untergeordneten Kopf haben – etwa die
+ * eingebettete Struktursicht unter den Stammdaten. Sie bekommt ein `h3`, damit
+ * nicht zwei Überschriften derselben Größe um den Rang streiten.
+ */
+.ansichtskopf h3 {
+  font-size: 17px;
+}
+
+/*
+ * Hinweis auf eine ausstehende Überarbeitung (FA-93).
+ *
+ * Ruhig, gestrichelt, in der Fläche des Grundes: Er soll erkennbar **nicht**
+ * zum Inventar gehören. Ein farbiger Kasten wäre ein Fehlersignal, und das ist
+ * es nicht – die Sicht funktioniert.
+ */
+.ueberarbeitung {
+  border: 1px dashed var(--linie-stark);
+  border-radius: var(--radius);
+  padding: 9px 13px;
+  margin: 0 0 18px;
+  color: var(--gedaempft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/*
+ * Logisch gelöschte Stammdaten (FA-94).
+ *
+ * Sichtbar nur, wenn man sie einschaltet – und dann deutlich zurückgenommen:
+ * Sie sind da, aber sie gelten nicht. Durchstreichen allein wäre zu wenig,
+ * Ausgrauen allein zu leise.
+ */
+tbody tr.geloescht > td {
+  color: var(--gedaempft);
+  background: var(--flaeche-2);
+}
+
+tbody tr.geloescht .bezeichnung,
+tbody tr.geloescht td:first-child {
+  text-decoration: line-through;
 }

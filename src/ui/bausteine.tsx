@@ -281,3 +281,55 @@ export function LeerHinweis({ titel, text, aktion }: { titel: string; text: Reac
     </div>
   );
 }
+
+/**
+ * Hinweis auf eine noch ausstehende Überarbeitung (FA-93).
+ *
+ * Er nennt, **wo** die Entscheidung fällt (AK-2) – sonst wird der Hinweis
+ * selbst zum Inventar und steht in einem Jahr noch da. Er sperrt nichts (AK-3)
+ * und verschwindet mit der Entscheidung (AK-4).
+ */
+export function Ueberarbeitung({
+  offenerPunkt,
+  frage,
+}: {
+  offenerPunkt: string;
+  frage: string;
+}) {
+  return (
+    <p className="ueberarbeitung">
+      <b>Zwischenstand.</b> Aufbau und Gestaltung dieser Sicht sind noch nicht festgelegt; der
+      gegenwärtige Stand ist übernommen und wird überarbeitet. Entschieden wird das unter{' '}
+      <b>{offenerPunkt}</b> (aufgenommen am 13.09.2026): {frage} Bedienbar ist die Sicht
+      vollständig – der Hinweis sperrt nichts.
+    </p>
+  );
+}
+
+/**
+ * Schalter „auch gelöschte zeigen" samt Zähler (FA-94).
+ *
+ * Steht auf jedem Stammdatenblatt an derselben Stelle. Ohne gelöschte Einträge
+ * erscheint er gar nicht – ein Schalter, der nie etwas bewirkt, ist Inventar.
+ */
+export function GeloeschteSchalter({
+  anzahl,
+  offen,
+  onUmschalten,
+}: {
+  anzahl: number;
+  offen: boolean;
+  onUmschalten: (offen: boolean) => void;
+}) {
+  if (anzahl === 0) return null;
+  return (
+    <button
+      type="button"
+      className="chip"
+      aria-pressed={offen}
+      onClick={() => onUmschalten(!offen)}
+    >
+      {offen ? 'gelöschte ausblenden' : `${anzahl} gelöschte zeigen`}
+    </button>
+  );
+}
